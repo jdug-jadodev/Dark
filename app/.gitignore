@@ -1,0 +1,19 @@
+# Gradle / compilación
+.gradle/
+build/
+*/build/
+.kotlin/
+
+# Android
+local.properties
+*.apk
+*.aab
+captures/
+
+# Copia generada del juego (sale de ../demo-juego.html en cada compilación)
+android/src/main/assets/game/index.html
+
+# IDE
+.idea/
+*.iml
+.DS_Store
