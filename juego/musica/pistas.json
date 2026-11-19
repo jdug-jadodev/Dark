@@ -1,0 +1,50 @@
+{
+  "tracks": {
+    "menu": {
+      "file": "menu.mp3",
+      "title": "Menú · guitarra limpia",
+      "loopStart": 0.25,
+      "loopEnd": 12.881587,
+      "gain": 0.3635,
+      "bpm": 76,
+      "embed": true
+    },
+    "doom": {
+      "file": "doom.mp3",
+      "title": "Partida · metal industrial",
+      "loopStart": 0.25,
+      "loopEnd": 14.795465,
+      "gain": 0.4491,
+      "bpm": 132,
+      "embed": true
+    },
+    "metal": {
+      "file": "metal.mp3",
+      "title": "Partida pesada y jefes · metal con guitarras",
+      "loopStart": 0.25,
+      "loopEnd": 28.320181,
+      "gain": 0.5728,
+      "bpm": 171,
+      "embed": true
+    },
+    "space": {
+      "file": "space.mp3",
+      "title": "Viaje espacial · ambiental",
+      "loopStart": 0.25,
+      "loopEnd": 58.431814,
+      "gain": 0.1424,
+      "bpm": 66,
+      "embed": true
+    },
+    "boss": {
+      "file": "boss.mp3",
+      "title": "Variante para jefes (sin usar) · thrash",
+      "loopStart": 0.25,
+      "loopEnd": 10.684785,
+      "gain": 0.4525,
+      "bpm": 184,
+      "embed": false
+    }
+  },
+  "source": "c10f548e2ad4bf73"
+}

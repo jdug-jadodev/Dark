@@ -19,6 +19,7 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
+import com.giroestelar.adapters.AndroidThermal
 import com.giroestelar.adapters.GameBridge
 import com.giroestelar.adapters.SharedPrefsGameStateStore
 import com.giroestelar.adapters.VibratorHaptics
@@ -38,7 +39,7 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(debuggable)
 
         /* ---- adaptadores + aplicación ---- */
-        val host = GameHost(SharedPrefsGameStateStore(this), VibratorHaptics(this))
+        val host = GameHost(SharedPrefsGameStateStore(this), VibratorHaptics(this), AndroidThermal(this))
 
         /* ---- WebView del juego ---- */
         // Los archivos de la app se sirven como si fueran una página https local (sin internet)
@@ -84,6 +85,9 @@ class MainActivity : Activity() {
         }
         setContentView(root)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // El juego dibuja a 60 cuadros por segundo: se le pide a la pantalla ese ritmo. En una de
+        // 120 Hz, ir al doble solo calienta el teléfono y gasta batería sin que se note.
+        window.attributes = window.attributes.apply { preferredRefreshRate = 60f }
         hideSystemBars()
 
         // "Atrás" del sistema: primero se le pregunta al juego (pausar, cerrar ventana); si no lo usa, se sale

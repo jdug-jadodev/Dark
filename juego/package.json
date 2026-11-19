@@ -1,0 +1,20 @@
+{
+  "name": "giro-estelar-juego",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Código fuente del juego Giro Estelar (Three.js). Genera ../demo-juego.html",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "musica": "node tools/grabar-musica.mjs && node build.mjs",
+    "test": "node build.mjs && node test/arquitectura.mjs && node test/sonidos.mjs && node test/golden.mjs --check",
+    "golden:update": "node build.mjs && node test/golden.mjs --update",
+    "format": "prettier --write src build.mjs test tools"
+  },
+  "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7",
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.65.1",
+    "prettier": "^3.10.1"
+  }
+}

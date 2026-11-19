@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#070b18">
+<title>Giro Estelar 3D – Demo</title>
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <canvas id="fx"></canvas>
+
+    <div id="hud">
+      <div class="row"><span id="hCoins">🪙 0</span><span id="hCombo"></span><span id="hPow"></span><span id="hTime">⏱ 60</span></div>
+      <div id="bar"><i id="barFill"></i></div>
+      <div id="phase"></div>
+      <div id="nitro"><i id="nitroFill"></i><b></b><span>🚀 NITRO</span></div>
+      <div id="hull"><i id="hullFill"></i><span id="hullTxt">🛡 CASCO 100%</span></div>
+    </div>
+    <button id="nitroBtn" aria-label="Nitro"><span>🚀</span><small>NITRO</small></button>
+    <button id="pauseBtn" aria-label="Pausa">⏸</button>
+    <div id="warn"><span>📱</span> <em id="warnTxt" style="font-style:normal">¡GIRA EL CELU!</em></div>
+    <div id="toast"></div>
+    <div id="count"></div>
+    <div id="hint">Desliza el dedo en cualquier parte para mover la nave</div>
+    <div id="pad">
+      <div class="pl"><button data-d="up" aria-label="Adelante">▲</button><button data-d="down" aria-label="Atrás">▼</button></div>
+      <div class="pr"><button data-d="left" aria-label="Izquierda">◀</button><button data-d="right" aria-label="Derecha">▶</button></div>
+    </div>
+
+    <!-- Menú -->
+    <div class="screen show" id="menu">
+      <div class="card">
+        <h1>Giro Estelar</h1>
+        <div class="sub">Demo · llega a 320 puntos y enfrenta al jefe</div>
+        <div class="coins" id="mCoins">🪙 0</div>
+        <div class="best" id="mBest"></div>
+        <button class="btn" id="play">▶ Jugar · Aventura</button>
+        <button class="btn surv" id="survBtn">⏱ Supervivencia · ¿cuánto aguantas?</button>
+        <button class="btn space" id="spaceBtn">🪐 Viaje espacial · vuelo libre 3D</button>
+        <button class="btn alt" id="chestBtn">🎁 Cofre diario</button>
+        <button class="btn alt" data-open="settings">⚙ Configuración</button>
+        <label class="chk"><input type="checkbox" id="inv"> Modo demo: no morir (para ver todo el flujo)</label>
+        <div class="ctrl" id="lvlPick" style="display:none"><span>Supervivencia desde el nivel:</span><button class="opt sel" data-lv="1">1</button><button class="opt" data-lv="5">5</button><button class="opt" data-lv="10">10</button><button class="opt" data-lv="15">15</button><button class="opt" data-lv="20">20</button></div>
+      </div>
+    </div>
+
+    <!-- Choque -->
+    <div class="screen" id="crash">
+      <div class="card">
+        <h2>💥 ¡Chocaste!</h2>
+        <div class="sub" id="crashInfo"></div>
+        <button class="btn ad" id="reviveBtn">▶ Revivir viendo un anuncio</button>
+        <button class="btn alt" id="giveUp">No, gracias</button>
+        <div class="note">Una vez por partida, voluntario. El jugador siempre ve qué gana antes de aceptar.</div>
+      </div>
+    </div>
+
+    <!-- Fin -->
+    <div class="screen" id="end">
+      <div class="card" id="endBox"></div>
+    </div>
+
+    <!-- Cofre -->
+    <div class="screen" id="chest">
+      <div class="card" id="chestBox"></div>
+    </div>
+
+    <!-- Pausa -->
+    <div class="screen" id="pause">
+      <div class="card">
+        <h2>⏸ Pausa</h2>
+        <div class="sub" id="pauseInfo"></div>
+        <button class="btn" id="resumeBtn">▶ Continuar</button>
+        <button class="btn alt" data-open="settings">⚙ Configuración</button>
+        <button class="btn alt" id="quitBtn">🚪 Salir al menú</button>
+        <div class="note">Si sales, la partida termina y conservas las monedas que juntaste.</div>
+      </div>
+    </div>
+
+    <!-- Configuración (después de la pausa, para quedar encima de ella) -->
+    <div class="screen" id="settings">
+      <div class="card">
+        <h2>⚙ Configuración</h2>
+        <label class="vol"><span>🎵 Música</span><input type="range" id="volMusic" min="0" max="100" step="5"><b id="volMusicN"></b></label>
+        <label class="vol"><span>💥 Efectos</span><input type="range" id="volSfx" min="0" max="100" step="5"><b id="volSfxN"></b></label>
+        <div class="ctrl" id="gfx"><span>Gráficos:</span><button class="opt" data-gfx="auto">Auto</button><button class="opt" data-gfx="high">Alta</button><button class="opt" data-gfx="medium">Media</button><button class="opt" data-gfx="low">Baja</button></div>
+        <div class="note" id="gfxNote"></div>
+        <div class="ctrl" id="ctrl"><span>Control:</span><button class="opt" data-ctrl="swipe">👆 Deslizar</button><button class="opt" data-ctrl="btn">🎮 Flechas</button></div>
+        <button class="btn" id="settingsClose">Listo</button>
+      </div>
+    </div>
+
+    <!-- Anuncio (siempre al final para quedar encima) -->
+    <div class="screen" id="ad">
+      <div class="card">
+        <h2>Anuncio (simulado)</h2>
+        <div class="sub" id="adLabel"></div>
+        <div class="adbox"><b id="adCount">3</b>aquí iría un video de 15-30 s</div>
+        <div class="pbar"><i id="adFill" style="width:0"></i></div>
+        <button class="btn ad" id="adBtn" disabled>Espera…</button>
+      </div>
+    </div>
+  </div>
+  <div id="banner">Banner pequeño de anuncio · aquí iría AdMob (320×50)</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!--__SONG__-->
+<script>
+/*__JS__*/
+</script>
+</body>
+</html>

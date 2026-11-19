@@ -51,4 +51,22 @@ class GameHostTest {
         host.vibrate(-5)
         assertEquals(listOf(60L, GameHost.MAX_VIBRATION_MS), haptics.calls)
     }
+
+    @Test
+    fun `el calor del telefono se entrega dentro de un rango conocido`() {
+        var real = 0
+        val host = GameHost(FakeStore(), FakeHaptics(), Thermal { real })
+        assertEquals(0, host.heat())
+        real = 2
+        assertEquals(2, host.heat())
+        real = 99
+        assertEquals(GameHost.MAX_HEAT, host.heat())
+        real = -3
+        assertEquals(0, host.heat())
+    }
+
+    @Test
+    fun `sin sensor de calor el telefono se trata como normal`() {
+        assertEquals(0, GameHost(FakeStore(), FakeHaptics()).heat())
+    }
 }
