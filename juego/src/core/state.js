@@ -27,8 +27,6 @@ export const G = {
     y: 0,
     has: false,
   },
-  chestOpened: false,
-  chestDoubled: false,
   camX: 0,
   scroll: 0,
   bendX: 0,
@@ -41,7 +39,10 @@ export const G = {
   show: 1, // 0 = cámara de juego … 1 = cámara de escaparate
   showG: 0, // 0 = lobby … 1 = taller (la nave sube y se gira con el dedo)
   yaw: 0, // giro de la nave en el taller
+  lobbyYaw: 0.6, // giro de la nave en el lobby (arranca de tres cuartos; el dedo lo cambia)
   yawHold: false, // el dedo la está girando
   yawTo: null, // taller: ángulo al que se está acomodando la nave (null = quieta)
   showGuns: false, // taller: mostrar los cañones aunque no haya arma
+  garageBig: false, // taller: la lista de piezas está agrandada
+  showX: 0, // 0 … 1: cuánto se ha corrido la cámara para dejarle sitio a la lista agrandada
 };

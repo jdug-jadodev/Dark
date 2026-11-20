@@ -244,7 +244,7 @@ Lo que falta:
 | Calor y batería: tope de 60 cuadros, calidad gráfica ajustable y reacción al calor | Hecho y medido en el A56 |
 | Prueba en un teléfono de gama baja real | Pendiente |
 | Música pregrabada al abrir (hoy es lo que más gasta) | Propuesto |
-| Lobby y taller de la nave (260 piezas de apariencia en 10 ranuras) | **Hecho y en la app** (medido en el A56 el 2026-11-20). Ver [plan-de-desarrollo.md](plan-de-desarrollo.md) |
+| Lobby y taller de la nave (298 piezas de apariencia en 11 ranuras, con 9 naves únicas) | **Hecho y en la app** (medido en el A56 el 2026-11-20). Ver [plan-de-desarrollo.md](plan-de-desarrollo.md) |
 | Misiones diarias, nivel de piloto · Multijugador | Después, en el orden de [plan-de-desarrollo.md](plan-de-desarrollo.md) |
 
 ## Comandos

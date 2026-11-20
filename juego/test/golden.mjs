@@ -41,6 +41,18 @@ function installHarness(seed) {
 
   let vt = 0;
   performance.now = () => vt;
+  /* la fecha también es fija (y avanza con el reloj virtual): el cofre y las misiones dependen del día */
+  const RealDate = Date,
+    T0 = new RealDate(2026, 10, 20, 12).getTime();
+  window.Date = class extends RealDate {
+    constructor(...a) {
+      if (a.length) super(...a);
+      else super(T0 + vt);
+    }
+    static now() {
+      return T0 + vt;
+    }
+  };
   const raf = [];
   let rid = 0;
   window.requestAnimationFrame = (cb) => (raf.push(cb), ++rid);

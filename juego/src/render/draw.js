@@ -173,6 +173,7 @@ export function draw(dt, lazy) {
     inGarage = inMenu && G.view === 'garage';
   G.show += ((inMenu ? 1 : 0) - G.show) * Math.min(1, dt * (inMenu ? 3 : 5));
   G.showG += ((inGarage ? 1 : 0) - G.showG) * Math.min(1, dt * 5);
+  G.showX += ((inGarage && G.garageBig ? 1 : 0) - G.showX) * Math.min(1, dt * 6);
   if (inGarage && G.showGuns) {
     /* mirando las armas la nave se pone de frente, para que los disparos de muestra salgan derecho */
     G.yaw = Math.atan2(Math.sin(G.yaw), Math.cos(G.yaw));
@@ -183,8 +184,8 @@ export function draw(dt, lazy) {
     if (Math.abs(G.yawTo - G.yaw) < 0.01) G.yawTo = null;
   }
   const showK = ease(G.show),
-    /* la nave queda quieta, vista de tres cuartos; en el taller solo gira con el dedo */
-    showYaw = showK * (G.showG * G.yaw + (1 - G.showG) * SHOW.yaw);
+    /* la nave queda quieta, vista de tres cuartos; solo gira con el dedo, en el lobby y en el taller */
+    showYaw = showK * (G.showG * G.yaw + (1 - G.showG) * G.lobbyYaw);
 
   /* nave: si cambió alguna pieza se vuelve a armar */
   const s = G.ship,
@@ -318,9 +319,9 @@ export function draw(dt, lazy) {
     const gk = G.showG,
       half = (SHOW.fov * Math.PI) / 360,
       tanH = Math.tan(half) * (G.cw / G.ch),
-      dist = clamp(SHOW.span / ((SHOW.fill + SHOW.fillG * gk) * 2 * tanH), 90, 420),
+      dist = clamp(SHOW.span / ((SHOW.fill + SHOW.fillG * gk - SHOW.fillX * G.showX) * 2 * tanH), 90, 520),
       elev = SHOW.elev + SHOW.elevG * gk,
-      rise = SHOW.rise + (SHOW.riseG - SHOW.rise) * gk;
+      rise = SHOW.rise + (SHOW.riseG - SHOW.rise) * gk + SHOW.riseX * G.showX;
     const mix = (a, b) => a + (b - a) * showK;
     camera.position.set(
       mix(camera.position.x, sx),
@@ -400,8 +401,10 @@ const SHOW = {
   elev: 0.36,
   elevG: 0.06,
   rise: 0.14,
-  riseG: 0.46,
-  yaw: 0.6,
+  riseG: 0.44,
+  /* con la lista del taller agrandada: la nave más pequeña y más arriba */
+  fillX: 0.2,
+  riseX: 0.25,
 };
 function cometLane(c) {
   /* tramo del carril que cae dentro de la pista visible */

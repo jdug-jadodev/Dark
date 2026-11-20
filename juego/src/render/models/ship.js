@@ -7,6 +7,7 @@ import { vrand } from '../../core/util.js';
 import { BOX, SPH, bmat, extrude, mirror } from '../kit.js';
 import { buildNose } from './nose.js';
 import { makeStamps, makeTrail } from './trail.js';
+import { buildVehicle } from './vehicles.js';
 
 /* Geometrías: se crean la primera vez que hacen falta y se reutilizan (probar piezas en el
    taller rehace la nave muchas veces; así solo se crean los materiales). */
@@ -63,7 +64,21 @@ function shine() {
 }
 
 /* ---------- pinturas especiales: un trozo de programa de dibujo que se le agrega al material ---------- */
-const FX = { shift: 1, spectrum: 2, rainbow: 3, ghost: 4, pulse: 5, holo: 6, glitter: 7, lava: 8 };
+const FX = {
+  shift: 1,
+  spectrum: 2,
+  rainbow: 3,
+  ghost: 4,
+  pulse: 5,
+  holo: 6,
+  glitter: 7,
+  lava: 8,
+  aurora: 9,
+  rim: 10,
+  crystal: 11,
+  cosmos: 12,
+  neonbow: 13,
+};
 const FX_HEAD = `
 uniform float uTime;
 uniform int uFx;
@@ -107,6 +122,28 @@ const FX_BODY = `#include <emissivemap_fragment>
   } else if (uFx == 8) {
     float n = sin(vViewPosition.x * 0.42 + sin(vViewPosition.z * 0.33 + uTime * 0.8) * 2.0 + vViewPosition.y * 0.5 + uTime * 1.1);
     totalEmissiveRadiance += uB * smoothstep(0.25, 1.0, n) * 1.6;
+  } else if (uFx == 9) {
+    float w = 0.5 + 0.5 * sin(vViewPosition.x * 0.22 + sin(vViewPosition.y * 0.3 + uTime * 0.9) * 1.8 + uTime * 0.6);
+    vec3 c = mix(uA, uB, w);
+    diffuseColor.rgb = c * 0.55;
+    totalEmissiveRadiance += c * (0.25 + 0.55 * w * w + 0.5 * fr);
+  } else if (uFx == 10) {
+    float rim = pow(fr, 2.2) * (0.75 + 0.25 * sin(uTime * 2.2));
+    totalEmissiveRadiance += mix(uA, uB, rim) * rim * 2.6;
+  } else if (uFx == 11) {
+    vec3 c = fxPal(fr * 1.6 + uTime * 0.15);
+    diffuseColor.rgb = c * 0.6;
+    diffuseColor.a = 0.22 + 0.75 * pow(fr, 1.3);
+    totalEmissiveRadiance += c * (0.25 + 0.9 * pow(fr, 1.6));
+  } else if (uFx == 12) {
+    float w = 0.5 + 0.5 * sin(vViewPosition.x * 0.16 + vViewPosition.z * 0.12 + sin(vViewPosition.y * 0.2 + uTime * 0.5) * 2.0);
+    float h = fxHash(floor(vViewPosition * 1.5));
+    diffuseColor.rgb = mix(uA, uB, w * w) * 0.5;
+    totalEmissiveRadiance += mix(uA, uB, w * w) * 0.35 + vec3(1.0) * step(0.97, h) * (0.5 + 0.5 * sin(uTime * 6.0 + h * 80.0)) * 1.8;
+  } else if (uFx == 13) {
+    float line = smoothstep(0.86, 1.0, sin(vViewPosition.x * 0.9 + vViewPosition.y * 0.6 - uTime * 2.0));
+    vec3 c = fxPal(uTime * 0.25 + vViewPosition.x * 0.03);
+    totalEmissiveRadiance += c * (line * 1.8 + 0.6 * pow(fr, 2.0));
   }
 }`;
 function special(mat, P, U) {
@@ -124,12 +161,223 @@ function special(mat, P, U) {
         .replace('#include <emissivemap_fragment>', FX_BODY);
     };
     mat.customProgramCacheKey = () => 'giro-fx';
-    if (P.fx === 'ghost' || P.fx === 'holo') mat.transparent = true;
+    if (P.fx === 'ghost' || P.fx === 'holo' || P.fx === 'crystal') mat.transparent = true;
   }
   return mat;
 }
 
+/* ---------- lo que comparten las naves armables y las únicas: llamas, cañones y estelas ---------- */
+/* Las llamas de la nave. at(x, y, z, k) pone una en la boca de un escape (k = tamaño). */
+function flameSet(F, keep, g) {
+  const fOut = keep(
+    new THREE.MeshBasicMaterial({
+      color: F.out,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  const fIn = keep(
+    new THREE.MeshBasicMaterial({
+      color: F.in,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  const fRing = keep(new THREE.MeshBasicMaterial({ color: F.ring }));
+  const flames = [],
+    fSides = F.shape === 'crystal' ? 4 : 0;
+  const at = (x, y, z, k) => {
+    const flame = (obj) => {
+      obj.position.set(x, y, z);
+      obj.userData.k = k;
+      g.add(obj);
+      flames.push(obj);
+    };
+    if (F.shape === 'diamonds') {
+      /* rombos de choque: un fuego tenue con tres nudos de luz adentro */
+      const f = new THREE.Group();
+      f.add(new THREE.Mesh(flameGeo(false, 14), fOut));
+      [
+        [2.6, 1.5],
+        [6.4, 1.1],
+        [9.8, 0.75],
+      ].forEach(([fz, r]) => {
+        const knot = new THREE.Mesh(SPH, fIn);
+        knot.position.z = fz;
+        knot.scale.set(r, r, r * 1.5);
+        f.add(knot);
+      });
+      flame(f);
+    } else {
+      flame(new THREE.Mesh(flameGeo(false, fSides || 14), fOut));
+      flame(new THREE.Mesh(flameGeo(true, fSides || 10), fIn));
+    }
+  };
+  return { fOut, fIn, fRing, flames, at };
+}
+/* Los cañones, a gx de cada lado. Se ven solo cuando hay un arma recogida. */
+function addGuns(W, gx, add, dark) {
+  const guns = [],
+    barrel = bmat(W.barrel);
+  const gun = (geometry, sx, sy, sz, x, y, z, material) => {
+    const m = add(geometry, material || barrel, sx, sy, sz, x, y, z);
+    m.visible = false;
+    guns.push(m);
+  };
+  const tube = geo('gunTube', () => along(new THREE.CylinderGeometry(1, 1, 12, 8)));
+  for (const sx of [-1, 1]) {
+    /* soporte que une el cañón con la nave (hay cascos sin ala a esa altura) */
+    gun(BOX, gx - 2, 0.7, 2.6, (sx * (gx + 2)) / 2, 0.4, -1.5, dark);
+    if (W.model === 'rail') {
+      /* riel: dos barras planas con un núcleo entre ellas */
+      gun(BOX, 0.7, 2.4, 15, sx * (gx - 0.8), 0.8, -4.5);
+      gun(BOX, 0.7, 2.4, 15, sx * (gx + 1), 0.8, -4.5);
+      gun(BOX, 1.1, 1, 9, sx * (gx + 0.1), 0.8, -2);
+    } else if (W.model === 'twin') {
+      /* doble cañón delgado a cada lado */
+      gun(tube, 0.62, 0.62, 1.1, sx * (gx - 0.9), 0.8, -4.6);
+      gun(tube, 0.62, 0.62, 1.1, sx * (gx + 1.1), 0.8, -4.6);
+      gun(BOX, 3.4, 1.6, 4, sx * (gx + 0.1), 0.8, 0);
+    } else if (W.model === 'gatling') {
+      /* ametralladora: cuatro tubos finos en manojo, con dos abrazaderas */
+      for (const [ox, oy] of [
+        [-0.6, -0.6],
+        [0.6, -0.6],
+        [-0.6, 0.6],
+        [0.6, 0.6],
+      ])
+        gun(tube, 0.42, 0.42, 1.2, sx * gx + ox, 0.9 + oy, -5);
+      gun(tube, 1.25, 1.25, 0.12, sx * gx, 0.9, -9);
+      gun(tube, 1.25, 1.25, 0.12, sx * gx, 0.9, -3);
+    } else if (W.model === 'mortar') {
+      /* mortero: corto y gordo */
+      gun(tube, 1.9, 1.9, 0.6, sx * gx, 1, -3);
+      gun(tube, 2.2, 2.2, 0.1, sx * gx, 1, -6.4);
+    } else if (W.model === 'pod') {
+      /* lanzador: una caja con la boca oscura */
+      gun(BOX, 3.6, 2.6, 9, sx * gx, 1, -3);
+      gun(BOX, 2.8, 1.8, 0.6, sx * gx, 1, -7.6, dark);
+    } else gun(tube, 1, 1, 1, sx * gx, 0.8, -4);
+  }
+  return guns;
+}
+/* el camino puede ser una cinta, figuras sueltas (estrellas, corazones…) o las dos cosas */
+function trailsFor(F, exits) {
+  const T = F.trail,
+    trails = [];
+  if (T)
+    for (const e of exits) {
+      const figures = T.stamp || T.icon;
+      if (T.flag) {
+        /* bandera: una franja por color, una al lado de la otra */
+        const total = T.flag.reduce((n, f) => n + f[1], 0);
+        let done = 0;
+        for (const [col, weight] of T.flag) {
+          trails.push(makeTrail(T, e, { col, w: weight / total, dx: (done + weight / 2) / total - 0.5 }));
+          done += weight;
+        }
+      } else if (!figures || T.ribbon) trails.push(makeTrail(T, e));
+      if (figures) trails.push(makeStamps(T, e));
+    }
+  return trails;
+}
+
+/* Junta en una sola malla las piezas quietas que comparten material (dentro de cada grupo): un
+   vehículo detallado tiene cientos de piezas, y dibujarlas una por una le costaría al teléfono.
+   Lo que se anima pieza por pieza se marca con userData.live y no se toca. */
+function mergeStatic(root, keep) {
+  const groups = [root];
+  root.traverse((o) => {
+    if (o.isGroup && o !== root) groups.push(o);
+  });
+  for (const grp of groups) {
+    const by = new Map();
+    for (const m of grp.children) {
+      if (!m.isMesh || m.children.length || m.userData.live) continue;
+      if (!by.has(m.material)) by.set(m.material, []);
+      by.get(m.material).push(m);
+    }
+    for (const [material, list] of by) {
+      if (list.length < 2) continue;
+      const pos = [],
+        nor = [];
+      for (const m of list) {
+        m.updateMatrix();
+        const flat = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+        flat.applyMatrix4(m.matrix);
+        const p = flat.attributes.position.array,
+          n = flat.attributes.normal.array,
+          order = m.matrix.determinant() < 0 ? [0, 6, 3] : [0, 3, 6]; // una pieza en espejo se dibuja al revés
+        for (let i = 0; i < p.length; i += 9)
+          for (const o of order) {
+            pos.push(p[i + o], p[i + o + 1], p[i + o + 2]);
+            nor.push(n[i + o], n[i + o + 1], n[i + o + 2]);
+          }
+        flat.dispose();
+        grp.remove(m);
+      }
+      const merged = keep(new THREE.BufferGeometry());
+      merged.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      merged.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+      grp.add(new THREE.Mesh(merged, material));
+    }
+  }
+}
+
+/* ---------- naves únicas: el vehículo entero es un modelo propio (render/models/vehicles.js) ---------- */
+function buildUnique(look) {
+  const { ship: V, flame: F, gun: W } = look;
+  const g = new THREE.Group(),
+    own = [],
+    keep = (m) => (own.push(m), m),
+    spin = [],
+    anim = []; // funciones (ahora) que mueven partes: alas, patas, cola…
+  const add = (geometry, material, sx, sy, sz, x, y, z, parent) => {
+    const m = new THREE.Mesh(geometry, material);
+    m.scale.set(sx, sy, sz);
+    m.position.set(x || 0, y || 0, z || 0);
+    (parent || g).add(m);
+    return m;
+  };
+  const dark = keep(new THREE.MeshStandardMaterial({ color: 0x1a2142, metalness: 0.7, roughness: 0.45 }));
+  const fl = flameSet(F, keep, g);
+  /* el vehículo dice dónde están sus escapes [x, y, z, tamaño] y dónde van los cañones */
+  const chrome = (color) => special(keep(new THREE.MeshStandardMaterial({ color })), { chrome: true });
+  const out = buildVehicle(V, { g, add, keep, spin, anim, dark, chrome });
+  mergeStatic(g, keep);
+  const exits = out.exits.map(([x, y, z, k]) => {
+    fl.at(x, y, z + 0.1, k);
+    return { x, y, z: z + 1, k };
+  });
+  const mount = new THREE.Group();
+  mount.position.set(0, out.gunY || 0, out.gunZ || 0);
+  g.add(mount);
+  const guns = addGuns(W, out.gunX || 9, (...a) => add(...a.slice(0, 8), mount), dark);
+  const trails = trailsFor(F, exits);
+  g.userData = {
+    flames: fl.flames,
+    guns,
+    flame: F,
+    fOut: fl.fOut,
+    fRing: fl.fRing,
+    fxU: { uTime: { value: 0 } },
+    trails,
+    spin,
+    anim,
+    dispose() {
+      for (const m of own) m.dispose();
+      for (const t of trails) t.dispose();
+    },
+  };
+  return g;
+}
+
 export function buildShip(look) {
+  if (look.ship && look.ship.kind) return buildUnique(look);
   const { hull: H, nose: N, wing: Wg, fin: Fn, paint: P, glass: C, engine: E, flame: F, gun: W } = look;
   const g = new THREE.Group(),
     own = []; // materiales propios de esta nave: se liberan con ella
@@ -364,33 +612,14 @@ export function buildShip(look) {
   }
 
   /* ---------- motores + llamas: cada motor es [x, y, tamaño] ---------- */
-  const fOut = keep(
-    new THREE.MeshBasicMaterial({
-      color: F.out,
-      transparent: true,
-      opacity: 0.75,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  const fIn = keep(
-    new THREE.MeshBasicMaterial({
-      color: F.in,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  const fRing = keep(new THREE.MeshBasicMaterial({ color: F.ring }));
-  const flames = [],
-    exits = [], // dónde termina cada tobera: de ahí salen las estelas
+  const fl = flameSet(F, keep, g),
+    { fOut, fRing, flames } = fl;
+  const exits = [], // dónde termina cada tobera: de ahí salen las estelas
     spread = (H.engX || 6) / 6, // cascos más anchos o más angostos separan o juntan los motores
     zc = 8.5 + (H.engZ || 0),
     long = E.long || 1,
     ng = nozzleGeo(E.sides || 16, E.bell),
-    mouth = E.bell ? 3.3 : 2.2,
-    fSides = F.shape === 'crystal' ? 4 : 0;
+    mouth = E.bell ? 3.3 : 2.2;
   for (const [px, py, k] of E.pods) {
     const x = px * spread,
       exit = zc + 5 * k * long; // donde termina la tobera
@@ -410,31 +639,7 @@ export function buildShip(look) {
         py,
         exit + 1.5 * k,
       );
-    const flame = (obj) => {
-      obj.position.set(x, py, exit + 0.1);
-      obj.userData.k = k;
-      g.add(obj);
-      flames.push(obj);
-    };
-    if (F.shape === 'diamonds') {
-      /* rombos de choque: un fuego tenue con tres nudos de luz adentro */
-      const f = new THREE.Group();
-      f.add(new THREE.Mesh(flameGeo(false, 14), fOut));
-      [
-        [2.6, 1.5],
-        [6.4, 1.1],
-        [9.8, 0.75],
-      ].forEach(([z, r]) => {
-        const knot = new THREE.Mesh(SPH, fIn);
-        knot.position.z = z;
-        knot.scale.set(r, r, r * 1.5);
-        f.add(knot);
-      });
-      flame(f);
-    } else {
-      flame(new THREE.Mesh(flameGeo(false, fSides || 14), fOut));
-      flame(new THREE.Mesh(flameGeo(true, fSides || 10), fIn));
-    }
+    fl.at(x, py, exit + 0.1, k);
     exits.push({ x, y: py, z: exit + 1, k });
   }
 
@@ -491,59 +696,9 @@ export function buildShip(look) {
   }
 
   /* ---------- cañones: se ven solo cuando hay un arma recogida ---------- */
-  const guns = [],
-    barrel = bmat(W.barrel),
-    gx = H.gunX || 9;
-  const gun = (geometry, sx, sy, sz, x, y, z, material) => {
-    const m = add(geometry, material || barrel, sx, sy, sz, x, y, z);
-    m.visible = false;
-    guns.push(m);
-  };
-  const tube = geo('gunTube', () => along(new THREE.CylinderGeometry(1, 1, 12, 8)));
-  for (const sx of [-1, 1]) {
-    /* soporte que une el cañón con la nave (hay cascos sin ala a esa altura) */
-    gun(BOX, gx - 2, 0.7, 2.6, (sx * (gx + 2)) / 2, 0.4, -1.5, dark);
-    if (W.model === 'rail') {
-      /* riel: dos barras planas con un núcleo entre ellas */
-      gun(BOX, 0.7, 2.4, 15, sx * (gx - 0.8), 0.8, -4.5);
-      gun(BOX, 0.7, 2.4, 15, sx * (gx + 1), 0.8, -4.5);
-      gun(BOX, 1.1, 1, 9, sx * (gx + 0.1), 0.8, -2);
-    } else if (W.model === 'twin') {
-      /* doble cañón delgado a cada lado */
-      gun(tube, 0.62, 0.62, 1.1, sx * (gx - 0.9), 0.8, -4.6);
-      gun(tube, 0.62, 0.62, 1.1, sx * (gx + 1.1), 0.8, -4.6);
-      gun(BOX, 3.4, 1.6, 4, sx * (gx + 0.1), 0.8, 0);
-    } else if (W.model === 'gatling') {
-      /* ametralladora: cuatro tubos finos en manojo, con dos abrazaderas */
-      for (const [ox, oy] of [
-        [-0.6, -0.6],
-        [0.6, -0.6],
-        [-0.6, 0.6],
-        [0.6, 0.6],
-      ])
-        gun(tube, 0.42, 0.42, 1.2, sx * gx + ox, 0.9 + oy, -5);
-      gun(tube, 1.25, 1.25, 0.12, sx * gx, 0.9, -9);
-      gun(tube, 1.25, 1.25, 0.12, sx * gx, 0.9, -3);
-    } else if (W.model === 'mortar') {
-      /* mortero: corto y gordo */
-      gun(tube, 1.9, 1.9, 0.6, sx * gx, 1, -3);
-      gun(tube, 2.2, 2.2, 0.1, sx * gx, 1, -6.4);
-    } else if (W.model === 'pod') {
-      /* lanzador: una caja con la boca oscura */
-      gun(BOX, 3.6, 2.6, 9, sx * gx, 1, -3);
-      gun(BOX, 2.8, 1.8, 0.6, sx * gx, 1, -7.6, dark);
-    } else gun(tube, 1, 1, 1, sx * gx, 0.8, -4);
-  }
+  const guns = addGuns(W, H.gunX || 9, add, dark);
 
-  /* ---------- estelas: una cinta de luz por motor, que queda atrás como un camino ---------- */
-  /* el camino puede ser una cinta, figuras sueltas (estrellas, corazones…) o las dos cosas */
-  const T = F.trail,
-    trails = [];
-  if (T)
-    for (const e of exits) {
-      if (!T.stamp || T.ribbon) trails.push(makeTrail(T, e));
-      if (T.stamp) trails.push(makeStamps(T, e));
-    }
+  const trails = trailsFor(F, exits);
 
   g.userData = {
     flames,
@@ -572,6 +727,7 @@ export function shipTick(model, now, extra, boost) {
     style = u.flame.style;
   u.fxU.uTime.value = now % 1000;
   for (const sp of u.spin) sp.o.rotation[sp.ax] = now * sp.v;
+  if (u.anim) for (const move of u.anim) move(now);
   let i = 0;
   for (const f of u.flames) {
     const k = f.userData.k;

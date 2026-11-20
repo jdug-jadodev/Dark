@@ -4,16 +4,17 @@
  * puesta al instante, aunque todavía no se tenga.
  */
 import { emit } from '../core/events.js';
-import { buy, canUse, equip, equippedId, owns, setPreview } from '../core/garage.js';
-import { BY_SLOT, PARTS, RARITY, SLOTS, priceOf } from '../core/parts.js';
+import { buy, canUse, equip, equippedId, owns, setPreview, uniqueOn } from '../core/garage.js';
+import { BODY, BY_SLOT, PARTS, RARITY, SLOTS, priceOf } from '../core/parts.js';
 import { S } from '../core/profile.js';
 import { G } from '../core/state.js';
+import { vrand } from '../core/util.js';
 import { showroomBoom, showroomClear } from '../game/showroom.js';
 import { $ } from './dom.js';
 import { renderMenu } from './menu.js';
 import { openShop } from './shop.js';
 
-let tab = 'hull'; // ranura que se está mirando
+let tab = 'ship'; // ranura que se está mirando
 let sel = ''; // pieza elegida en esa ranura
 
 /* ---------- miniaturas: se dibujan con los mismos números de la pieza ---------- */
@@ -109,6 +110,20 @@ function boltShape(p, x, c) {
           c,
         ),
       );
+    case 'gift':
+      return at(
+        '<rect x="-4" y="-3" width="8" height="8" rx="1" fill="' +
+          c +
+          '"/><path d="M0 -3V5M-4 1H4" stroke="#ffd54a" stroke-width="1.3"/><path d="M-2.4 -5.4L0 -3L2.4 -5.4" stroke="#ffd54a" stroke-width="1.3" fill="none"/>',
+      );
+    case 'beam':
+      return at(
+        '<rect x="-1" y="-9" width="2" height="18" fill="#fff"/><ellipse cy="-3" rx="4" ry="1.6" fill="none" stroke="' +
+          c +
+          '" stroke-width="1.2"/><ellipse cy="4" rx="3" ry="1.3" fill="none" stroke="' +
+          c +
+          '" stroke-width="1.2"/>',
+      );
     case 'ring':
       return at('<circle r="3.6" fill="none" stroke="' + c + '" stroke-width="1.6"/>');
     default:
@@ -116,6 +131,7 @@ function boltShape(p, x, c) {
   }
 }
 function thumb(p) {
+  if (p.slot === 'ship') return '<i style="font-style:normal;font-size:28px;line-height:1">' + p.icon + '</i>';
   if (p.slot === 'hull') {
     /* vista desde arriba del fuselaje (el perfil va de la cola a la nariz); el catamarán son dos */
     const fus = (dx) =>
@@ -310,6 +326,27 @@ function thumb(p) {
       '</svg>'
     );
   }
+  if (p.slot === 'flame' && p.trail && p.trail.flag) {
+    /* bandera: sus franjas, de arriba abajo */
+    const total = p.trail.flag.reduce((n, f) => n + f[1], 0);
+    let at = 0;
+    const stops = p.trail.flag
+      .map(([c, w]) => {
+        const a = (at / total) * 100;
+        at += w;
+        return c + ' ' + a + '% ' + (at / total) * 100 + '%';
+      })
+      .join(',');
+    return (
+      '<i style="display:block;width:40px;height:27px;border-radius:4px;border:1px solid #ffffff55;background:linear-gradient(' +
+      stops +
+      ')"></i>'
+    );
+  }
+  if (p.slot === 'flame' && p.trail && p.trail.icon === 'elf')
+    return '<svg viewBox="18 0 60 92" style="height:38px"><path d="M34 25H62L66 8L72 4L58 6Z" fill="#1f9a4a"/><rect x="31" y="22" width="34" height="6" fill="#e02a34"/><circle cx="72" cy="5" r="4" fill="#ffd54a"/><path d="M35 30L21 23L34 40ZM61 30L75 23L62 40Z" fill="#ffcf9f"/><circle cx="48" cy="34" r="14" fill="#ffcf9f"/><circle cx="43" cy="32" r="2"/><circle cx="53" cy="32" r="2"/><path d="M36 46H60L66 72H30Z" fill="#27b257"/><rect x="31" y="61" width="34" height="6" fill="#e02a34"/><rect x="44" y="60" width="8" height="8" fill="#ffd54a"/><path d="M37 72h8v14h-8zM51 72h8v14h-8z" fill="#fff"/><path d="M30 90L33 84H46V90ZM50 84H63L66 90H50Z" fill="#1f9a4a"/></svg>';
+  if (p.slot === 'flame' && p.trail && p.trail.icon)
+    return '<i style="font-style:normal;font-size:26px;line-height:1">' + p.trail.icon + '</i>';
   if (p.slot === 'flame') {
     const bg =
         p.style === 'rainbow'
@@ -385,25 +422,61 @@ function thumb(p) {
 }
 
 /* ---------- pantalla ---------- */
-function render() {
-  /* al volver a pintar, las listas no deben saltar al principio */
-  const top = $('gItems').scrollTop,
-    left = $('gTabs').scrollLeft;
+/* Las 11 ranuras se reparten en 4 grupos: primero se elige el grupo y después la ranura. */
+const GROUPS = [
+  { id: 'ship', name: '🛸 Nave', slots: ['ship'] },
+  { id: 'body', name: '🚀 Cuerpo', slots: ['hull', 'nose', 'wing', 'fin', 'glass', 'engine'] },
+  { id: 'style', name: '🎨 Estilo', slots: ['paint', 'flame'] },
+  { id: 'fight', name: '🎯 Combate', slots: ['gun', 'boom'] },
+];
+const groupOf = (slot) => GROUPS.find((g) => g.slots.includes(slot));
+const slotName = (id) => SLOTS.find((s) => s.id === id).name;
+let mine = false; // filtro: mostrar solo las piezas que ya se tienen
+const lastTab = {}; // la última ranura que se miró en cada grupo
+let painted = ''; // qué lista está pintada (para no perder el desplazamiento al repintar la misma)
+/* las piezas que se ven en la lista (la elegida siempre se ve, aunque el filtro la escondería) */
+const listed = () => BY_SLOT[tab].filter((p) => !mine || owns(p.id) || p.id === sel);
+
+function render(reveal) {
+  const key = tab + '|' + mine,
+    top = key === painted ? $('gItems').scrollTop : 0;
+  painted = key;
+  const grp = groupOf(tab),
+    on = equippedId(tab),
+    all = BY_SLOT[tab],
+    have = all.filter((p) => owns(p.id)).length;
   $('gCoins').textContent = '🪙 ' + S.coins;
-  $('gTabs').innerHTML = SLOTS.map(
-    (s) =>
-      '<button class="gtab' +
-      (s.id === tab ? ' sel' : '') +
-      '" data-tab="' +
-      s.id +
-      '"><i>' +
-      s.icon +
-      '</i>' +
-      s.name +
-      '</button>',
+  $('gGroups').innerHTML = GROUPS.map(
+    (g) => '<button class="ggrp' + (g === grp ? ' sel' : '') + '" data-group="' + g.id + '">' + g.name + '</button>',
   ).join('');
-  const on = equippedId(tab);
-  $('gItems').innerHTML = BY_SLOT[tab]
+  $('gTabs').innerHTML = grp.slots
+    .map((id) => {
+      const off = BODY.includes(id) && uniqueOn();
+      return (
+        '<button class="gchip' +
+        (id === tab ? ' sel' : '') +
+        (off ? ' off' : '') +
+        '" data-tab="' +
+        id +
+        '">' +
+        slotName(id) +
+        '<small>' +
+        BY_SLOT[id].filter((p) => owns(p.id)).length +
+        '/' +
+        BY_SLOT[id].length +
+        '</small></button>'
+      );
+    })
+    .join('');
+  $('gFilters').innerHTML =
+    '<button class="gfil' +
+    (mine ? '' : ' sel') +
+    '" data-mine="0">Todas</button>' +
+    '<button class="gfil' +
+    (mine ? ' sel' : '') +
+    '" data-mine="1">Mías</button>';
+  $('gCount').textContent = 'Tienes ' + have + ' de ' + all.length;
+  $('gItems').innerHTML = listed()
     .map((p) => {
       const cls = (p.id === sel ? ' sel' : '') + (p.id === on ? ' on' : '') + (owns(p.id) ? '' : ' lock');
       return (
@@ -426,13 +499,18 @@ function render() {
     })
     .join('');
   $('gItems').scrollTop = top;
-  $('gTabs').scrollLeft = left;
+  if (reveal) {
+    const card = $('gItems').querySelector('.gcard.sel');
+    if (card) card.scrollIntoView({ block: 'nearest' });
+  }
+  /* la placa sobre la nave: dónde estoy, qué pieza es y en qué estado está */
   const p = PARTS[sel],
     rar = RARITY[p.rar],
     price = priceOf(p),
     act = $('gAct');
+  $('gSlot').textContent = grp.slots.length > 1 ? grp.name.slice(3) + ' · ' + slotName(tab) : slotName(tab);
   $('gName').textContent = p.name;
-  $('gRar').textContent = rar.name;
+  $('gRar').textContent = rar.name + ' · ' + (sel === on ? 'puesta' : owns(sel) ? 'es tuya' : '🪙 ' + price);
   $('gRar').style.color = rar.col;
   act.className = 'btn';
   act.disabled = false;
@@ -452,6 +530,7 @@ function render() {
 }
 function pickTab(id) {
   tab = id;
+  lastTab[groupOf(id).id] = id;
   sel = equippedId(tab);
   setPreview(null);
   G.showGuns = tab === 'gun';
@@ -459,20 +538,57 @@ function pickTab(id) {
   G.yaw = Math.atan2(Math.sin(G.yaw), Math.cos(G.yaw));
   G.yawTo =
     tab === 'glass' || tab === 'nose' ? 2.45 : tab === 'engine' || tab === 'flame' || tab === 'fin' ? 0.45 : null;
-  $('gHint').textContent =
-    tab === 'gun'
-      ? 'Disparos de muestra: así se ven las tres armas'
-      : tab === 'boom'
-        ? 'Toca una explosión para verla'
-        : 'Desliza para girar la nave';
+  hint();
   showroomClear();
-  render();
+  render(true);
 }
-function pickPart(id) {
+/* al tocar un grupo se vuelve a la ranura que se estaba mirando en él */
+function pickGroup(id) {
+  const g = GROUPS.find((x) => x.id === id);
+  pickTab(lastTab[id] || g.slots[0]);
+}
+/* la línea de ayuda bajo la nave: depende de la pestaña y de lo que se esté mirando */
+function hint() {
+  const pack = tab === 'ship' && sel && PARTS[sel].pack;
+  $('gHint').textContent = pack
+    ? 'Su paquete (aparte): ' + pack.map((id) => PARTS[id].name).join(' y ')
+    : BODY.includes(tab) && uniqueOn()
+      ? 'Llevas una nave única: equipar algo de aquí te devuelve a la armable'
+      : tab === 'gun'
+        ? 'Disparos de muestra: así se ven las tres armas'
+        : tab === 'boom'
+          ? 'Toca una explosión para verla'
+          : 'Desliza para girar · flechas para cambiar de pieza';
+}
+function pickPart(id, reveal) {
   sel = id;
   setPreview(id === equippedId(tab) ? null : id);
+  hint();
   if (tab === 'boom') showroomBoom();
-  render();
+  render(reveal);
+}
+/* flechas: a la pieza anterior o siguiente de la lista, dando la vuelta al final */
+function step(dir) {
+  const list = listed(),
+    i = list.findIndex((p) => p.id === sel);
+  pickPart(list[(i + dir + list.length) % list.length].id, true);
+}
+/* dado: arma una nave al azar con las piezas que se pueden usar */
+function randomize() {
+  for (const slot of BODY.concat(['flame', 'gun', 'boom'])) {
+    const pool = BY_SLOT[slot].filter((p) => canUse(p.id));
+    equip(pool[Math.floor(vrand() * pool.length)].id);
+  }
+  sel = equippedId(tab);
+  setPreview(null);
+  hint();
+  emit('power');
+  render(true);
+}
+function setBig(on) {
+  G.garageBig = on;
+  $('gPanel').classList.toggle('big', on);
+  $('garage').classList.toggle('big', on);
 }
 function act() {
   if (!owns(sel) && !canUse(sel) && S.coins < priceOf(PARTS[sel])) {
@@ -481,23 +597,31 @@ function act() {
   }
   if (owns(sel) || canUse(sel)) equip(sel);
   else if (buy(sel)) emit('reward');
+  hint();
   render();
 }
 
 export function openGarage() {
   G.view = 'garage';
   G.yawTo = null;
-  G.yaw = 0.6; // la misma vista de tres cuartos del lobby; de ahí en adelante solo la mueve el dedo
+  G.yaw = G.lobbyYaw; // la nave sigue como estaba en el lobby; de ahí en adelante solo la mueve el dedo
   $('menu').classList.remove('show');
   $('garage').classList.add('show');
-  pickTab('hull');
+  setBig(false);
+  painted = '';
+  pickTab('ship');
 }
 /* devuelve true si estaba abierto (para el botón "atrás" del sistema) */
 export function closeGarage() {
   if (!$('garage').classList.contains('show')) return false;
+  if (G.garageBig) {
+    setBig(false); // el primer "atrás" solo achica la lista
+    return true;
+  }
   setPreview(null);
   showroomClear();
   G.showGuns = false;
+  G.lobbyYaw = Math.atan2(Math.sin(G.yaw), Math.cos(G.yaw)); // y vuelve al lobby como quedó en el taller
   G.view = 'lobby';
   $('garage').classList.remove('show');
   $('menu').classList.add('show');
@@ -505,23 +629,61 @@ export function closeGarage() {
   return true;
 }
 export function bootGarage() {
+  const pick = (box, attr, fn) =>
+    $(box).addEventListener('click', (e) => {
+      const b = e.target.closest('[' + attr + ']');
+      if (b) fn(b.getAttribute(attr));
+    });
   $('garageBtn').addEventListener('click', openGarage);
-  $('shipTap').addEventListener('click', openGarage);
-  $('garageBack').addEventListener('click', closeGarage);
-  $('gTabs').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-tab]');
-    if (b) pickTab(b.dataset.tab);
+  /* En el lobby: arrastrar gira la nave; un toque sin arrastrar abre el taller. */
+  const ship = $('shipTap');
+  let dragX = null,
+    dragged = false;
+  ship.addEventListener('pointerdown', (e) => {
+    dragX = e.clientX;
+    dragged = false;
+    try {
+      ship.setPointerCapture(e.pointerId);
+    } catch (_) {}
   });
-  $('gItems').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-part]');
-    if (b) pickPart(b.dataset.part);
+  ship.addEventListener('pointermove', (e) => {
+    if (dragX === null) return;
+    const dx = e.clientX - dragX;
+    if (!dragged && Math.abs(dx) < 8) return; // un dedo que tiembla un poco sigue siendo un toque
+    dragged = true;
+    G.lobbyYaw += dx * 0.012;
+    dragX = e.clientX;
+  });
+  const drop = () => {
+    dragX = null;
+  };
+  ship.addEventListener('pointerup', drop);
+  ship.addEventListener('pointercancel', drop);
+  ship.addEventListener('click', () => {
+    if (!dragged) openGarage();
+  });
+  $('garageBack').addEventListener('click', () => {
+    setBig(false);
+    closeGarage();
+  });
+  $('gCoins').addEventListener('click', () => openShop(render));
+  pick('gGroups', 'data-group', pickGroup);
+  pick('gTabs', 'data-tab', pickTab);
+  pick('gItems', 'data-part', (id) => pickPart(id));
+  pick('gFilters', 'data-mine', (v) => {
+    mine = v === '1';
+    render(true);
   });
   $('gAct').addEventListener('click', act);
-  /* girar la nave con el dedo */
+  $('gPrev').addEventListener('click', () => step(-1));
+  $('gNext').addEventListener('click', () => step(1));
+  $('gDice').addEventListener('click', randomize);
+  $('gGrip').addEventListener('click', () => setBig(!G.garageBig));
+  /* girar la nave con el dedo (los botones que flotan sobre ella no cuentan) */
   const view = $('gView');
   let lastX = 0;
   view.addEventListener('pointerdown', (e) => {
-    if (G.showGuns) return;
+    if (G.showGuns || e.target.closest('button')) return;
     G.yawHold = true;
     G.yawTo = null;
     lastX = e.clientX;

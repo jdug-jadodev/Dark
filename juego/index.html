@@ -36,15 +36,19 @@
     <!-- Lobby (menú principal): la nave del jugador se ve al fondo, en el centro -->
     <div class="screen lobby show" id="menu">
       <div class="ltop">
-        <div><h1>Giro Estelar</h1><div class="best" id="mBest"></div></div>
-        <button class="lbtn round" data-open="settings" aria-label="Configuración">⚙</button>
+        <h1>Giro Estelar</h1>
+        <div class="ltools">
+          <button class="lbtn round" id="statsBtn" aria-label="Métricas">📊</button>
+          <button class="lbtn round" data-open="settings" aria-label="Configuración">⚙</button>
+        </div>
       </div>
       <div class="coins" id="mCoins">🪙 0</div>
       <div class="lmid">
-        <button class="lship" id="shipTap" aria-label="Abrir el taller"><span>🔧 Toca la nave para personalizarla</span></button>
+        <button class="lship" id="shipTap" aria-label="Abrir el taller"><span>🔧 Toca para personalizar · desliza para girar</span></button>
         <div class="lside">
           <button class="lbtn" id="garageBtn"><b>🔧</b>Taller</button>
           <button class="lbtn" id="chestBtn"><b>🎁</b>Cofre</button>
+          <button class="lbtn" id="misBtn"><b>📅</b>Misiones<small>0/3</small></button>
           <button class="lbtn" id="shopBtn"><b>🛒</b>Tienda</button>
         </div>
       </div>
@@ -56,18 +60,29 @@
       </div>
     </div>
 
-    <!-- Taller: arriba se ve la nave (se gira con el dedo), abajo las piezas -->
+    <!-- Taller: arriba la nave (se gira con el dedo, y con las flechas se pasa de pieza en pieza);
+         abajo, los grupos, las ranuras del grupo y las piezas -->
     <div class="screen garage" id="garage">
       <div class="gtop">
         <button class="lbtn round" id="garageBack" aria-label="Volver">←</button>
         <b>TALLER</b>
-        <span id="gCoins">🪙 0</span>
+        <button class="gcoins" id="gCoins">🪙 0</button>
       </div>
-      <div class="gview" id="gView"><small id="gHint"></small></div>
-      <div class="gpanel">
-        <div class="gtabs" id="gTabs"></div>
+      <div class="gview" id="gView">
+        <i class="gcorner tl"></i><i class="gcorner tr"></i><i class="gcorner bl"></i><i class="gcorner br"></i>
+        <button class="garrow l" id="gPrev" aria-label="Pieza anterior">‹</button>
+        <button class="garrow r" id="gNext" aria-label="Pieza siguiente">›</button>
+        <button class="gdice" id="gDice" aria-label="Combinar al azar">🎲</button>
+        <div class="gplate"><small id="gSlot"></small><b id="gName"></b><em id="gRar"></em></div>
+        <small id="gHint"></small>
+      </div>
+      <div class="gpanel" id="gPanel">
+        <button class="ggrip" id="gGrip" aria-label="Agrandar o achicar la lista"><i></i></button>
+        <div class="ggroups" id="gGroups"></div>
+        <div class="gchips" id="gTabs"></div>
+        <div class="gbar"><div class="gfilters" id="gFilters"></div><span id="gCount"></span></div>
         <div class="gitems" id="gItems"></div>
-        <div class="ginfo"><div><b id="gName"></b><small id="gRar"></small></div><button class="btn" id="gAct"></button></div>
+        <div class="ginfo"><button class="btn" id="gAct"></button></div>
       </div>
     </div>
 
@@ -90,6 +105,21 @@
     <!-- Cofre -->
     <div class="screen" id="chest">
       <div class="card" id="chestBox"></div>
+    </div>
+
+    <!-- Misiones del día -->
+    <div class="screen" id="missions">
+      <div class="card" id="misBox"></div>
+    </div>
+
+    <!-- Métricas: récords, racha y piezas -->
+    <div class="screen" id="stats">
+      <div class="card">
+        <h2>📊 Métricas</h2>
+        <div class="best" id="mBest"></div>
+        <div id="statsBox"></div>
+        <button class="btn alt" id="statsClose">Cerrar</button>
+      </div>
     </div>
 
     <!-- Pausa -->

@@ -119,7 +119,12 @@ export function bootSound() {
   document.addEventListener(
     'click',
     (e) => {
-      if (e.target.closest && e.target.closest('.btn, .opt, .chk, .lbtn, .lship, .gtab, .gcard, .prod, #pauseBtn'))
+      if (
+        e.target.closest &&
+        e.target.closest(
+          '.btn, .opt, .chk, .lbtn, .lship, .gtab, .gcard, .ggrp, .gchip, .gfil, .garrow, .gdice, .gcoins, .prod, #pauseBtn',
+        )
+      )
         play('click');
     },
     true,

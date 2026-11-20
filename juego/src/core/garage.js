@@ -6,7 +6,7 @@
  *   S.fit   = pieza puesta en cada ranura, p. ej. { paint: 'paint.fuego' }
  * Lo que falte ahí vale "la pieza de serie", así un guardado viejo sigue sirviendo.
  */
-import { BASE, PARTS, SLOTS, priceOf } from './parts.js';
+import { BASE, BODY, PARTS, SLOTS, priceOf } from './parts.js';
 import { S, save } from './profile.js';
 import { G } from './state.js';
 
@@ -22,7 +22,16 @@ export function equippedId(slot) {
   return id && PARTS[id] && PARTS[id].slot === slot && canUse(id) ? id : BASE[slot];
 }
 /* lo que se ve en la nave: lo equipado, más la pieza que se esté probando */
-export const shownId = (slot) => (preview && preview.slot === slot ? preview.id : equippedId(slot));
+/* Si se está probando una pieza del cuerpo (casco, alas, pintura…), se muestra la nave armable aunque
+   el jugador lleve una nave única: de otro modo no se vería lo que está probando. */
+export const shownId = (slot) =>
+  preview && preview.slot === slot
+    ? preview.id
+    : slot === 'ship' && preview && BODY.includes(preview.slot)
+      ? BASE.ship
+      : equippedId(slot);
+/* ¿lleva puesta una nave única? */
+export const uniqueOn = () => equippedId('ship') !== BASE.ship;
 export function look() {
   const out = {};
   for (const s of SLOTS) out[s.id] = PARTS[shownId(s.id)];
@@ -37,6 +46,8 @@ export function equip(id) {
   if (!canUse(id)) return false;
   const slot = PARTS[id].slot;
   S.fit = { ...(S.fit || {}), [slot]: id };
+  /* equipar una pieza del cuerpo es volver a la nave armable */
+  if (BODY.includes(slot)) S.fit.ship = BASE.ship;
   if (preview && preview.slot === slot) preview = null;
   version++;
   save();

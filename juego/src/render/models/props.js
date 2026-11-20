@@ -178,6 +178,23 @@ export function mkBullet(b) {
     part(starGeo(), bmat(col, true, 0.35), 1.7, 1, 1.7, 0, -0.1, 0);
     g.userData.round = true;
     g.userData.spin = 7;
+  } else if (W.bolt === 'gift') {
+    /* cajita de regalo con su cinta dorada y el moño */
+    part(BOX, bmat(col), 0.8, 0.8, 0.8);
+    part(BOX, bmat('#ffd54a'), 0.84, 0.84, 0.2);
+    part(BOX, bmat('#ffd54a'), 0.2, 0.84, 0.84);
+    part(SPH, bmat('#ffd54a'), 0.2, 0.14, 0.14, -0.2, 0.5, 0);
+    part(SPH, bmat('#ffd54a'), 0.2, 0.14, 0.14, 0.2, 0.5, 0);
+    g.userData.round = true;
+    g.userData.spin = 4;
+  } else if (W.bolt === 'beam') {
+    /* rayo alienígena: un haz con dos aros que lo rodean */
+    part(BOX, bmat('#ffffff'), 0.28, 0.28, 2.6);
+    part(BOX, bmat(col, true, 0.7), 0.8, 0.8, 2.9);
+    const hoop = bgeo('ring', () => new THREE.TorusGeometry(0.42, 0.09, 8, 20));
+    part(hoop, bmat(col), 2.6, 2.6, 0.5, 0, 0, -0.7);
+    part(hoop, bmat(col), 1.9, 1.9, 0.5, 0, 0, 0.5);
+    g.userData.aim = true;
   } else if (W.bolt === 'ring') {
     /* aro de energía, de frente como un anillo de humo */
     part(

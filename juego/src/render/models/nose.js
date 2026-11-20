@@ -8,7 +8,7 @@ import { BOX, SPH, bmat } from '../kit.js';
 const GEO = {};
 const geo = (key, make) => GEO[key] || (GEO[key] = make());
 /* cono con la base en z = 0 y la punta en z = −1 */
-const coneF = (sides) =>
+export const coneF = (sides) =>
   geo('coneF' + sides, () => {
     const g = new THREE.ConeGeometry(1, 1, sides);
     if (sides === 4) g.rotateY(Math.PI / 4); // la pirámide, con una cara hacia arriba
@@ -17,19 +17,19 @@ const coneF = (sides) =>
     return g;
   });
 /* cono con la base en y = 0 y la punta hacia arriba */
-const coneUp = () =>
+export const coneUp = () =>
   geo('coneUp', () => {
     const g = new THREE.ConeGeometry(1, 1, 8);
     g.translate(0, 0.5, 0);
     return g;
   });
 /* tubos de largo 1 y radio 1, a lo largo de cada eje */
-const tubeZ = () => geo('tubeZ', () => new THREE.CylinderGeometry(1, 1, 1, 18).rotateX(Math.PI / 2));
-const tubeX = () => geo('tubeX', () => new THREE.CylinderGeometry(1, 1, 1, 18).rotateZ(Math.PI / 2));
-const tubeY = () => geo('tubeY', () => new THREE.CylinderGeometry(1, 1, 1, 14));
-const ring = () => geo('ring', () => new THREE.TorusGeometry(1, 0.14, 8, 22));
+export const tubeZ = () => geo('tubeZ', () => new THREE.CylinderGeometry(1, 1, 1, 18).rotateX(Math.PI / 2));
+export const tubeX = () => geo('tubeX', () => new THREE.CylinderGeometry(1, 1, 1, 18).rotateZ(Math.PI / 2));
+export const tubeY = () => geo('tubeY', () => new THREE.CylinderGeometry(1, 1, 1, 14));
+export const ring = () => geo('ring', () => new THREE.TorusGeometry(1, 0.14, 8, 22));
 /* figura de revolución: perfil [radio, largo hacia adelante] desde la base hasta la punta */
-const lathe = (key, prof) =>
+export const lathe = (key, prof) =>
   geo('lathe.' + key, () => {
     const g = new THREE.LatheGeometry(
       prof.map((p) => new THREE.Vector2(p[0], p[1])),

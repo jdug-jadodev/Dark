@@ -8,8 +8,9 @@
  * e y hacia arriba. Un ala o un alerón es un polígono [x, z] de un solo lado; el otro se copia en espejo.
  */
 
-/* Las 10 ranuras, en el orden en que salen en el taller */
+/* Las 11 ranuras, en el orden en que salen en el taller */
 export const SLOTS = [
+  { id: 'ship', name: 'Nave', icon: '🛸' },
   { id: 'hull', name: 'Casco', icon: '🚀' },
   { id: 'nose', name: 'Trompa', icon: '👃' },
   { id: 'wing', name: 'Alas', icon: '🪽' },
@@ -29,6 +30,8 @@ export const RARITY = {
   r: { name: 'Rara', price: 200, col: '#5ee0ff' },
   e: { name: 'Épica', price: 450, col: '#c792ff' },
   l: { name: 'Legendaria', price: 900, col: '#ffd54a' },
+  m: { name: 'Mítica', price: 2500, col: '#ff5a8a' }, // pinturas vivas
+  u: { name: 'Única', price: 10000, col: '#ffffff' }, // naves enteras
 };
 
 /* un círculo como polígono de un lado (para el platillo) */
@@ -46,6 +49,30 @@ const FUS = [
   [2.5, 13],
   [0, 19],
 ];
+
+/* ---------- Nave: armable (con las piezas de las demás pestañas) o una nave única ----------
+   Una nave única es un vehículo entero con su propio modelo (render/models/vehicles.js): no usa
+   casco, trompa, alas, alerón, pintura, cabina ni motor. Sí usa la llama, las armas y la explosión. */
+const SHIP = {
+  armable: { name: 'Armable', rar: 'base', icon: '🔧' },
+  carro: { name: 'Clásico espacial', rar: 'u', kind: 'car', icon: '🚗' },
+  caza: { name: 'Avión de combate', rar: 'u', kind: 'jet', icon: '✈️' },
+  helados: { name: 'Carro de helados', rar: 'u', kind: 'icecream', icon: '🍦' },
+  patito: { name: 'Patito de hule', rar: 'u', kind: 'duck', icon: '🦆' },
+  tiburon: { name: 'Tiburón espacial', rar: 'u', kind: 'shark', icon: '🦈' },
+  platillo: {
+    name: 'Platillo con extraterrestre',
+    rar: 'u',
+    kind: 'ufo',
+    icon: '🛸',
+    pack: ['gun.ovni', 'flame.vacas'],
+  },
+  unicornio: { name: 'Unicornio', rar: 'u', kind: 'unicorn', icon: '🦄' },
+  dragon: { name: 'Dragón espacial', rar: 'u', kind: 'dragon', icon: '🐉' },
+  trineo: { name: 'Trineo de Papá Noel', rar: 'u', kind: 'sleigh', icon: '🎅', pack: ['gun.regalos', 'flame.elfos'] },
+};
+/* las ranuras que una nave única reemplaza */
+export const BODY = ['hull', 'nose', 'wing', 'fin', 'paint', 'glass', 'engine'];
 
 /* ---------- Casco: el fuselaje ----------
    prof = perfil [radio, largo], de la cola a la nariz · flat = qué tan aplastado
@@ -825,7 +852,12 @@ const FIN = {
      pulse    neón que late
      holo     holograma con líneas que suben
      glitter  escarcha: destellos que titilan
-     lava     vetas de luz que se mueven */
+     lava     vetas de luz que se mueven
+     aurora   cortinas de luz de dos colores que ondulan
+     rim      oscura, con el borde encendido que late (eclipse)
+     crystal  translúcida y con todos los colores en el borde
+     cosmos   nebulosa de dos colores con estrellas
+     neonbow  oscura, con líneas de neón que cambian de color */
 const WHITE = '#d8e0f0';
 const SOLID = [
   ['rojo', 'Rojo', '#ff4a4a'],
@@ -922,6 +954,23 @@ Object.assign(PAINT, {
   prisma: { name: 'Prisma', rar: 'l', c: '#ffffff', body: '#ffffff', fx: 'spectrum' },
   arcoiris: { name: 'Arcoíris', rar: 'l', c: '#ffffff', body: '#ffffff', fx: 'rainbow' },
   oro: { name: 'Oro', rar: 'l', c: '#ffd24a', body: '#f2c23c', chrome: true },
+  /* míticas: pinturas vivas, que se mueven solas */
+  aurora: { name: 'Aurora boreal', rar: 'm', c: '#5effc0', body: '#5effc0', fx: 'aurora', a: '#3dffb0', b: '#b45cff' },
+  eclipse: { name: 'Eclipse', rar: 'm', c: '#2a1608', body: '#07080f', fx: 'rim', a: '#ff8a1a', b: '#ffe9a0' },
+  eclipseAzul: { name: 'Eclipse azul', rar: 'm', c: '#0a1830', body: '#06070f', fx: 'rim', a: '#2a8aff', b: '#bfe9ff' },
+  cristalVivo: { name: 'Cristal vivo', rar: 'm', c: '#ffffff', body: '#ffffff', fx: 'crystal' },
+  cosmos: { name: 'Cosmos', rar: 'm', c: '#8a5cff', body: '#0c0a2a', fx: 'cosmos', a: '#3a1a8a', b: '#ff6bd0' },
+  fuegoVivo: { name: 'Fuego vivo', rar: 'm', c: '#ffb02a', body: '#3a0a06', fx: 'lava', a: '#3a0a06', b: '#ffb02a' },
+  oroLiquido: {
+    name: 'Oro líquido',
+    rar: 'm',
+    c: '#ffd24a',
+    body: '#f2c23c',
+    chrome: true,
+    fx: 'glitter',
+    b: '#ffffff',
+  },
+  arcoirisNeon: { name: 'Arcoíris neón', rar: 'm', c: '#16162a', body: '#101020', fx: 'neonbow' },
 });
 
 /* ---------- Cabina ----------
@@ -1131,7 +1180,8 @@ const ENGINE = {
    trail = estela que deja la nave como un camino: cols = colores de la cabeza a la cola
            ('rainbow' = arcoíris), w = ancho, len = largo
            stamp = el camino es de figuras sueltas (heart, star, note, snow, bubble, spark, bolt, paw, pixel);
-           size = tamaño de cada figura · ribbon: true = además lleva la cinta de luz */
+           size = tamaño de cada figura · ribbon: true = además lleva la cinta de luz
+           icon = figura a todo color (un emoji) · flag = bandera: franjas [color, ancho] a lo ancho del camino */
 const FLAME_COLOR = [
   ['azul', 'Azul', '#4fc3ff', '#e6fbff'],
   ['toxica', 'Tóxica', '#7dff5e', '#f0ffd0'],
@@ -1207,6 +1257,319 @@ Object.assign(FLAME, {
     trail: { cols: ['#ffffff', '#bfe9ff', '#4f8aff'], w: 2, len: 1.6 },
   },
   arcoiris: { name: 'Arcoíris', rar: 'l', out: '#ff5a4a', in: '#ffffff', ring: '#ffffff', style: 'rainbow' },
+  /* banderas: las franjas van una al lado de la otra a lo ancho del camino */
+  banderaColombia: {
+    name: 'Bandera de Colombia',
+    rar: 'e',
+    out: '#fcd116',
+    in: '#ffffff',
+    ring: '#ce1126',
+    trail: {
+      flag: [
+        ['#fcd116', 2],
+        ['#003893', 1],
+        ['#ce1126', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaMexico: {
+    name: 'Bandera de México',
+    rar: 'e',
+    out: '#006847',
+    in: '#ffffff',
+    ring: '#ce1126',
+    trail: {
+      flag: [
+        ['#006847', 1],
+        ['#ffffff', 1],
+        ['#ce1126', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaArgentina: {
+    name: 'Bandera de Argentina',
+    rar: 'e',
+    out: '#74acdf',
+    in: '#ffffff',
+    ring: '#74acdf',
+    trail: {
+      flag: [
+        ['#74acdf', 1],
+        ['#ffffff', 1],
+        ['#74acdf', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaBrasil: {
+    name: 'Bandera de Brasil',
+    rar: 'e',
+    out: '#009c3b',
+    in: '#ffffff',
+    ring: '#009c3b',
+    trail: {
+      flag: [
+        ['#009c3b', 2],
+        ['#ffdf00', 2],
+        ['#002776', 1],
+        ['#ffdf00', 2],
+        ['#009c3b', 2],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaVenezuela: {
+    name: 'Bandera de Venezuela',
+    rar: 'e',
+    out: '#ffcc00',
+    in: '#ffffff',
+    ring: '#cf142b',
+    trail: {
+      flag: [
+        ['#ffcc00', 1],
+        ['#00247d', 1],
+        ['#cf142b', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaEcuador: {
+    name: 'Bandera de Ecuador',
+    rar: 'e',
+    out: '#ffdd00',
+    in: '#ffffff',
+    ring: '#ed1c24',
+    trail: {
+      flag: [
+        ['#ffdd00', 2],
+        ['#034ea2', 1],
+        ['#ed1c24', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaPeru: {
+    name: 'Bandera de Perú',
+    rar: 'e',
+    out: '#d91023',
+    in: '#ffffff',
+    ring: '#d91023',
+    trail: {
+      flag: [
+        ['#d91023', 1],
+        ['#ffffff', 1],
+        ['#d91023', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaChile: {
+    name: 'Bandera de Chile',
+    rar: 'e',
+    out: '#0039a6',
+    in: '#ffffff',
+    ring: '#d52b1e',
+    trail: {
+      flag: [
+        ['#0039a6', 1],
+        ['#ffffff', 1],
+        ['#d52b1e', 2],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaBolivia: {
+    name: 'Bandera de Bolivia',
+    rar: 'e',
+    out: '#d52b1e',
+    in: '#ffffff',
+    ring: '#007934',
+    trail: {
+      flag: [
+        ['#d52b1e', 1],
+        ['#f9e300', 1],
+        ['#007934', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaEspana: {
+    name: 'Bandera de España',
+    rar: 'e',
+    out: '#c60b1e',
+    in: '#ffffff',
+    ring: '#c60b1e',
+    trail: {
+      flag: [
+        ['#c60b1e', 1],
+        ['#ffc400', 2],
+        ['#c60b1e', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaUsa: {
+    name: 'Bandera de EE. UU.',
+    rar: 'e',
+    out: '#b22234',
+    in: '#ffffff',
+    ring: '#b22234',
+    trail: {
+      flag: [
+        ['#b22234', 1],
+        ['#ffffff', 1],
+        ['#3c3b6e', 1],
+        ['#ffffff', 1],
+        ['#b22234', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaFrancia: {
+    name: 'Bandera de Francia',
+    rar: 'e',
+    out: '#0055a4',
+    in: '#ffffff',
+    ring: '#ef4135',
+    trail: {
+      flag: [
+        ['#0055a4', 1],
+        ['#ffffff', 1],
+        ['#ef4135', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaItalia: {
+    name: 'Bandera de Italia',
+    rar: 'e',
+    out: '#009246',
+    in: '#ffffff',
+    ring: '#ce2b37',
+    trail: {
+      flag: [
+        ['#009246', 1],
+        ['#ffffff', 1],
+        ['#ce2b37', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaAlemania: {
+    name: 'Bandera de Alemania',
+    rar: 'e',
+    out: '#1a1a1a',
+    in: '#ffffff',
+    ring: '#ffce00',
+    trail: {
+      flag: [
+        ['#1a1a1a', 1],
+        ['#dd0000', 1],
+        ['#ffce00', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaJapon: {
+    name: 'Bandera de Japón',
+    rar: 'e',
+    out: '#ffffff',
+    in: '#ffffff',
+    ring: '#ffffff',
+    trail: {
+      flag: [
+        ['#ffffff', 2],
+        ['#bc002d', 1],
+        ['#ffffff', 2],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  banderaOrgullo: {
+    name: 'Bandera del orgullo',
+    rar: 'e',
+    out: '#e40303',
+    in: '#ffffff',
+    ring: '#750787',
+    trail: {
+      flag: [
+        ['#e40303', 1],
+        ['#ff8c00', 1],
+        ['#ffed00', 1],
+        ['#008026', 1],
+        ['#004dff', 1],
+        ['#750787', 1],
+      ],
+      solid: true,
+      w: 1.5,
+      len: 1.5,
+    },
+  },
+  /* paquetes temáticos de las naves únicas (se compran aparte) */
+  elfos: {
+    name: 'Elfos navideños',
+    rar: 'l',
+    out: '#3ddc6a',
+    in: '#ffffff',
+    ring: '#ff3b3b',
+    trail: {
+      icon: 'elf',
+      size: 17,
+      len: 1.7,
+      every: 1.5,
+      ribbon: true,
+      cols: ['#ffffff', '#6ef2a5', '#d3202a'],
+      w: 0.5,
+    },
+  },
+  vacas: {
+    name: 'Vacas abducidas',
+    rar: 'l',
+    out: '#7dff5e',
+    in: '#f0ffd0',
+    ring: '#b4ff5e',
+    trail: {
+      icon: '🐄',
+      size: 19,
+      len: 1.8,
+      every: 1.7,
+      ribbon: true,
+      cols: ['#f0ffd0', '#7dff5e', '#1a9a4a'],
+      w: 1.3,
+    },
+  },
   caminoArcoiris: {
     name: 'Camino arcoíris',
     rar: 'l',
@@ -1441,6 +1804,23 @@ const GUN = {
   musica: { name: 'Notas musicales', rar: 'e', barrel: '#c792ff', model: 'twin', bolt: 'emoji', icons: ['🎵', '🎶'] },
   balones: { name: 'Balones', rar: 'e', barrel: '#ffffff', model: 'mortar', bolt: 'emoji', icons: ['⚽', '🏀', '🎾'] },
   prisma: { name: 'Prisma', rar: 'l', barrel: '#ffffff', model: 'twin', bolt: 'orb', rainbow: true },
+  /* paquetes temáticos de las naves únicas (se compran aparte) */
+  regalos: {
+    name: 'Cajitas de regalo',
+    rar: 'l',
+    barrel: '#d3202a',
+    model: 'pod',
+    bolt: 'gift',
+    shots: shots('#e8303a', '#2a9a4a', '#2a6ae0'),
+  },
+  ovni: {
+    name: 'Rayo alienígena',
+    rar: 'l',
+    barrel: '#7dff5e',
+    model: 'twin',
+    bolt: 'beam',
+    shots: shots('#7dff5e', '#b4ff5e', '#5effc0'),
+  },
   laserArcoiris: {
     name: 'Láser arcoíris',
     rar: 'l',
@@ -1485,6 +1865,7 @@ const BOOM = {
 
 /* ---------- Todo junto: PARTS['hull.aurora'] = { id, slot, key, name, rar, … } ---------- */
 const GROUPS = {
+  ship: SHIP,
   hull: HULL,
   nose: NOSE,
   wing: WING,
@@ -1496,7 +1877,7 @@ const GROUPS = {
   gun: GUN,
   boom: BOOM,
 };
-const ORDER = ['base', 'c', 'r', 'e', 'l'];
+const ORDER = ['base', 'c', 'r', 'e', 'l', 'm', 'u'];
 export const PARTS = {};
 export const BY_SLOT = {};
 /* la pieza de serie de cada ranura: siempre se tiene, y es la que se usa si falta la elegida */

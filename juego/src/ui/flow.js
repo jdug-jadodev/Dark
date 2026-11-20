@@ -11,6 +11,7 @@ import { km, spaceRevive } from '../game/space.js';
 import { after, timers } from '../game/timers.js';
 import { Platform } from '../platform/platform.js';
 import { adTag, showAd } from './ads.js';
+import { countRun } from './daily.js';
 import { $ } from './dom.js';
 import { finish, finishBoss } from './endScreens.js';
 import { showToast } from './hud.js';
@@ -18,8 +19,8 @@ import { K } from './input.js';
 import { renderMenu } from './menu.js';
 /* ---------- Flujo ---------- */
 function hideAll() {
-  ['menu', 'garage', 'crash', 'end', 'chest', 'ad', 'pause', 'settings', 'shop', 'pay'].forEach((id) =>
-    $(id).classList.remove('show'),
+  ['menu', 'garage', 'crash', 'end', 'chest', 'ad', 'pause', 'settings', 'shop', 'pay', 'missions', 'stats'].forEach(
+    (id) => $(id).classList.remove('show'),
   );
 }
 export function showPad(on) {
@@ -116,6 +117,7 @@ export function quitGame() {
   if (G.state !== 'pause') return;
   S.coins += G.run.coins;
   save();
+  countRun(); // lo que alcanzó a hacer también cuenta para las misiones de hoy
   backToMenu();
 }
 export function backToMenu() {

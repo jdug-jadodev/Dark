@@ -5,10 +5,11 @@ import { useNitro } from '../game/holes.js';
 import { dragBy } from '../game/ship.js';
 import { $, cv } from './dom.js';
 import { pauseGame, quitGame, resumeGame } from './flow.js';
-import { renderMenu } from './menu.js';
+import { closeChest, closeMissions } from './daily.js';
 import { closeGarage } from './garage.js';
 import { closeSettings } from './settings.js';
 import { closeShop } from './shop.js';
+import { closeStats } from './stats.js';
 export const K = {
   up: 0,
   down: 0,
@@ -97,11 +98,7 @@ export function bootInput() {
       resumeGame();
       return true;
     }
-    if ($('chest').classList.contains('show')) {
-      $('chest').classList.remove('show');
-      renderMenu();
-      return true;
-    }
+    if (closeChest() || closeMissions() || closeStats()) return true;
     return G.state !== 'menu';
   };
   window.__giroPause = () => pauseGame();

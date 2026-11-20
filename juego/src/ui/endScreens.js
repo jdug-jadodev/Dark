@@ -7,6 +7,7 @@ import { S, save } from '../core/profile.js';
 import { fmt } from '../core/util.js';
 import { SPC, km } from '../game/space.js';
 import { adTag, showAd } from './ads.js';
+import { countRun, missionBlock } from './daily.js';
 import { $ } from './dom.js';
 import { backToMenu, showPad, startRun } from './flow.js';
 export function finishBoss(win) {
@@ -73,6 +74,7 @@ function finishSpace() {
     rec = rank === 0 && (!prev.length || d > prev[0]);
   S.topSpace = list;
   save();
+  const mis = missionBlock(countRun());
   const rows = list
     .map(
       (v, i) =>
@@ -115,6 +117,7 @@ function finishSpace() {
     '<div class="gain">+' +
     gain +
     ' 🪙</div>' +
+    mis +
     (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas' + adTag() + ' +' + gain + ' 🪙</button>' : '') +
     '<button class="btn space" data-a="space">🪐 Volar de nuevo</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
@@ -138,19 +141,12 @@ export function finish(win) {
   }
   const gain = G.run.coins + (win ? 25 : 0);
   S.coins += gain;
-  S.mission += G.run.dodged;
-  let missionMsg = '';
-  if (S.mission >= 50 && !S.mPaid) {
-    S.mPaid = true;
-    S.coins += 20;
-    missionMsg = '¡Misión completada! +20 🪙';
-  }
   if (!S.boss && G.run.coins >= BOSS_UNLOCK) S.boss = true;
   const pts = Math.floor(G.run.pts),
     rec = pts > (S.best || 0);
   if (rec) S.best = pts;
   save();
-  const pm = Math.min(S.mission, 50);
+  const mis = missionBlock(countRun());
   const nextGoal = !G.run.miniDone
     ? 'Te faltaron ' + Math.max(0, Math.ceil((GOAL * MINI_AT) / 100 - G.run.pts)) + ' puntos para el jefe intermedio.'
     : 'Te faltaron ' + Math.max(0, Math.ceil(GOAL - G.run.pts)) + ' puntos para el jefe final.';
@@ -183,11 +179,7 @@ export function finish(win) {
     '<div class="pbar"><i style="width:' +
     Math.min(100, prog()) +
     '%"></i></div></div>' +
-    '<div class="mini">Misión diaria: esquiva 50 obstáculos<div class="pbar"><i style="width:' +
-    (pm / 50) * 100 +
-    '%"></i></div>' +
-    (S.mPaid ? '✔ ' + (missionMsg || 'Completada') : pm + ' / 50') +
-    '</div>' +
+    mis +
     '<button class="btn ad" data-a="x2">▶ Duplicar monedas' +
     adTag() +
     ' +' +
@@ -203,11 +195,6 @@ function finishSurv() {
   const secs = G.t,
     gain = G.run.coins;
   S.coins += gain;
-  S.mission += G.run.dodged;
-  if (S.mission >= 50 && !S.mPaid) {
-    S.mPaid = true;
-    S.coins += 20;
-  }
   const prev = (S.topTimes || []).slice();
   const list = prev
     .concat([secs])
@@ -217,6 +204,7 @@ function finishSurv() {
     rec = rank === 0 && (!prev.length || secs > prev[0]);
   S.topTimes = list;
   save();
+  const mis = missionBlock(countRun());
   const rows = list
     .map(
       (v, i) =>
@@ -259,6 +247,7 @@ function finishSurv() {
     '<div class="gain">+' +
     gain +
     ' 🪙</div>' +
+    mis +
     (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas' + adTag() + ' +' + gain + ' 🪙</button>' : '') +
     '<button class="btn surv" data-a="endless">⏱ Intentar de nuevo</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
