@@ -24,14 +24,15 @@ import { bootEndScreens } from './ui/endScreens.js';
 import { bootAds } from './ui/ads.js';
 import { bootFlow } from './ui/flow.js';
 import { bootMenu } from './ui/menu.js';
+import { bootGarage } from './ui/garage.js';
+import { bootShop } from './ui/shop.js';
 import { bootSettings } from './ui/settings.js';
 import { bootInput } from './ui/input.js';
 import { bootLoop } from './loop.js';
 import { bootSound } from './audio/sound.js';
 
 if (!window.THREE) {
-  document.getElementById('menu').querySelector('.sub').textContent =
-    'No se pudo cargar el motor 3D (necesita internet).';
+  document.getElementById('mBest').textContent = 'No se pudo cargar el motor 3D (necesita internet).';
 } else {
   bootPlatform();
   bootProfile();
@@ -56,6 +57,8 @@ if (!window.THREE) {
   bootAds();
   bootFlow();
   bootMenu();
+  bootGarage();
+  bootShop();
   bootSettings();
   bootInput();
   bootSound();

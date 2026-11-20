@@ -275,8 +275,15 @@ async function run() {
   const only = opt('--only', null);
   // En la prueba no se dibuja (por software iría lentísimo). Three.js define render() en cada
   // objeto y no en la clase, así que se envuelve el constructor para anularlo.
+  // Además Three.js le pone un identificador al azar a cada objeto que crea: aquí se numeran, para
+  // que crear más o menos objetos (una nave con otras piezas) no corra el azar de la partida.
+  const uuidRandom = '4294967295*Math.random()';
+  const source = fs.readFileSync(THREE, 'utf8');
+  if (source.split(uuidRandom).length !== 5)
+    throw new Error('No encuentro el generador de identificadores de Three.js');
   const three =
-    fs.readFileSync(THREE, 'utf8') +
+    'let __giroId=1;function __giroU(){__giroId=(__giroId*1103515245+12345)%2147483648;return __giroId/2147483648;}\n' +
+    source.split(uuidRandom).join('4294967295*__giroU()') +
     '\n(function(){const Real=THREE.WebGLRenderer;THREE.WebGLRenderer=function(p){const r=new Real(p);r.render=function(){};return r;};})();';
   const browser = await chromium.launch({
     executablePath: findChrome(),

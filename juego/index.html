@@ -33,20 +33,41 @@
       <div class="pr"><button data-d="left" aria-label="Izquierda">◀</button><button data-d="right" aria-label="Derecha">▶</button></div>
     </div>
 
-    <!-- Menú -->
-    <div class="screen show" id="menu">
-      <div class="card">
-        <h1>Giro Estelar</h1>
-        <div class="sub">Demo · llega a 320 puntos y enfrenta al jefe</div>
-        <div class="coins" id="mCoins">🪙 0</div>
-        <div class="best" id="mBest"></div>
-        <button class="btn" id="play">▶ Jugar · Aventura</button>
-        <button class="btn surv" id="survBtn">⏱ Supervivencia · ¿cuánto aguantas?</button>
-        <button class="btn space" id="spaceBtn">🪐 Viaje espacial · vuelo libre 3D</button>
-        <button class="btn alt" id="chestBtn">🎁 Cofre diario</button>
-        <button class="btn alt" data-open="settings">⚙ Configuración</button>
-        <label class="chk"><input type="checkbox" id="inv"> Modo demo: no morir (para ver todo el flujo)</label>
+    <!-- Lobby (menú principal): la nave del jugador se ve al fondo, en el centro -->
+    <div class="screen lobby show" id="menu">
+      <div class="ltop">
+        <div><h1>Giro Estelar</h1><div class="best" id="mBest"></div></div>
+        <button class="lbtn round" data-open="settings" aria-label="Configuración">⚙</button>
+      </div>
+      <div class="coins" id="mCoins">🪙 0</div>
+      <div class="lmid">
+        <button class="lship" id="shipTap" aria-label="Abrir el taller"><span>🔧 Toca la nave para personalizarla</span></button>
+        <div class="lside">
+          <button class="lbtn" id="garageBtn"><b>🔧</b>Taller</button>
+          <button class="lbtn" id="chestBtn"><b>🎁</b>Cofre</button>
+          <button class="lbtn" id="shopBtn"><b>🛒</b>Tienda</button>
+        </div>
+      </div>
+      <div class="lplay">
+        <button class="btn" id="play">▶ Aventura</button>
+        <div class="lrow"><button class="btn surv" id="survBtn">⏱ Supervivencia</button><button class="btn space" id="spaceBtn">🪐 Viaje espacial</button></div>
+        <label class="chk"><input type="checkbox" id="inv"> Modo demo: no morir y probar todas las piezas</label>
         <div class="ctrl" id="lvlPick" style="display:none"><span>Supervivencia desde el nivel:</span><button class="opt sel" data-lv="1">1</button><button class="opt" data-lv="5">5</button><button class="opt" data-lv="10">10</button><button class="opt" data-lv="15">15</button><button class="opt" data-lv="20">20</button></div>
+      </div>
+    </div>
+
+    <!-- Taller: arriba se ve la nave (se gira con el dedo), abajo las piezas -->
+    <div class="screen garage" id="garage">
+      <div class="gtop">
+        <button class="lbtn round" id="garageBack" aria-label="Volver">←</button>
+        <b>TALLER</b>
+        <span id="gCoins">🪙 0</span>
+      </div>
+      <div class="gview" id="gView"><small id="gHint"></small></div>
+      <div class="gpanel">
+        <div class="gtabs" id="gTabs"></div>
+        <div class="gitems" id="gItems"></div>
+        <div class="ginfo"><div><b id="gName"></b><small id="gRar"></small></div><button class="btn" id="gAct"></button></div>
       </div>
     </div>
 
@@ -96,6 +117,17 @@
       </div>
     </div>
 
+    <!-- Tienda: monedas y sin anuncios (encima del lobby y del taller) -->
+    <div class="screen" id="shop">
+      <div class="card">
+        <h2>🛒 Tienda</h2>
+        <div class="coins" id="shopCoins">🪙 0</div>
+        <div id="shopList"></div>
+        <div class="note">Las monedas solo compran piezas de apariencia: nada de aquí da ventaja en el juego.</div>
+        <button class="btn alt" id="shopClose">Cerrar</button>
+      </div>
+    </div>
+
     <!-- Anuncio (siempre al final para quedar encima) -->
     <div class="screen" id="ad">
       <div class="card">
@@ -104,6 +136,17 @@
         <div class="adbox"><b id="adCount">3</b>aquí iría un video de 15-30 s</div>
         <div class="pbar"><i id="adFill" style="width:0"></i></div>
         <button class="btn ad" id="adBtn" disabled>Espera…</button>
+      </div>
+    </div>
+
+    <!-- Pago (simulado): hace las veces de la ventana de Google Play -->
+    <div class="screen" id="pay">
+      <div class="card">
+        <h2>Compra (simulada)</h2>
+        <div class="sub" id="payInfo"></div>
+        <div class="adbox"><b id="payPrice"></b>aquí iría el pago de Google Play</div>
+        <button class="btn ad" id="payOk"></button>
+        <button class="btn alt" id="payNo">Cancelar</button>
       </div>
     </div>
   </div>

@@ -1,9 +1,20 @@
 /** Anuncio con recompensa (simulado). En la app se reemplazará por AdMob. */
+import { noAds } from '../core/shop.js';
 import { $ } from './dom.js';
 /* ---------- Anuncio simulado ---------- */
 let adCb = null;
 let adTimer = null;
+/* lo que dice un botón que da algo a cambio de un anuncio; quien compró "Sin anuncios" lo recibe directo */
+export const adTag = () => (noAds() ? '' : ' (anuncio)');
+/* sin anuncios (comprado, o mientras dure el mes): desaparece la franja de abajo */
+export function applyNoAds() {
+  $('banner').style.display = noAds() ? 'none' : '';
+}
 export function showAd(label, cb) {
+  if (noAds()) {
+    cb();
+    return;
+  }
   $('adLabel').textContent = label;
   $('adBtn').disabled = true;
   $('adBtn').textContent = 'Espera…';

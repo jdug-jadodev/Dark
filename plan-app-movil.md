@@ -236,6 +236,7 @@ Lo que falta:
 | Código del juego en módulos, con pruebas de regresión y de arquitectura | **Hecho (paso 1)** |
 | Desenredar estado, lógica↔interfaz y azar con semilla | Pendiente (pasos 1–5 de arriba) |
 | AdMob real (banner + anuncios con recompensa) | Pendiente: hoy son los simulados |
+| Tienda de pago (monedas y sin anuncios) | Hecha en el HTML con pago simulado; falta pasarla a la app y el cobro real con Google Play |
 | Ícono, nombre e imagen de inicio propios | Pendiente |
 | Efectos de sonido (39), música de metal y motor de la nave, todo por código | **Hecho**, afinándose sonido por sonido |
 | Configuración: volumen de música y de efectos, y control | **Hecho en el HTML**, falta el visto bueno para pasarla a la app |
@@ -243,7 +244,8 @@ Lo que falta:
 | Calor y batería: tope de 60 cuadros, calidad gráfica ajustable y reacción al calor | Hecho y medido en el A56 |
 | Prueba en un teléfono de gama baja real | Pendiente |
 | Música pregrabada al abrir (hoy es lo que más gasta) | Propuesto |
-| Retención · Multijugador | Después |
+| Lobby y taller de la nave (260 piezas de apariencia en 10 ranuras) | **Hecho y en la app** (medido en el A56 el 2026-11-20). Ver [plan-de-desarrollo.md](plan-de-desarrollo.md) |
+| Misiones diarias, nivel de piloto · Multijugador | Después, en el orden de [plan-de-desarrollo.md](plan-de-desarrollo.md) |
 
 ## Comandos
 

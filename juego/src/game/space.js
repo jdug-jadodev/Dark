@@ -4,6 +4,7 @@ import { G } from '../core/state.js';
 import { SENS, SPACE_TIPS, SPR, SPZ } from '../core/config.js';
 import { ease, pick, rand } from '../core/util.js';
 import { ROCKG } from '../render/models/props.js';
+import { look } from '../core/garage.js';
 import { buildShip } from '../render/models/ship.js';
 import { placePlanet } from '../render/planets.js';
 import { mkBeam, planets, rUnit, uDyn, uHotMat, uRockMats, uScene } from '../render/spaceScene.js';
@@ -76,7 +77,7 @@ export function spaceInit() {
     inv: 0,
     last: '',
   });
-  SPC.ship = buildShip(G.ship.id, G.ship.color);
+  SPC.ship = buildShip(look());
   SPC.ship.rotation.order = 'ZXY';
   uScene.add(SPC.ship);
   for (const p of planets) placePlanet(p, true);
@@ -306,8 +307,10 @@ export function spaceUpdate(dt) {
         }
         continue;
       }
-      spBoom(SPC.x, SPC.y, 0, '#ff6b8a', 60);
-      spBoom(SPC.x, SPC.y, 0, '#ffd54a', 30);
+      /* la nave revienta con los colores de la explosión que lleva puesta */
+      const cols = look().boom.cols;
+      spBoom(SPC.x, SPC.y, 0, cols[0], 60);
+      spBoom(SPC.x, SPC.y, 0, cols[1] || '#ffd54a', 30);
       SPC.ship.visible = false;
       crash();
       return;

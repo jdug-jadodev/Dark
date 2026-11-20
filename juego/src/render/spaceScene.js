@@ -2,6 +2,7 @@
 import { G } from '../core/state.js';
 import { SPR, SURV_PAL } from '../core/config.js';
 import { clamp, pick, rand } from '../core/util.js';
+import { shipTick, shipTrails } from './models/ship.js';
 import { SPC, uRoll } from '../game/space.js';
 import { _v } from './draw.js';
 import { renderer } from './engine.js';
@@ -289,7 +290,8 @@ export function spaceDraw(dt, lazy) {
   sm.rotation.set(clamp(lvy * 0.003, -0.35, 0.35), clamp(-lvx * 0.0015, -0.3, 0.3), r + clamp(-lvx * 0.005, -0.7, 0.7));
   if (G.state !== 'paused' && G.state !== 'end')
     sm.visible = !(SPC.inv > 0 && Math.floor(performance.now() / 70) % 2 === 0);
-  for (const f of u.flames) f.scale.set(1, 1, 0.9 + Math.random() * 0.6);
+  shipTick(sm, performance.now() / 1000, 0.2, 1);
+  shipTrails(sm, uScene, dt, Math.min(spd, 260), performance.now() / 1000);
   for (const gn of u.guns) gn.visible = false;
   /* chispas */
   let n = 0;

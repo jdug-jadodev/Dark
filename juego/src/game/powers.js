@@ -73,6 +73,54 @@ export function killRock(j) {
   G.run.pts += 1;
   G.run.coins += 1;
 }
+/* Dispara una vez el arma g desde la nave s y devuelve cuánto falta para el siguiente disparo */
+export function fireGun(s, g) {
+  let wait;
+  if (g === 'twin') {
+    wait = 0.13;
+    for (const dx of [-9, 9])
+      G.bullets.push({
+        x: s.x + dx,
+        y: s.y - 12,
+        vy: -760,
+        dmg: 1,
+        w: 3.2,
+        h: 12,
+        col: '#ffb454',
+        k: 'twin',
+      });
+  } else if (g === 'spread') {
+    wait = 0.26;
+    for (let k = -1; k <= 1; k++) {
+      const a = -Math.PI / 2 + k * 0.17;
+      G.bullets.push({
+        x: s.x,
+        y: s.y - 12,
+        vx: Math.cos(a) * 700,
+        vy: Math.sin(a) * 700,
+        dmg: 0.8,
+        w: 3.6,
+        h: 10,
+        col: '#b4ff5e',
+        k: 'spread',
+      });
+    }
+  } else {
+    wait = 0.45;
+    G.bullets.push({
+      x: s.x,
+      y: s.y - 14,
+      vy: -600,
+      dmg: 5,
+      w: 9,
+      h: 22,
+      col: '#ff8a3c',
+      k: 'heavy',
+      pierce: true,
+    });
+  }
+  return wait;
+}
 export function updatePowers(dt) {
   const s = G.ship;
   for (const k of ['orbit', 'laser', 'mag']) if (s[k] > 0) s[k] = Math.max(0, s[k] - dt);
@@ -97,46 +145,7 @@ export function updatePowers(dt) {
     if (s.fire <= 0) {
       const g = s.gun.type;
       emit('shot', g);
-      if (g === 'twin') {
-        s.fire = 0.13;
-        for (const dx of [-9, 9])
-          G.bullets.push({
-            x: s.x + dx,
-            y: s.y - 12,
-            vy: -760,
-            dmg: 1,
-            w: 3.2,
-            h: 12,
-            col: '#ffb454',
-          });
-      } else if (g === 'spread') {
-        s.fire = 0.26;
-        for (let k = -1; k <= 1; k++) {
-          const a = -Math.PI / 2 + k * 0.17;
-          G.bullets.push({
-            x: s.x,
-            y: s.y - 12,
-            vx: Math.cos(a) * 700,
-            vy: Math.sin(a) * 700,
-            dmg: 0.8,
-            w: 3.6,
-            h: 10,
-            col: '#b4ff5e',
-          });
-        }
-      } else {
-        s.fire = 0.45;
-        G.bullets.push({
-          x: s.x,
-          y: s.y - 14,
-          vy: -600,
-          dmg: 5,
-          w: 9,
-          h: 22,
-          col: '#ff8a3c',
-          pierce: true,
-        });
-      }
+      s.fire = fireGun(s, g);
     }
   }
   const b = liveBoss();

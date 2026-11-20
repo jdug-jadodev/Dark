@@ -6,7 +6,7 @@ import { level, prog } from '../core/difficulty.js';
 import { S, save } from '../core/profile.js';
 import { fmt } from '../core/util.js';
 import { SPC, km } from '../game/space.js';
-import { showAd } from './ads.js';
+import { adTag, showAd } from './ads.js';
 import { $ } from './dom.js';
 import { backToMenu, showPad, startRun } from './flow.js';
 export function finishBoss(win) {
@@ -48,7 +48,9 @@ export function finishBoss(win) {
       ? 'Siguiente: un jefe nuevo por zona, con ataques distintos (en el juego real).'
       : 'Tip: el jefe cambia de ataque al azar; quédate cerca de las armas que caen y no te quedes quieto.') +
     '</div>' +
-    '<button class="btn ad" data-a="x2">▶ Duplicar monedas (anuncio) +' +
+    '<button class="btn ad" data-a="x2">▶ Duplicar monedas' +
+    adTag() +
+    ' +' +
     gain +
     ' 🪙</button>' +
     '<button class="btn" data-a="boss">⚔ ' +
@@ -113,7 +115,7 @@ function finishSpace() {
     '<div class="gain">+' +
     gain +
     ' 🪙</div>' +
-    (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas (anuncio) +' + gain + ' 🪙</button>' : '') +
+    (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas' + adTag() + ' +' + gain + ' 🪙</button>' : '') +
     '<button class="btn space" data-a="space">🪐 Volar de nuevo</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
   $('end').classList.add('show');
@@ -186,7 +188,9 @@ export function finish(win) {
     '%"></i></div>' +
     (S.mPaid ? '✔ ' + (missionMsg || 'Completada') : pm + ' / 50') +
     '</div>' +
-    '<button class="btn ad" data-a="x2">▶ Duplicar monedas (anuncio) +' +
+    '<button class="btn ad" data-a="x2">▶ Duplicar monedas' +
+    adTag() +
+    ' +' +
     gain +
     ' 🪙</button>' +
     '<button class="btn" data-a="again">Jugar otra vez</button>' +
@@ -255,7 +259,7 @@ function finishSurv() {
     '<div class="gain">+' +
     gain +
     ' 🪙</div>' +
-    (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas (anuncio) +' + gain + ' 🪙</button>' : '') +
+    (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas' + adTag() + ' +' + gain + ' 🪙</button>' : '') +
     '<button class="btn surv" data-a="endless">⏱ Intentar de nuevo</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
   $('end').classList.add('show');

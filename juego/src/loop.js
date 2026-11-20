@@ -6,6 +6,7 @@ import { lazyFrame, setHeat, tooSoon, watchFps } from './core/perf.js';
 import { G } from './core/state.js';
 import { update } from './game/adventure.js';
 import { ambient, newRun } from './game/run.js';
+import { showroomTick } from './game/showroom.js';
 import { followPointer } from './game/ship.js';
 import { tickTimers } from './game/timers.js';
 import { Platform } from './platform/platform.js';
@@ -66,6 +67,7 @@ function loop(ts) {
     followPointer(dt);
     tickCount(dt);
   }
+  if (G.state === 'menu') showroomTick(dt);
   if (G.state === 'play') {
     update(dt);
     if (G.state === 'play') hud();

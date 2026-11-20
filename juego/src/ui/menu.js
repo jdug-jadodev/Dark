@@ -1,14 +1,16 @@
-/** Menú principal y cofre diario. */
+/** Lobby (menú principal) y cofre diario. */
 import { emit } from '../core/events.js';
+import { touchLook } from '../core/garage.js';
 import { G } from '../core/state.js';
 import { GOAL } from '../core/config.js';
 import { S, save } from '../core/profile.js';
 import { fmt } from '../core/util.js';
-import { showAd } from './ads.js';
+import { adTag, applyNoAds, showAd } from './ads.js';
 import { $ } from './dom.js';
 import { startRun } from './flow.js';
 /* ---------- Menú y cofre ---------- */
 export function renderMenu() {
+  applyNoAds(); // por si el mes sin anuncios se venció
   $('mCoins').textContent = '🪙 ' + S.coins + '  ·  🔥 racha ' + S.streak + ' días';
   const bt = (S.topTimes || [])[0],
     parts2 = [];
@@ -22,7 +24,11 @@ export function bootMenu() {
   $('play').addEventListener('click', () => startRun());
   $('survBtn').addEventListener('click', () => startRun('endless'));
   $('spaceBtn').addEventListener('click', () => startRun('space'));
-  $('inv').addEventListener('change', renderMenu);
+  $('inv').addEventListener('change', () => {
+    G.demo = $('inv').checked; // en modo demo el taller deja equipar todo
+    touchLook();
+    renderMenu();
+  });
   /* solo en modo demo: empezar Supervivencia en un nivel alto para probarlo sin jugar varios minutos */
   $('inv').addEventListener('change', () => {
     $('lvlPick').style.display = $('inv').checked ? 'flex' : 'none';
@@ -72,7 +78,9 @@ function renderChest() {
     h += '<button class="btn" data-c="open">Abrir cofre · +' + r + ' 🪙</button>';
   } else {
     h += '<div class="gain">+' + r + ' 🪙</div>';
-    if (!G.chestDoubled) h += '<button class="btn ad" data-c="x2">▶ Duplicar con anuncio · +' + r + ' 🪙</button>';
+    if (!G.chestDoubled)
+      h +=
+        '<button class="btn ad" data-c="x2">▶ Duplicar' + (adTag() ? ' con anuncio' : '') + ' · +' + r + ' 🪙</button>';
     else h += '<div class="sub">✔ Duplicado</div>';
     h += '<div class="sub">Vuelve mañana: día ' + (S.streak + 1) + ' con premio mayor.</div>';
   }

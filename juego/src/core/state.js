@@ -35,4 +35,13 @@ export const G = {
   bendY: 0,
   bendT: 2,
   startLv: 1, // modo demo: nivel en el que arranca Supervivencia
+  demo: false, // modo demo activo (no morir, y en el taller se puede equipar todo)
+  /* escaparate: en el menú la cámara se acerca a la nave */
+  view: 'lobby', // 'lobby' o 'garage' (taller)
+  show: 1, // 0 = cámara de juego … 1 = cámara de escaparate
+  showG: 0, // 0 = lobby … 1 = taller (la nave sube y se gira con el dedo)
+  yaw: 0, // giro de la nave en el taller
+  yawHold: false, // el dedo la está girando
+  yawTo: null, // taller: ángulo al que se está acomodando la nave (null = quieta)
+  showGuns: false, // taller: mostrar los cañones aunque no haya arma
 };

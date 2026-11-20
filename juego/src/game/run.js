@@ -1,7 +1,7 @@
 /** Partida nueva, generadores (rocas, paredes, monedas, cápsulas), partículas y avance ambiental. */
 import { G } from '../core/state.js';
 import { FLIP_AT, LVL, SHIP_DEF, SPAWN, SY, W, WALLS } from '../core/config.js';
-import { rand } from '../core/util.js';
+import { rand, vrand } from '../core/util.js';
 import { initBoss } from './boss.js';
 import { spaceInit } from './space.js';
 import { $ } from '../ui/dom.js';
@@ -189,6 +189,56 @@ export function explode(x, y, col, n) {
       max: 0.7,
       col,
     });
+  }
+}
+/* La nave revienta con la explosión que el jugador lleva puesta (B = pieza de core/parts.js).
+   La clásica es la de siempre. Las demás usan el azar de adornos, no el de la partida. */
+export function shipBoom(x, y, B) {
+  if (!B || !B.style) return explode(x, y, '#ff6b8a', 26);
+  const col = () => B.cols[Math.floor(vrand() * B.cols.length)];
+  const spark = (a, v, life, vh, r) =>
+    G.parts.push({
+      x: x + Math.cos(a) * (r || 0),
+      y: y + Math.sin(a) * (r || 0),
+      h: vrand(-2, 6),
+      vh,
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v,
+      life,
+      max: life,
+      col: col(),
+    });
+  const ring = (life) => G.rings.push({ x, y, r: 10, life, col: B.cols[0] });
+  const n = B.n,
+    any = () => vrand(0, 6.283);
+  if (B.style === 'burst') {
+    /* bola de fuego: muchas chispas en todas direcciones */
+    for (let i = 0; i < n; i++) spark(any(), vrand(40, 270), vrand(0.35, 0.8), vrand(-90, 170));
+  } else if (B.style === 'shards') {
+    /* astillas: rápidas, a ras, se apagan pronto */
+    for (let i = 0; i < n; i++) spark(any(), vrand(190, 460), vrand(0.22, 0.5), vrand(-20, 40));
+  } else if (B.style === 'ring') {
+    /* onda: un círculo parejo que se abre, con su anillo */
+    for (let i = 0; i < n; i++) spark((i / n) * 6.283, 250 + vrand(-12, 12), 0.6, 0);
+    ring(0.7);
+  } else if (B.style === 'fountain') {
+    /* confeti: sale hacia arriba y cae despacio */
+    for (let i = 0; i < n; i++) spark(any(), vrand(20, 130), vrand(0.6, 1.2), vrand(120, 400));
+  } else if (B.style === 'implode') {
+    /* implosión: las chispas vienen de afuera hacia el centro, y al final un destello */
+    for (let i = 0; i < n; i++) {
+      const r = vrand(90, 170),
+        life = vrand(0.35, 0.55);
+      spark(any(), -r / life, life, 0, r);
+    }
+    for (let i = 0; i < 14; i++) spark(any(), vrand(20, 90), vrand(0.5, 0.75), vrand(0, 60));
+  } else {
+    /* supernova: dos anillos, una onda pareja y una nube de chispas */
+    for (let i = 0; i < n; i++)
+      if (i % 3 === 0) spark((i / n) * 6.283, 330, 0.7, 0);
+      else spark(any(), vrand(40, 300), vrand(0.4, 1), vrand(-80, 220));
+    ring(0.7);
+    ring(0.42);
   }
 }
 export function ambient(dt) {

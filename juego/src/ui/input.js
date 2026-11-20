@@ -6,7 +6,9 @@ import { dragBy } from '../game/ship.js';
 import { $, cv } from './dom.js';
 import { pauseGame, quitGame, resumeGame } from './flow.js';
 import { renderMenu } from './menu.js';
+import { closeGarage } from './garage.js';
 import { closeSettings } from './settings.js';
+import { closeShop } from './shop.js';
 export const K = {
   up: 0,
   down: 0,
@@ -85,6 +87,8 @@ export function bootInput() {
   /* Atrás: devuelve true si el juego lo usó; false = la app puede cerrarse */
   window.__giroBack = () => {
     if (closeSettings()) return true;
+    if (closeShop()) return true;
+    if (closeGarage()) return true;
     if (G.state === 'play') {
       pauseGame();
       return true;

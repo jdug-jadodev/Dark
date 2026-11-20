@@ -1,7 +1,8 @@
 /** Dibujo de cada cuadro de Aventura/Supervivencia/Jefe: objetos, nave, cámara y textos flotantes. */
 import { G } from '../core/state.js';
 import { SPAWN, SUCK_T, W, WARP_T } from '../core/config.js';
-import { clamp, rand } from '../core/util.js';
+import { look, lookVersion } from '../core/garage.js';
+import { clamp, ease, rand } from '../core/util.js';
 import { bgTick } from './backdrop.js';
 import { LSEG, PMAX, laserSegs, orbs, pCol, pGeo, pPos, shieldM } from './effects.js';
 import { CAM, X3, Z3, camera, dyn, live, renderer, scene, use } from './engine.js';
@@ -10,7 +11,7 @@ import { mkHoleGame } from './holes.js';
 import { col3 } from './kit.js';
 import { mkBoss, mkEnemy } from './models/enemies.js';
 import { mkBullet, mkCap, mkCoin, mkComet, mkEB, mkRing, mkRock } from './models/props.js';
-import { buildShip } from './models/ship.js';
+import { buildShip, shipTick, shipTrails } from './models/ship.js';
 import { mkPortal, portalDiscMat, portalGlowMat } from './portals.js';
 import { spaceDraw } from './spaceScene.js';
 import {
@@ -132,7 +133,12 @@ export function draw(dt, lazy) {
       bw = b.w || 3.2,
       bh = b.h || 12;
     put(m, b.x, 3, b.y);
-    m.scale.set(bw * 1.2, bw * 1.2, bh * 1.5);
+    /* según el arma que lleve la nave: figuras redondas crecen parejo, las puntiagudas apuntan, otras giran */
+    const bu = m.userData;
+    if (bu.round) m.scale.setScalar(bw * 2.2 + 3);
+    else m.scale.set(bw * 1.2, bw * 1.2, bh * 1.5);
+    if (bu.aim && b.vx) m.rotation.y = Math.atan2(-b.vx, -b.vy);
+    if (bu.spin) m.rotation.y = now * bu.spin + b.x;
   }
   for (const c of G.run.comets) {
     if (c.warn > 0) continue; // todavía está avisando: no ha salido
@@ -162,9 +168,37 @@ export function draw(dt, lazy) {
     m.rotation.set(-Math.atan(tanY(m.position.z)), Math.atan(tanX(m.position.z)), 0);
   }
 
-  /* nave */
+  /* escaparate: en el menú la cámara se acerca a la nave (lobby); en el taller la nave sube y se gira */
+  const inMenu = G.state === 'menu',
+    inGarage = inMenu && G.view === 'garage';
+  G.show += ((inMenu ? 1 : 0) - G.show) * Math.min(1, dt * (inMenu ? 3 : 5));
+  G.showG += ((inGarage ? 1 : 0) - G.showG) * Math.min(1, dt * 5);
+  if (inGarage && G.showGuns) {
+    /* mirando las armas la nave se pone de frente, para que los disparos de muestra salgan derecho */
+    G.yaw = Math.atan2(Math.sin(G.yaw), Math.cos(G.yaw));
+    G.yaw -= G.yaw * Math.min(1, dt * 6);
+  } else if (inGarage && G.yawTo !== null) {
+    /* se acomoda una sola vez hacia el ángulo pedido y ahí se queda */
+    G.yaw += (G.yawTo - G.yaw) * Math.min(1, dt * 5);
+    if (Math.abs(G.yawTo - G.yaw) < 0.01) G.yawTo = null;
+  }
+  const showK = ease(G.show),
+    /* la nave queda quieta, vista de tres cuartos; en el taller solo gira con el dedo */
+    showYaw = showK * (G.showG * G.yaw + (1 - G.showG) * SHOW.yaw);
+
+  /* nave: si cambió alguna pieza se vuelve a armar */
   const s = G.ship,
-    sm = use(s, () => buildShip(s.id, s.color)),
+    lv = lookVersion();
+  if (s.m && s.m.userData.lookV !== lv) {
+    dyn.remove(s.m);
+    s.m.userData.dispose();
+    s.m = null;
+  }
+  const sm = use(s, () => {
+      const m = buildShip(look());
+      m.userData.lookV = lv;
+      return m;
+    }),
     u = sm.userData;
   const vx = (s.x - s.px) / Math.max(dt, 1e-3),
     vy = (s.y - s.py) / Math.max(dt, 1e-3);
@@ -180,7 +214,7 @@ export function draw(dt, lazy) {
   sm.position.set(sx, sh, sz);
   sm.rotation.set(
     clamp(s.vys * 0.0012, -0.3, 0.3),
-    clamp(-s.vxs * 0.0009, -0.35, 0.35),
+    clamp(-s.vxs * 0.0009, -0.35, 0.35) + showYaw,
     clamp(-s.vxs * 0.0028, -0.75, 0.75),
   );
   /* efecto espagueti: la nave se estira hacia el agujero negro y gira */
@@ -194,9 +228,9 @@ export function draw(dt, lazy) {
     sm.scale.set(th, th, 1 + 4.5 * p);
   } else sm.scale.set(1, 1, 1);
   sm.visible = !s.hidden && !(s.inv > 0 && Math.floor(performance.now() / 70) % 2 === 0);
-  for (const f of u.flames)
-    f.scale.set(1, 1, (0.75 + Math.random() * 0.5 + (s.vys < -60 ? 0.4 : 0)) * (s.nitro > 0 ? 2.4 : 1));
-  for (const gn of u.guns) gn.visible = !!s.gun;
+  shipTick(sm, now, s.vys < -60 ? 0.4 : 0, s.nitro > 0 ? 2.4 : 1);
+  for (const t of shipTrails(sm, dyn, dt, Math.max(spd, 190), now)) live.add(t.mesh);
+  for (const gn of u.guns) gn.visible = !!s.gun || (inGarage && G.showGuns);
   shieldM.visible = !!s.shield;
   if (s.shield) {
     shieldM.position.set(sx, sh, sz);
@@ -254,6 +288,7 @@ export function draw(dt, lazy) {
   /* quitar mallas de objetos que ya no existen */
   for (let i = dyn.children.length - 1; i >= 0; i--) {
     const c = dyn.children[i];
+    if (!c) continue; // una nave que se fue se llevó sus estelas: la lista se acortó
     if (!live.has(c)) {
       dyn.remove(c);
       if (c.userData.dispose) c.userData.dispose();
@@ -275,7 +310,30 @@ export function draw(dt, lazy) {
     -G.bendX * 0.00016,
     G.angle + clamp(-s.vxs * 0.00016, -0.07, 0.07) - G.bendX * 0.00014,
   );
-  const fov = CAM.fov + 18 * wk + (s.nitro > 0 ? 7 : 0);
+  let fov = CAM.fov + 18 * wk + (s.nitro > 0 ? 7 : 0);
+  if (showK > 0.001) {
+    /* Cámara de escaparate: con menos ángulo (deforma menos) y a la distancia justa para que la
+       nave ocupe buena parte del ancho. En el taller mira más abajo, así la nave queda arriba
+       y el panel de piezas no la tapa. */
+    const gk = G.showG,
+      half = (SHOW.fov * Math.PI) / 360,
+      tanH = Math.tan(half) * (G.cw / G.ch),
+      dist = clamp(SHOW.span / ((SHOW.fill + SHOW.fillG * gk) * 2 * tanH), 90, 420),
+      elev = SHOW.elev + SHOW.elevG * gk,
+      rise = SHOW.rise + (SHOW.riseG - SHOW.rise) * gk;
+    const mix = (a, b) => a + (b - a) * showK;
+    camera.position.set(
+      mix(camera.position.x, sx),
+      mix(camera.position.y, sh + dist * Math.sin(elev)),
+      mix(camera.position.z, sz + dist * Math.cos(elev)),
+    );
+    camera.rotation.set(
+      mix(camera.rotation.x, -elev - Math.atan(rise * Math.tan(half))),
+      mix(camera.rotation.y, 0),
+      mix(camera.rotation.z, 0),
+    );
+    fov = mix(fov, SHOW.fov);
+  }
   if (Math.abs(camera.fov - fov) > 0.05) {
     camera.fov += (fov - camera.fov) * Math.min(1, dt * 10);
     camera.updateProjectionMatrix();
@@ -330,6 +388,21 @@ function drawOverlay() {
    corren en el sentido en que viene y una señal en el borde por donde entra. Mientras avisa
    parpadea; cuando el cometa sale, el carril se apaga a medida que pasa. */
 const LANE_N = 12;
+/* Cámara de escaparate (lobby y taller). span = ancho que debe caber (la nave con margen);
+   fill = qué parte del ancho de pantalla ocupa; elev = qué tan desde arriba se mira (radianes);
+   rise = cuánto sube la nave respecto al centro de la pantalla (0 = centro, 1 = borde de arriba).
+   Los que terminan en G son lo que cambia en el taller. */
+const SHOW = {
+  fov: 40,
+  span: 50,
+  fill: 0.78,
+  fillG: -0.08,
+  elev: 0.36,
+  elevG: 0.06,
+  rise: 0.14,
+  riseG: 0.46,
+  yaw: 0.6,
+};
 function cometLane(c) {
   /* tramo del carril que cae dentro de la pista visible */
   let s0 = -1e4,

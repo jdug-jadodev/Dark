@@ -3,13 +3,14 @@ import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { COUNT_STEP, FLIP_AT, GOAL, HULL_REVIVE, MINI_AT } from '../core/config.js';
 import { level } from '../core/difficulty.js';
+import { look } from '../core/garage.js';
 import { S, save } from '../core/profile.js';
 import { fmt } from '../core/util.js';
-import { explode, newRun } from '../game/run.js';
+import { explode, newRun, shipBoom } from '../game/run.js';
 import { km, spaceRevive } from '../game/space.js';
 import { after, timers } from '../game/timers.js';
 import { Platform } from '../platform/platform.js';
-import { showAd } from './ads.js';
+import { adTag, showAd } from './ads.js';
 import { $ } from './dom.js';
 import { finish, finishBoss } from './endScreens.js';
 import { showToast } from './hud.js';
@@ -17,7 +18,9 @@ import { K } from './input.js';
 import { renderMenu } from './menu.js';
 /* ---------- Flujo ---------- */
 function hideAll() {
-  ['menu', 'crash', 'end', 'chest', 'ad', 'pause', 'settings'].forEach((id) => $(id).classList.remove('show'));
+  ['menu', 'garage', 'crash', 'end', 'chest', 'ad', 'pause', 'settings', 'shop', 'pay'].forEach((id) =>
+    $(id).classList.remove('show'),
+  );
 }
 export function showPad(on) {
   const nit = !!on && G.run && G.run.mode === 'run';
@@ -121,6 +124,7 @@ export function backToMenu() {
   hideAll();
   newRun();
   G.state = 'menu';
+  G.view = 'lobby';
   $('hud').classList.remove('boss');
   $('hud').style.display = 'none';
   $('warn').classList.remove('show');
@@ -134,7 +138,7 @@ export function crash() {
   emit('crash');
   G.state = 'paused';
   G.shake = 0.6;
-  explode(G.ship.x, G.ship.y, '#ff6b8a', 26);
+  shipBoom(G.ship.x, G.ship.y, look().boom);
   if (G.run.revived) {
     after(0.6, () => {
       if (G.run.mode === 'boss') finishBoss(false);
@@ -150,6 +154,7 @@ export function crash() {
         : G.run.mode === 'boss'
           ? 'Le hiciste ' + Math.round((1 - G.run.boss.hp / G.run.boss.max) * 100) + '% de daño al jefe'
           : 'Llevabas ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos y ' + G.run.coins + ' 🪙';
+  $('reviveBtn').textContent = adTag() ? '▶ Revivir viendo un anuncio' : '▶ Revivir';
   after(0.45, () => {
     if (G.state === 'paused') $('crash').classList.add('show');
   });
