@@ -5,6 +5,7 @@ import { S, save } from '../core/profile.js';
 import { G } from '../core/state.js';
 import { $ } from './dom.js';
 import { showPad } from './flow.js';
+import { onReminderChange, reminderAvailable, reminderOn, setReminder } from './reminder.js';
 import { resize } from '../render/engine.js';
 
 const GFX_NOTE = {
@@ -28,6 +29,11 @@ function render() {
   document
     .querySelectorAll('#ctrl .opt')
     .forEach((b) => b.classList.toggle('sel', b.dataset.ctrl === (S.ctrl || 'swipe')));
+  $('remRow').style.display = reminderAvailable() ? '' : 'none';
+  if (reminderAvailable()) {
+    const on = reminderOn();
+    document.querySelectorAll('#rem .opt').forEach((b) => b.classList.toggle('sel', (b.dataset.rem === '1') === on));
+  }
 }
 export function openSettings() {
   render();
@@ -62,6 +68,13 @@ export function bootSettings() {
     resize(); // se nota al instante
     render();
   });
+  $('rem').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rem]');
+    if (!b) return;
+    setReminder(b.dataset.rem === '1'); // si Android pregunta por el permiso, la respuesta llega después
+    render();
+  });
+  onReminderChange(render);
   $('ctrl').addEventListener('click', (e) => {
     const b = e.target.closest('[data-ctrl]');
     if (!b) return;

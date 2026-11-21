@@ -1,11 +1,21 @@
 /** Jefes intermedio y final: movimiento, ataques al azar, armas que caen, naves de apoyo. */
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
-import { SPAWN, W, WEAPONS } from '../core/config.js';
+import {
+  SPAWN,
+  SURV_BOSS_COINS,
+  SURV_BOSS_HP,
+  SURV_BOSS_REPAIR,
+  SURV_BOSS_TIME,
+  SURV_RATE,
+  W,
+  WEAPONS,
+} from '../core/config.js';
 import { clamp, ease, pick, rand } from '../core/util.js';
 import { hitEnemy, spawnEnemy, updateEB, updateEnemies } from './enemies.js';
 import { moveBullets, rndWeapon, updateCaps, updatePowers } from './powers.js';
 import { explode, spawnCap } from './run.js';
+import { spinning } from './screenfx.js';
 import { followPointer } from './ship.js';
 import { after } from './timers.js';
 import { $ } from '../ui/dom.js';
@@ -261,11 +271,85 @@ export function endMini() {
   G.pops.push({
     x: W / 2,
     y: 240,
-    text: '¡JEFE DERROTADO! +30 · +20 🪙',
+    text: '¡JEFE DERROTADO! +30 · +20 {coin}',
     life: 1.8,
     col: '#ffd54a',
   });
   spawnCap('shield', W / 2, 200, 110);
+}
+/* ---------- Jefes de Supervivencia: uno cada 10 niveles ----------
+   Salen por turnos el Vigía y el Centinela, cada vez con más aguante. El jugador tiene un
+   tiempo para derribarlo (premio: monedas, reparación y un escudo); si no, el jefe se retira. */
+const NAME = { mini: 'Vigía Ámbar', final: 'Centinela del Vacío' };
+export const bossName = (b) => NAME[b.kind];
+/* el jefe espera a que la pantalla esté quieta y sin cometas ni paredes a la vista */
+export const survBossFree = () =>
+  G.run.rot.st === 0 && G.run.wb.t < 0 && !spinning() && !G.run.comets.length && !G.obs.some((o) => o.wall);
+export function startSurvBoss() {
+  const R = G.run,
+    n = ++R.bossNo,
+    kind = n % 2 ? 'mini' : 'final',
+    round = Math.floor((n - 1) / 2), // 0 para los dos primeros, 1 para los dos siguientes…
+    b = newBoss(kind);
+  /* más blandos que en Aventura (aquí hay un tiempo límite); cada pareja aguanta un poco más */
+  b.hp = b.max = Math.round(b.max * (SURV_BOSS_HP + 0.25 * round));
+  b.prize = Math.round(SURV_BOSS_COINS[kind] * (1 + 0.5 * round));
+  b.lv = R.bossDue;
+  R.boss = b;
+  R.bossLeft = SURV_BOSS_TIME[kind];
+  R.bossDue = 0;
+  R.stage = 'mini';
+  for (const e of G.en) e.life = Math.min(e.life, 0);
+  $('hud').classList.add('boss');
+  showToast('¡JEFE DEL NIVEL ' + b.lv + '!', NAME[kind] + ' · derríbalo antes de que se vaya');
+  emit('bossIntro');
+}
+/* Avanza la pelea. Mientras dura, el nivel no sube (el tiempo aguantado sí sigue contando). */
+export function survBossTick(dt) {
+  const R = G.run,
+    b = R.boss;
+  R.head -= dt * SURV_RATE;
+  bossTick(dt);
+  if (b.intro > 0) return;
+  R.bossLeft -= dt;
+  if (b.hp <= 0) endSurvBoss(true);
+  else if (R.bossLeft <= 0) endSurvBoss(false);
+}
+function endSurvBoss(win) {
+  const R = G.run,
+    b = R.boss;
+  if (win) {
+    explode(b.x, b.y, '#ffb454', 50);
+    explode(b.x, b.y, '#ffffff', 20);
+    G.shake = 0.7;
+    emit('bossDown');
+    R.bossKills++;
+    R.coins += b.prize;
+    R.pts += 30;
+    const fix = Math.min(SURV_BOSS_REPAIR, 100 - R.hull);
+    R.hull += fix;
+    G.pops.push({
+      x: W / 2,
+      y: 240,
+      text: '¡JEFE DERROTADO! +' + b.prize + ' {coin}' + (fix ? ' · {wrench} +' + fix + '%' : ''),
+      life: 1.8,
+      col: '#ffd54a',
+    });
+    spawnCap('shield', W / 2, 200, 110);
+  } else {
+    explode(b.x, b.y, '#9fb0e0', 18);
+    emit('phase');
+    G.pops.push({ x: W / 2, y: 240, text: 'El jefe se retiró', life: 1.6, col: '#9aa8cc' });
+  }
+  G.eb.length = 0;
+  R.boss = null;
+  R.stage = 'run';
+  R.spawnT = 1.5;
+  R.enT = 5;
+  /* un respiro antes de que vuelvan los giros y los cometas */
+  R.calm = Math.max(R.calm, 4);
+  R.cometT = Math.max(R.cometT, 4);
+  $('hud').classList.remove('boss');
 }
 /* ---------- Partida normal ---------- */
 export function beginBoss() {

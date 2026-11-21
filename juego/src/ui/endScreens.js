@@ -4,12 +4,18 @@ import { G } from '../core/state.js';
 import { BOSS_UNLOCK, GOAL, MINI_AT } from '../core/config.js';
 import { level, prog } from '../core/difficulty.js';
 import { S, save } from '../core/profile.js';
+import { doubleCoins, payout } from '../core/season.js';
 import { fmt } from '../core/util.js';
 import { SPC, km } from '../game/space.js';
 import { adTag, showAd } from './ads.js';
+import { cupBlock } from './cup.js';
 import { countRun, missionBlock } from './daily.js';
-import { $ } from './dom.js';
+import { $, tok } from './dom.js';
+import { T } from './icons.js';
+import { goalBlock } from './news.js';
 import { backToMenu, showPad, startRun } from './flow.js';
+/* en fin de semana las monedas de la partida valen doble: se avisa junto a lo ganado */
+const weekend = () => (doubleCoins() ? '<small>monedas dobles de fin de semana</small>' : '');
 export function finishBoss(win) {
   G.state = 'end';
   emit(win ? 'win' : 'lose');
@@ -19,13 +25,13 @@ export function finishBoss(win) {
   showPad(false);
   const b = G.run.boss,
     dmg = Math.round((1 - b.hp / b.max) * 100);
-  const gain = (win ? 100 : Math.round(dmg * 0.5)) + G.run.coins;
+  const gain = payout((win ? 100 : Math.round(dmg * 0.5)) + G.run.coins);
   S.coins += gain;
   if (win) S.bossWins = (S.bossWins || 0) + 1;
   save();
   $('endBox').innerHTML =
     '<div class="big">' +
-    (win ? '🏆 ¡Jefe derrotado!' : '💀 El jefe te venció') +
+    (win ? '{trophy} ¡Jefe derrotado!' : '{skull} El jefe te venció') +
     '</div>' +
     '<div class="grid"><div><b>' +
     Math.floor(G.run.bt) +
@@ -41,29 +47,32 @@ export function finishBoss(win) {
     '</b><span>Victorias</span></div></div>' +
     '<div class="gain">+' +
     gain +
-    ' 🪙' +
+    ' {coin}' +
     (win ? '<small>cofre del jefe</small>' : '<small>según el daño que hiciste</small>') +
+    weekend() +
     '</div>' +
+    goalBlock() +
     '<div class="mini">' +
     (win
       ? 'Siguiente: un jefe nuevo por zona, con ataques distintos (en el juego real).'
       : 'Tip: el jefe cambia de ataque al azar; quédate cerca de las armas que caen y no te quedes quieto.') +
     '</div>' +
-    '<button class="btn ad" data-a="x2">▶ Duplicar monedas' +
+    '<button class="btn ad" data-a="x2">{play} Duplicar monedas' +
     adTag() +
     ' +' +
     gain +
-    ' 🪙</button>' +
-    '<button class="btn" data-a="boss">⚔ ' +
+    ' {coin}</button>' +
+    '<button class="btn" data-a="boss">{swords} ' +
     (win ? 'Pelear otra vez' : 'Reintentar') +
     '</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
+  tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
 }
 function finishSpace() {
   const d = km(),
-    gain = G.run.coins;
+    gain = payout(G.run.coins);
   S.coins += gain;
   const prev = (S.topSpace || []).slice(),
     list = prev
@@ -81,7 +90,7 @@ function finishSpace() {
         '<div class="' +
         (i === rank ? 'me' : '') +
         '"><span>' +
-        ['🥇', '🥈', '🥉', '4.', '5.'][i] +
+        ['{medal1}', '{medal2}', '{medal3}', '4.', '5.'][i] +
         ' ' +
         (i === rank ? 'Esta partida' : '') +
         '</span><b>' +
@@ -91,11 +100,11 @@ function finishSpace() {
     .join('');
   const next = list[rank > 0 ? rank - 1 : 0];
   $('endBox').innerHTML =
-    '<div class="big">🪐 Recorriste ' +
+    '<div class="big">{planet} Recorriste ' +
     d +
     ' km</div>' +
     (rec
-      ? '<div class="rec">⭐ ¡Nuevo récord!</div>'
+      ? '<div class="rec">{star} ¡Nuevo récord!</div>'
       : rank > 0
         ? '<div class="sub">Te faltaron ' + (next - d) + ' km para subir al puesto ' + rank + '</div>'
         : '<div class="sub">Récord: ' + list[0] + ' km</div>') +
@@ -116,11 +125,17 @@ function finishSpace() {
     '</div>' +
     '<div class="gain">+' +
     gain +
-    ' 🪙</div>' +
+    ' {coin}' +
+    weekend() +
+    '</div>' +
+    goalBlock() +
     mis +
-    (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas' + adTag() + ' +' + gain + ' 🪙</button>' : '') +
-    '<button class="btn space" data-a="space">🪐 Volar de nuevo</button>' +
+    (gain > 0
+      ? '<button class="btn ad" data-a="x2">{play} Duplicar monedas' + adTag() + ' +' + gain + ' {coin}</button>'
+      : '') +
+    '<button class="btn space" data-a="space">{planet} Volar de nuevo</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
+  tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
 }
@@ -139,7 +154,7 @@ export function finish(win) {
     finishSpace();
     return;
   }
-  const gain = G.run.coins + (win ? 25 : 0);
+  const gain = payout(G.run.coins + (win ? 25 : 0));
   S.coins += gain;
   if (!S.boss && G.run.coins >= BOSS_UNLOCK) S.boss = true;
   const pts = Math.floor(G.run.pts),
@@ -151,9 +166,9 @@ export function finish(win) {
     ? 'Te faltaron ' + Math.max(0, Math.ceil((GOAL * MINI_AT) / 100 - G.run.pts)) + ' puntos para el jefe intermedio.'
     : 'Te faltaron ' + Math.max(0, Math.ceil(GOAL - G.run.pts)) + ' puntos para el jefe final.';
   $('endBox').innerHTML =
-    '<div class="big">💥 Partida terminada</div>' +
+    '<div class="big">{boom} Partida terminada</div>' +
     (rec
-      ? '<div class="rec">⭐ ¡Nuevo récord! ' + pts + ' puntos</div>'
+      ? '<div class="rec">{star} ¡Nuevo récord! ' + pts + ' puntos</div>'
       : '<div class="sub">Récord: ' + (S.best || 0) + ' puntos</div>') +
     '<div class="grid"><div><b>' +
     pts +
@@ -171,29 +186,32 @@ export function finish(win) {
     '</b><span>Armas</span></div></div>' +
     '<div class="gain">+' +
     gain +
-    ' 🪙' +
+    ' {coin}' +
     (win ? '<small>incluye +25 por completar el reto</small>' : '') +
+    weekend() +
     '</div>' +
+    goalBlock() +
     '<div class="mini">' +
     nextGoal +
     '<div class="pbar"><i style="width:' +
     Math.min(100, prog()) +
     '%"></i></div></div>' +
     mis +
-    '<button class="btn ad" data-a="x2">▶ Duplicar monedas' +
+    '<button class="btn ad" data-a="x2">{play} Duplicar monedas' +
     adTag() +
     ' +' +
     gain +
-    ' 🪙</button>' +
+    ' {coin}</button>' +
     '<button class="btn" data-a="again">Jugar otra vez</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
+  tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
 }
 /* Fin de Supervivencia: tiempo, nivel y top 5 de mejores tiempos */
 function finishSurv() {
   const secs = G.t,
-    gain = G.run.coins;
+    gain = payout(G.run.coins);
   S.coins += gain;
   const prev = (S.topTimes || []).slice();
   const list = prev
@@ -203,15 +221,17 @@ function finishSurv() {
   const rank = list.indexOf(secs),
     rec = rank === 0 && (!prev.length || secs > prev[0]);
   S.topTimes = list;
+  if (G.run.bossKills) S.bossWins = (S.bossWins || 0) + G.run.bossKills;
   save();
-  const mis = missionBlock(countRun());
+  const mis = missionBlock(countRun()),
+    cup = cupBlock(secs);
   const rows = list
     .map(
       (v, i) =>
         '<div class="' +
         (i === rank ? 'me' : '') +
         '"><span>' +
-        ['🥇', '🥈', '🥉', '4.', '5.'][i] +
+        ['{medal1}', '{medal2}', '{medal3}', '4.', '5.'][i] +
         ' ' +
         (i === rank ? 'Esta partida' : '') +
         '</span><b>' +
@@ -221,11 +241,11 @@ function finishSurv() {
     .join('');
   const next = list[rank > 0 ? rank - 1 : 0];
   $('endBox').innerHTML =
-    '<div class="big">⏱ Aguantaste ' +
+    '<div class="big">{timer} Aguantaste ' +
     fmt(secs) +
     '</div>' +
     (rec
-      ? '<div class="rec">⭐ ¡Nuevo récord!</div>'
+      ? '<div class="rec">{star} ¡Nuevo récord!</div>'
       : rank > 0
         ? '<div class="sub">Te faltaron ' + Math.ceil(next - secs) + ' s para subir al puesto ' + rank + '</div>'
         : '<div class="sub">Récord: ' + fmt(list[0]) + '</div>') +
@@ -241,16 +261,28 @@ function finishSurv() {
     '<div><b>' +
     G.run.wpnPicks +
     '</b><span>Armas</span></div></div>' +
+    (G.run.bossKills
+      ? '<div class="rec">{swords} ' +
+        (G.run.bossKills === 1 ? 'Derribaste un jefe' : 'Derribaste ' + G.run.bossKills + ' jefes') +
+        '</div>'
+      : '') +
     '<div class="top"><b>Tus mejores tiempos</b>' +
     rows +
     '</div>' +
+    cup +
     '<div class="gain">+' +
     gain +
-    ' 🪙</div>' +
+    ' {coin}' +
+    weekend() +
+    '</div>' +
+    goalBlock() +
     mis +
-    (gain > 0 ? '<button class="btn ad" data-a="x2">▶ Duplicar monedas' + adTag() + ' +' + gain + ' 🪙</button>' : '') +
-    '<button class="btn surv" data-a="endless">⏱ Intentar de nuevo</button>' +
+    (gain > 0
+      ? '<button class="btn ad" data-a="x2">{play} Duplicar monedas' + adTag() + ' +' + gain + ' {coin}</button>'
+      : '') +
+    '<button class="btn surv" data-a="endless">{timer} Intentar de nuevo</button>' +
     '<button class="btn alt" data-a="menu">Menú</button>';
+  tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
 }
@@ -266,12 +298,12 @@ export function bootEndScreens() {
     else if (a === 'menu') backToMenu();
     else if (a === 'x2') {
       const gain = $('endBox')._gain || 0;
-      showAd('Recompensa: duplicar las monedas de esta partida (+' + gain + ' 🪙)', () => {
+      showAd('Recompensa: duplicar las monedas de esta partida (+' + gain + ' {coin})', () => {
         S.coins += gain;
         save();
         emit('reward');
         b.disabled = true;
-        b.textContent = '✔ Monedas duplicadas';
+        b.innerHTML = T('{check} Monedas duplicadas');
       });
     }
   });

@@ -12,7 +12,8 @@ import { after, timers } from '../game/timers.js';
 import { Platform } from '../platform/platform.js';
 import { adTag, showAd } from './ads.js';
 import { countRun } from './daily.js';
-import { $ } from './dom.js';
+import { $, put } from './dom.js';
+import { T } from './icons.js';
 import { finish, finishBoss } from './endScreens.js';
 import { showToast } from './hud.js';
 import { K } from './input.js';
@@ -48,14 +49,16 @@ export function startRun(mode) {
       '<b style="left:' + MINI_AT + '%"></b><b class="f" style="left:' + FLIP_AT + '%"></b>',
     );
   const btn = S.ctrl === 'btn';
-  $('hint').textContent =
+  put(
+    'hint',
     G.run.mode === 'space'
       ? btn
         ? 'Flechas: muévete arriba, abajo y a los lados'
         : 'Desliza en cualquier dirección: arriba, abajo y a los lados'
       : btn
-        ? 'Flechas: ▲▼ a la izquierda · ◀▶ a la derecha'
-        : 'Desliza el dedo en cualquier parte para mover la nave';
+        ? 'Flechas: {up}{down} a la izquierda · {prev}{next} a la derecha'
+        : 'Desliza el dedo en cualquier parte para mover la nave',
+  );
   $('hud').style.display = 'block';
   $('hint').style.display = 'block';
   showPad(true);
@@ -148,15 +151,16 @@ export function crash() {
     });
     return;
   }
-  $('crashInfo').textContent =
+  $('crashInfo').innerHTML = T(
     G.run.mode === 'space'
       ? 'Recorriste ' + km() + ' km en ' + fmt(G.t)
       : G.run.mode === 'endless'
         ? 'Aguantaste ' + fmt(G.t) + ' · Nivel ' + level()
         : G.run.mode === 'boss'
           ? 'Le hiciste ' + Math.round((1 - G.run.boss.hp / G.run.boss.max) * 100) + '% de daño al jefe'
-          : 'Llevabas ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos y ' + G.run.coins + ' 🪙';
-  $('reviveBtn').textContent = adTag() ? '▶ Revivir viendo un anuncio' : '▶ Revivir';
+          : 'Llevabas ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos y ' + G.run.coins + ' {coin}',
+  );
+  $('reviveBtn').innerHTML = T(adTag() ? '{play} Revivir viendo un anuncio' : '{play} Revivir');
   after(0.45, () => {
     if (G.state === 'paused') $('crash').classList.add('show');
   });

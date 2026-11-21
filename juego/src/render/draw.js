@@ -31,6 +31,7 @@ import {
   trackTick,
 } from './track.js';
 import { fctx } from '../ui/dom.js';
+import { drawIcon, drawLabel } from '../ui/icons.js';
 export let _v;
 export function bootDraw() {
   /* ---------- Dibujo 3D ---------- */
@@ -379,9 +380,7 @@ function drawOverlay() {
     fctx.globalAlpha = clamp(p.life, 0, 1);
     fctx.lineWidth = 4;
     fctx.strokeStyle = 'rgba(0,0,0,.6)';
-    fctx.strokeText(p.text, s.x, y);
-    fctx.fillStyle = p.col;
-    fctx.fillText(p.text, s.x, y);
+    drawLabel(fctx, p.text, s.x, y, 15, p.col);
   }
   fctx.globalAlpha = 1;
 }
@@ -466,14 +465,8 @@ function cometLane(c) {
   /* señal en el borde por donde entra */
   if (warning) {
     const e = at(s0 + 12, 0);
-    fctx.font = '900 26px system-ui,sans-serif';
-    fctx.textAlign = 'center';
-    fctx.textBaseline = 'middle';
-    fctx.lineWidth = 5;
-    fctx.strokeStyle = 'rgba(0,0,0,' + 0.7 * alpha + ')';
-    fctx.strokeText('☄', e.x, e.y);
-    fctx.fillStyle = 'rgba(255,225,120,' + alpha + ')';
-    fctx.fillText('☄', e.x, e.y);
-    fctx.textBaseline = 'alphabetic';
+    fctx.globalAlpha = Math.min(1, alpha);
+    drawIcon(fctx, 'comet', e.x - 16, e.y - 16, 32);
+    fctx.globalAlpha = 1;
   }
 }

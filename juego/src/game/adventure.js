@@ -5,13 +5,14 @@ import {
   GOAL,
   H,
   HULL_REPAIR,
-  KIT_EVERY,
-  KIT_FROM,
   HULL_ROCK,
   HULL_SHOT,
+  KIT_EVERY,
+  KIT_FROM,
   MINI_AT,
   NITRO_GAIN,
   PH,
+  SURV_BOSS_EVERY,
   SURV_TIPS,
   SURV_TIP_AT,
   SY,
@@ -33,7 +34,16 @@ import {
   thirdRock,
 } from '../core/difficulty.js';
 import { clamp, rand } from '../core/util.js';
-import { beginBoss, bossTick, endMini, startMini, updateBoss } from './boss.js';
+import {
+  beginBoss,
+  bossTick,
+  endMini,
+  startMini,
+  startSurvBoss,
+  survBossFree,
+  survBossTick,
+  updateBoss,
+} from './boss.js';
 import { updateComets } from './comets.js';
 import { spawnEnemy, spawnSquad, updateEB, updateEnemies } from './enemies.js';
 import { spawnHole, updateHoles, updateSuck } from './holes.js';
@@ -70,7 +80,7 @@ export function update(dt) {
           G.pops.push({
             x: G.ship.x,
             y: G.ship.y - 46,
-            text: '🔧 +' + g + '% casco',
+            text: '{wrench} +' + g + '% casco',
             life: 1.4,
             col: '#6ef2a5',
           });
@@ -82,17 +92,21 @@ export function update(dt) {
         G.pops.push({
           x: W / 2,
           y: 100,
-          text: '🔧 ¡Reparación en camino!',
+          text: '{wrench} ¡Reparación en camino!',
           life: 1.6,
           col: '#6ef2a5',
         });
       }
+      /* cada 10 niveles llega un jefe (no al arrancar la partida en un nivel alto, en modo demo) */
+      if (G.run.phase !== -1 && lv % SURV_BOSS_EVERY === 0) G.run.bossDue = lv;
       G.run.phase = lv;
       showToast(
         'Nivel ' + lv,
-        lv === UNCAP_LVL
-          ? '¡Sin límite de naves! A ver cuánto aguantas'
-          : SURV_TIP_AT[lv] || SURV_TIPS[Math.min(lv - 1, SURV_TIPS.length - 1)],
+        G.run.bossDue === lv
+          ? '¡Se acerca un jefe! Busca un arma'
+          : lv === UNCAP_LVL
+            ? '¡Sin límite de naves! A ver cuánto aguantas'
+            : SURV_TIP_AT[lv] || SURV_TIPS[Math.min(lv - 1, SURV_TIPS.length - 1)],
       );
     }
   } else {
@@ -192,8 +206,8 @@ export function update(dt) {
       }
     }
     if (surv) {
-      /* sin jefes: solo sigue subiendo la dificultad */
       if (updateComets(dt)) return;
+      if (G.run.bossDue && survBossFree()) startSurvBoss();
     } else if (!G.run.miniDone && x >= MINI_AT) startMini();
     else if (G.run.pts >= GOAL) {
       G.run.stage = 'warn';
@@ -202,8 +216,11 @@ export function update(dt) {
       for (const e of G.en) e.life = Math.min(e.life, 0);
     }
   } else if (G.run.stage === 'mini') {
-    bossTick(dt);
-    if (G.run.boss.hp <= 0) endMini();
+    if (surv) survBossTick(dt);
+    else {
+      bossTick(dt);
+      if (G.run.boss.hp <= 0) endMini();
+    }
   } else {
     G.run.transT -= dt;
     if (G.run.transT <= 0) {
@@ -282,7 +299,7 @@ export function update(dt) {
         G.pops.push({
           x: G.ship.x,
           y: G.ship.y - 28,
-          text: '¡CASI! +' + b + (G.run.mode === 'run' ? ' ⚡' : ''),
+          text: '¡CASI! +' + b + (G.run.mode === 'run' ? ' {bolt}' : ''),
           life: 1,
           col: '#6ef2a5',
         });

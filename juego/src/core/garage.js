@@ -6,8 +6,9 @@
  *   S.fit   = pieza puesta en cada ranura, p. ej. { paint: 'paint.fuego' }
  * Lo que falte ahí vale "la pieza de serie", así un guardado viejo sigue sirviendo.
  */
-import { BASE, BODY, PARTS, SLOTS, priceOf } from './parts.js';
+import { BASE, BODY, PARTS, SLOTS } from './parts.js';
 import { S, save } from './profile.js';
+import { locked, priceNow } from './season.js';
 import { G } from './state.js';
 
 let preview = null; // pieza que se está mirando en el taller sin haberla equipado
@@ -54,8 +55,8 @@ export function equip(id) {
   return true;
 }
 export function buy(id) {
-  const price = priceOf(PARTS[id]);
-  if (owns(id) || S.coins < price) return false;
+  const price = priceNow(PARTS[id]);
+  if (owns(id) || locked(PARTS[id]) || S.coins < price) return false; // fuera de temporada no se vende
   S.coins -= price;
   S.parts = [...(S.parts || []), id];
   return equip(id);

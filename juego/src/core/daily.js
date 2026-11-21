@@ -10,9 +10,11 @@
  *   S.chestDay = último día en que se abrió el cofre · S.streak = racha · S.chestX2 = día en que se duplicó
  *   S.mis = { day, p: [avance de cada misión], got: [ya cobrada], bonus: premio extra cobrado }
  */
+import { hash } from './dates.js';
 import { owns } from './garage.js';
 import { BY_SLOT, SLOTS } from './parts.js';
 import { S, save } from './profile.js';
+import { locked } from './season.js';
 import { fmt } from './util.js';
 
 const DAY = 86400000;
@@ -22,17 +24,10 @@ export const today = () => {
   return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
 };
 /* número de día (para restar fechas) */
-const dayNo = (key) => {
+export const dayNo = (key) => {
   const [y, m, d] = key.split('-').map(Number);
   return Math.round(Date.UTC(y, m - 1, d) / DAY);
 };
-/* un número fijo a partir de un texto: lo que toca hoy sale de la fecha, no del azar */
-const hash = (text) => {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return h >>> 0;
-};
-
 /* ---------- cofre diario y racha ---------- */
 /* monedas de cada día del calendario; el día 7 trae además una pieza para la nave */
 export const WEEK = [30, 40, 50, 70, 90, 120, 250];
@@ -53,7 +48,7 @@ export const chestDoubled = () => S.chestX2 === today();
 function giftPiece() {
   const pool = [];
   for (const s of SLOTS)
-    for (const p of BY_SLOT[s.id]) if ((p.rar === 'r' || p.rar === 'e') && !owns(p.id)) pool.push(p);
+    for (const p of BY_SLOT[s.id]) if ((p.rar === 'r' || p.rar === 'e') && !owns(p.id) && !locked(p)) pool.push(p);
   if (!pool.length) return null;
   const p = pool[hash(today()) % pool.length];
   S.parts = [...(S.parts || []), p.id];
@@ -109,7 +104,7 @@ const POOL = {
   ],
 };
 export const MODES = ['run', 'endless', 'space'];
-const ICON = { run: '▶', endless: '⏱', space: '🪐' };
+const ICON = { run: '{play}', endless: '{timer}', space: '{planet}' };
 /* las tres de hoy: una por modo, elegidas por la fecha */
 const todays = () => MODES.map((mode) => ({ mode, ...POOL[mode][hash(today() + mode) % POOL[mode].length] }));
 /* el avance guardado; al cambiar el día arranca de cero */

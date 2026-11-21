@@ -102,6 +102,12 @@ export function newRun(mode) {
     comets: [],
     cometT: 2.5,
     head: 0,
+    /* jefes de Supervivencia: nivel del que está por llegar, cuántos han salido, cuántos cayeron
+       y segundos que le quedan al que está en pantalla */
+    bossDue: 0,
+    bossNo: 0,
+    bossKills: 0,
+    bossLeft: 0,
   };
   /* modo demo: Supervivencia puede arrancar en un nivel alto. El tiempo sigue contando desde cero;
      solo se adelanta el progreso, y con él todo lo que ya habría pasado (paredes, primer giro). */

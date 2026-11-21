@@ -5,12 +5,15 @@
  */
 import { emit } from '../core/events.js';
 import { buy, canUse, equip, equippedId, owns, setPreview, uniqueOn } from '../core/garage.js';
-import { BODY, BY_SLOT, PARTS, RARITY, SLOTS, priceOf } from '../core/parts.js';
+import { isGoal, toggleGoal } from '../core/goal.js';
+import { BODY, BY_SLOT, PARTS, RARITY, SLOTS } from '../core/parts.js';
+import { OFFER_OFF, locked, offer, priceNow, seasonOf } from '../core/season.js';
 import { S } from '../core/profile.js';
 import { G } from '../core/state.js';
 import { vrand } from '../core/util.js';
 import { showroomBoom, showroomClear } from '../game/showroom.js';
-import { $ } from './dom.js';
+import { $, tok } from './dom.js';
+import { T, ic } from './icons.js';
 import { renderMenu } from './menu.js';
 import { openShop } from './shop.js';
 
@@ -424,10 +427,10 @@ function thumb(p) {
 /* ---------- pantalla ---------- */
 /* Las 11 ranuras se reparten en 4 grupos: primero se elige el grupo y después la ranura. */
 const GROUPS = [
-  { id: 'ship', name: '🛸 Nave', slots: ['ship'] },
-  { id: 'body', name: '🚀 Cuerpo', slots: ['hull', 'nose', 'wing', 'fin', 'glass', 'engine'] },
-  { id: 'style', name: '🎨 Estilo', slots: ['paint', 'flame'] },
-  { id: 'fight', name: '🎯 Combate', slots: ['gun', 'boom'] },
+  { id: 'ship', name: 'Nave', icon: 'ufo', slots: ['ship'] },
+  { id: 'body', name: 'Cuerpo', icon: 'rocket', slots: ['hull', 'nose', 'wing', 'fin', 'glass', 'engine'] },
+  { id: 'style', name: 'Estilo', icon: 'paint', slots: ['paint', 'flame'] },
+  { id: 'fight', name: 'Combate', icon: 'target', slots: ['gun', 'boom'] },
 ];
 const groupOf = (slot) => GROUPS.find((g) => g.slots.includes(slot));
 const slotName = (id) => SLOTS.find((s) => s.id === id).name;
@@ -445,9 +448,18 @@ function render(reveal) {
     on = equippedId(tab),
     all = BY_SLOT[tab],
     have = all.filter((p) => owns(p.id)).length;
-  $('gCoins').textContent = '🪙 ' + S.coins;
+  $('gCoins').innerHTML = T('{coin} ' + S.coins);
   $('gGroups').innerHTML = GROUPS.map(
-    (g) => '<button class="ggrp' + (g === grp ? ' sel' : '') + '" data-group="' + g.id + '">' + g.name + '</button>',
+    (g) =>
+      '<button class="ggrp' +
+      (g === grp ? ' sel' : '') +
+      '" data-group="' +
+      g.id +
+      '">' +
+      ic(g.icon) +
+      ' ' +
+      g.name +
+      '</button>',
   ).join('');
   $('gTabs').innerHTML = grp.slots
     .map((id) => {
@@ -476,9 +488,15 @@ function render(reveal) {
     (mine ? ' sel' : '') +
     '" data-mine="1">Mías</button>';
   $('gCount').textContent = 'Tienes ' + have + ' de ' + all.length;
+  const sale = offer();
   $('gItems').innerHTML = listed()
     .map((p) => {
-      const cls = (p.id === sel ? ' sel' : '') + (p.id === on ? ' on' : '') + (owns(p.id) ? '' : ' lock');
+      const cls =
+        (p.id === sel ? ' sel' : '') +
+        (p.id === on ? ' on' : '') +
+        (owns(p.id) ? '' : ' lock') +
+        (isGoal(p.id) ? ' goal' : '') +
+        (!owns(p.id) && sale && sale.id === p.id ? ' sale' : '');
       return (
         '<button class="gcard' +
         cls +
@@ -493,11 +511,12 @@ function render(reveal) {
         p.name +
         '</span>' +
         '<em>' +
-        (owns(p.id) ? '' : '🪙 ' + priceOf(p)) +
+        (owns(p.id) ? '' : locked(p) ? '{calendar} ' + seasonOf(p).name : '{coin} ' + priceNow(p)) +
         '</em></button>'
       );
     })
     .join('');
+  tok('gItems');
   $('gItems').scrollTop = top;
   if (reveal) {
     const card = $('gItems').querySelector('.gcard.sel');
@@ -506,27 +525,48 @@ function render(reveal) {
   /* la placa sobre la nave: dónde estoy, qué pieza es y en qué estado está */
   const p = PARTS[sel],
     rar = RARITY[p.rar],
-    price = priceOf(p),
+    price = priceNow(p),
+    season = seasonOf(p),
+    shut = !owns(sel) && locked(p), // de temporada y fuera de fecha
     act = $('gAct');
-  $('gSlot').textContent = grp.slots.length > 1 ? grp.name.slice(3) + ' · ' + slotName(tab) : slotName(tab);
+  $('gSlot').textContent = grp.slots.length > 1 ? grp.name + ' · ' + slotName(tab) : slotName(tab);
   $('gName').textContent = p.name;
-  $('gRar').textContent = rar.name + ' · ' + (sel === on ? 'puesta' : owns(sel) ? 'es tuya' : '🪙 ' + price);
+  $('gRar').innerHTML = T(
+    rar.name +
+      ' · ' +
+      (sel === on
+        ? 'puesta'
+        : owns(sel)
+          ? 'es tuya'
+          : shut
+            ? 'solo en ' + season.name
+            : '{coin} ' + price + (sale && sale.id === sel ? ' (−' + OFFER_OFF + ' %)' : '')),
+  );
   $('gRar').style.color = rar.col;
   act.className = 'btn';
   act.disabled = false;
   if (sel === on) {
-    act.textContent = '✓ Puesta';
+    act.innerHTML = T('{check} Puesta');
     act.disabled = true;
   } else if (owns(sel)) act.textContent = 'Equipar';
   else if (canUse(sel)) act.textContent = 'Equipar (demo)';
-  else if (S.coins >= price) {
-    act.textContent = 'Comprar · 🪙 ' + price;
+  else if (shut) {
+    act.textContent = 'Se consigue ' + season.dates;
+    act.className = 'btn alt';
+    act.disabled = true;
+  } else if (S.coins >= price) {
+    act.innerHTML = T('Comprar · {coin} ' + price);
     act.className = 'btn ad';
   } else {
     /* no alcanza: el botón lleva a la tienda */
-    act.textContent = 'Te faltan 🪙 ' + (price - S.coins) + ' · Tienda';
+    act.innerHTML = T('Te faltan {coin} ' + (price - S.coins) + ' · Tienda');
     act.className = 'btn alt';
   }
+  /* marcar como meta: solo lo que aún no se tiene (en modo demo no hay metas) */
+  const goalBtn = $('gGoal');
+  goalBtn.style.display = owns(sel) || G.demo ? 'none' : '';
+  goalBtn.classList.toggle('on', isGoal(sel));
+  goalBtn.innerHTML = T('{target}<span>' + (isGoal(sel) ? 'Tu meta' : 'Meta') + '</span>');
 }
 function pickTab(id) {
   tab = id;
@@ -549,16 +589,24 @@ function pickGroup(id) {
 }
 /* la línea de ayuda bajo la nave: depende de la pestaña y de lo que se esté mirando */
 function hint() {
-  const pack = tab === 'ship' && sel && PARTS[sel].pack;
-  $('gHint').textContent = pack
-    ? 'Su paquete (aparte): ' + pack.map((id) => PARTS[id].name).join(' y ')
-    : BODY.includes(tab) && uniqueOn()
-      ? 'Llevas una nave única: equipar algo de aquí te devuelve a la armable'
-      : tab === 'gun'
-        ? 'Disparos de muestra: así se ven las tres armas'
-        : tab === 'boom'
-          ? 'Toca una explosión para verla'
-          : 'Desliza para girar · flechas para cambiar de pieza';
+  const pack = tab === 'ship' && sel && PARTS[sel].pack,
+    sale = offer(),
+    season = sel && !owns(sel) && seasonOf(PARTS[sel]);
+  $('gHint').textContent = isGoal(sel)
+    ? 'Es tu meta: el lobby te dirá cuánto te falta'
+    : season && season.active
+      ? 'De ' + season.name + ': se consigue ' + season.dates
+      : sale && sale.id === sel && !owns(sel)
+        ? 'Oferta de la semana: −' + OFFER_OFF + ' % hasta el domingo'
+        : pack
+          ? 'Su paquete (aparte): ' + pack.map((id) => PARTS[id].name).join(' y ')
+          : BODY.includes(tab) && uniqueOn()
+            ? 'Llevas una nave única: equipar algo de aquí te devuelve a la armable'
+            : tab === 'gun'
+              ? 'Disparos de muestra: así se ven las tres armas'
+              : tab === 'boom'
+                ? 'Toca una explosión para verla'
+                : 'Desliza para girar · flechas para cambiar de pieza';
 }
 function pickPart(id, reveal) {
   sel = id;
@@ -591,7 +639,8 @@ function setBig(on) {
   $('garage').classList.toggle('big', on);
 }
 function act() {
-  if (!owns(sel) && !canUse(sel) && S.coins < priceOf(PARTS[sel])) {
+  if (!owns(sel) && !canUse(sel) && locked(PARTS[sel])) return; // fuera de temporada
+  if (!owns(sel) && !canUse(sel) && S.coins < priceNow(PARTS[sel])) {
     openShop(render); // al volver de la tienda se repinta: quizá ya alcanza
     return;
   }
@@ -610,6 +659,14 @@ export function openGarage() {
   setBig(false);
   painted = '';
   pickTab('ship');
+}
+/* abre el taller mostrando una pieza (desde la meta o un aviso del lobby) */
+export function openGarageAt(id) {
+  openGarage();
+  const p = id && PARTS[id];
+  if (!p) return;
+  pickTab(p.slot);
+  pickPart(id, true);
 }
 /* devuelve true si estaba abierto (para el botón "atrás" del sistema) */
 export function closeGarage() {
@@ -678,6 +735,12 @@ export function bootGarage() {
   $('gPrev').addEventListener('click', () => step(-1));
   $('gNext').addEventListener('click', () => step(1));
   $('gDice').addEventListener('click', randomize);
+  $('gGoal').addEventListener('click', () => {
+    toggleGoal(sel);
+    emit('power');
+    hint();
+    render();
+  });
   $('gGrip').addEventListener('click', () => setBig(!G.garageBig));
   /* girar la nave con el dedo (los botones que flotan sobre ella no cuentan) */
   const view = $('gView');

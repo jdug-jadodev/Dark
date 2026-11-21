@@ -14,11 +14,11 @@ import { S, save } from './profile.js';
 const DAY = 24 * 3600 * 1000;
 export const ADS_DAYS = 30;
 export const PRODUCTS = [
-  { id: 'coins_s', kind: 'coins', coins: 1200, cop: 1000, name: 'Bolsa de monedas', icon: '🪙' },
-  { id: 'coins_m', kind: 'coins', coins: 2800, cop: 2000, name: 'Saco de monedas', icon: '💰', bonus: 17 },
-  { id: 'coins_l', kind: 'coins', coins: 8000, cop: 5000, name: 'Cofre de monedas', icon: '👑', bonus: 33 },
-  { id: 'no_ads_30', kind: 'adsMonth', cop: 1000, name: 'Sin anuncios por 30 días', icon: '📅' },
-  { id: 'no_ads', kind: 'noAds', cop: 3000, name: 'Sin anuncios para siempre', icon: '🚫' },
+  { id: 'coins_s', kind: 'coins', coins: 1200, cop: 1000, name: 'Bolsa de monedas', icon: '{coin}' },
+  { id: 'coins_m', kind: 'coins', coins: 2800, cop: 2000, name: 'Saco de monedas', icon: '{bag}', bonus: 17 },
+  { id: 'coins_l', kind: 'coins', coins: 8000, cop: 5000, name: 'Cofre de monedas', icon: '{crown}', bonus: 33 },
+  { id: 'no_ads_30', kind: 'adsMonth', cop: 1000, name: 'Sin anuncios por 30 días', icon: '{calendar}' },
+  { id: 'no_ads', kind: 'noAds', cop: 3000, name: 'Sin anuncios para siempre', icon: '{noads}' },
 ];
 export const product = (id) => PRODUCTS.find((p) => p.id === id);
 /* S.noAds = para siempre · S.noAdsUntil = hasta cuándo dura el mes comprado (hora del teléfono) */

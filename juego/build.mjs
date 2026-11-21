@@ -10,7 +10,7 @@
 import { build } from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -32,7 +32,9 @@ const js = result.outputFiles[0].text;
 if (js.includes('</script')) throw new Error('El código contiene "</script": rompería el HTML');
 
 const css = fs.readFileSync(path.join(here, 'estilos.css'), 'utf8');
-const template = fs.readFileSync(path.join(here, 'index.html'), 'utf8');
+/* los {iconos} escritos en index.html se vuelven dibujos aquí, al construir */
+const { T } = await import(pathToFileURL(path.join(here, 'src/ui/icons.js')).href);
+const template = T(fs.readFileSync(path.join(here, 'index.html'), 'utf8'));
 for (const mark of ['/*__CSS__*/', '<!--__SONG__-->', '/*__JS__*/']) {
   if (!template.includes(mark)) throw new Error(`index.html no tiene la marca ${mark}`);
 }

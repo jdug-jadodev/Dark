@@ -10,17 +10,17 @@
 
 /* Las 11 ranuras, en el orden en que salen en el taller */
 export const SLOTS = [
-  { id: 'ship', name: 'Nave', icon: '🛸' },
-  { id: 'hull', name: 'Casco', icon: '🚀' },
-  { id: 'nose', name: 'Trompa', icon: '👃' },
-  { id: 'wing', name: 'Alas', icon: '🪽' },
-  { id: 'fin', name: 'Alerón', icon: '🦈' },
-  { id: 'paint', name: 'Pintura', icon: '🎨' },
-  { id: 'glass', name: 'Cabina', icon: '🔮' },
-  { id: 'engine', name: 'Motor', icon: '⚙️' },
-  { id: 'flame', name: 'Llama', icon: '🔥' },
-  { id: 'gun', name: 'Armas', icon: '🎯' },
-  { id: 'boom', name: 'Boom', icon: '💥' },
+  { id: 'ship', name: 'Nave', icon: 'ufo' },
+  { id: 'hull', name: 'Casco', icon: 'hull' },
+  { id: 'nose', name: 'Trompa', icon: 'nose' },
+  { id: 'wing', name: 'Alas', icon: 'wing' },
+  { id: 'fin', name: 'Alerón', icon: 'fin' },
+  { id: 'paint', name: 'Pintura', icon: 'paint' },
+  { id: 'glass', name: 'Cabina', icon: 'cabin' },
+  { id: 'engine', name: 'Motor', icon: 'engine' },
+  { id: 'flame', name: 'Llama', icon: 'fire' },
+  { id: 'gun', name: 'Armas', icon: 'target' },
+  { id: 'boom', name: 'Boom', icon: 'boom' },
 ];
 
 /* Rareza: decide el precio en monedas y el color con que se marca la pieza. 'base' = viene con la nave. */

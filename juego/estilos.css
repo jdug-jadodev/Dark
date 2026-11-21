@@ -202,6 +202,40 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;displa
 .lbtn small{display:block;font-size:10px;color:var(--acc2);line-height:1.1}
 .lbtn.all small{color:var(--ok)}
 #stats .grid span{font-size:9px}
+/* avisos del lobby: la meta y lo que hay hoy */
+.lnews{position:absolute;left:10px;top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:58%;z-index:1}
+.lchip{display:flex;align-items:center;gap:7px;text-align:left;border:1px solid var(--line);border-radius:12px;background:rgba(16,23,51,.78);color:var(--mute);font:inherit;font-size:11px;line-height:1.25;padding:6px 9px;max-width:100%}
+button.lchip{cursor:pointer}
+.lchip>.ic{width:18px;height:18px;flex:none}
+.lchip span{min-width:0}
+.lchip b{color:var(--ink)}
+.lchip.goal b{display:block;font-size:12px}
+.lchip.goal{border-color:rgba(255,210,74,.45)}
+.lchip.goal.ok{border-color:var(--ok);color:var(--ok)}
+.lchip .bar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.12);margin-top:4px;min-width:110px;overflow:hidden}
+.lchip .bar i{display:block;height:100%;background:var(--acc2);border-radius:2px}
+.lchip.goal.ok .bar i{background:var(--ok)}
+.goalline b{color:var(--ink)}
+/* taller: marcar la meta, oferta y temporada */
+.ggoal{position:absolute;right:16px;top:58px;min-width:42px;border-radius:13px;border:1px solid rgba(255,210,74,.5);background:rgba(10,15,36,.5);color:var(--mute);font-size:9px;font-weight:700;padding:5px 4px 4px;cursor:pointer;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;gap:1px}
+.ggoal .ic{width:20px;height:20px}
+.ggoal.on{background:rgba(255,210,74,.2);border-color:#ffd24a;color:#ffd24a}
+#garage.big .ggoal{display:none!important}
+.gcard.goal{border-color:#ffd24a}
+.gcard.goal::after{content:"";position:absolute;left:4px;top:4px;width:9px;height:9px;border-radius:50%;background:#ffd24a;box-shadow:0 0 0 2px rgba(255,74,90,.9) inset,0 0 6px rgba(255,210,74,.8)}
+.gcard.sale em{color:var(--ok)}
+/* copa semanal */
+.grid.two{grid-template-columns:repeat(2,1fr)}
+.grid small{font-size:11px;color:var(--mute);font-weight:400}
+.nick{display:flex;gap:8px;margin:8px 0 2px}
+.nick input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--ink);font-size:16px;padding:10px 12px}
+.nick .btn{width:auto;margin:0;padding:10px 16px;font-size:15px}
+.top.cup{max-height:38vh;overflow:auto}
+.top.cup i{font-style:normal;display:inline-block;min-width:22px}
+.top.cup .gap{justify-content:center;background:none;padding:0}
+.passed{margin:8px 0;padding:8px 10px;border-radius:10px;border:1px solid var(--bad);color:var(--bad);font-weight:700;font-size:13px}
+.link{border:0;background:none;color:var(--acc);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+.cupline b{color:var(--ink)}
 .lbtn.dot{position:relative}
 .lbtn.dot::after{content:"";position:absolute;right:-3px;top:-3px;width:13px;height:13px;border-radius:50%;background:var(--bad);border:2px solid var(--bg)}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0 4px}
@@ -222,3 +256,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;displa
 .mrow{display:flex;justify-content:space-between;gap:8px;padding:3px 0}
 .mrow b{flex:none;color:var(--ink)}
 .mrow.ok,.mrow.ok b{color:var(--ok)}
+
+/* Iconos propios: toman el tamaño de la letra de donde estén */
+.ic{width:1.18em;height:1.18em;vertical-align:-.24em;display:inline-block;flex:none}
+.lbtn b .ic,.prod i .ic{width:1em;height:1em;vertical-align:-.12em}
+#pad button .ic,.garrow .ic{width:1.1em;height:1.1em;vertical-align:-.2em}

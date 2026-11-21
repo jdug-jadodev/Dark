@@ -6,14 +6,15 @@ import { emit } from '../core/events.js';
 import { S } from '../core/profile.js';
 import { ADS_DAYS, PRODUCTS, adsDaysLeft, canBuy, deliver, pesos, product } from '../core/shop.js';
 import { applyNoAds } from './ads.js';
-import { $ } from './dom.js';
+import { $, tok } from './dom.js';
+import { T } from './icons.js';
 import { renderMenu } from './menu.js';
 
 let onClose = null; // a quién avisar al cerrar (el taller vuelve a pintar sus botones)
 let paying = null; // producto que se está pagando
 
 function render() {
-  $('shopCoins').textContent = '🪙 ' + S.coins;
+  $('shopCoins').innerHTML = T('{coin} ' + S.coins);
   const left = adsDaysLeft();
   $('shopList').innerHTML = PRODUCTS.map((p) => {
     const mine = !canBuy(p);
@@ -30,7 +31,7 @@ function render() {
       } else if (left)
         detail = 'Activo: te quedan ' + left + (left === 1 ? ' día' : ' días') + '. Comprar suma ' + ADS_DAYS + ' más.';
       else detail += ' Se puede renovar.';
-    } else if (mine) price = '✓ Activo';
+    } else if (mine) price = '{check} Activo';
     return (
       '<button class="prod' +
       (mine ? ' mine' : '') +
@@ -51,6 +52,7 @@ function render() {
       '</em></button>'
     );
   }).join('');
+  tok('shopList');
 }
 export function openShop(after) {
   onClose = after || null;

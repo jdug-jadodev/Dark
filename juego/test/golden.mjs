@@ -28,6 +28,10 @@ const THREE = path.join(here, '../../app/android/src/main/assets/game/three.min.
 
 /* ---------- se inyecta antes que el juego: azar con semilla y reloj virtual ---------- */
 function installHarness(seed) {
+  /* las partidas de prueba no hablan con el servidor del juego: ni ensucian sus datos ni dependen de internet */
+  try {
+    localStorage.setItem('giro_api', 'off');
+  } catch (e) {}
   let s = seed >>> 0;
   let calls = 0;
   Math.random = () => {
@@ -311,7 +315,7 @@ async function run() {
     await page.route(/three(\.min)?\.js/, (r) => r.fulfill({ contentType: 'application/javascript', body: three }));
     await page.addInitScript(installHarness, 20261118);
     await page.goto(pathToFileURL(HTML).href);
-    await page.waitForFunction(() => document.getElementById('mCoins').textContent !== '🪙 0');
+    await page.waitForFunction(() => document.getElementById('mCoins').textContent.includes('racha'));
     const t0 = Date.now();
     const r = await page.evaluate((s) => window.__golden(s), steps);
     result[name] = r.out;

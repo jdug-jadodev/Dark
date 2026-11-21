@@ -6,10 +6,12 @@ import { S } from '../core/profile.js';
 import { fmt } from '../core/util.js';
 import { powTxt } from '../game/powers.js';
 import { SPC, km } from '../game/space.js';
-import { $ } from './dom.js';
+import { bossName } from '../game/boss.js';
+import { $, put } from './dom.js';
+import { T } from './icons.js';
 export function showToast(a, b) {
   const el = $('toast');
-  el.innerHTML = '<b>' + a + '</b><small>' + b + '</small>';
+  el.innerHTML = '<b>' + T(a) + '</b><small>' + T(b) + '</small>';
   el.classList.remove('go');
   void el.offsetWidth;
   el.classList.add('go');
@@ -31,60 +33,70 @@ export function hud() {
     nb.classList.toggle('ready', ok);
     nb.classList.toggle('urgent', !!G.run.suck && ok);
   }
-  $('hCoins').textContent = '🪙 ' + G.run.coins;
-  $('hCombo').textContent = G.run.combo > 0 ? '🔥 x' + mult() + ' · ' + G.run.combo : '';
-  $('hPow').textContent = powTxt() || (prog() >= 5 ? 'sin arma' : '');
+  put('hCoins', '{coin} ' + G.run.coins);
+  put('hCombo', G.run.combo > 0 ? '{fire} x' + mult() + ' · ' + G.run.combo : '');
+  put('hPow', powTxt() || (prog() >= 5 ? 'sin arma' : ''));
   if (G.run.mode === 'endless') {
     const hp = Math.ceil(G.run.hull),
       hf = $('hullFill');
     hf.style.width = hp + '%';
     hf.style.background = hp > 60 ? '#6ef2a5' : hp > 30 ? '#ffb454' : '#ff6b8a';
-    $('hullTxt').textContent = '🛡 CASCO ' + hp + '%';
+    put('hullTxt', '{shield} CASCO ' + hp + '%');
     $('hull').classList.toggle('low', hp <= 30);
     const best = (S.topTimes || [])[0];
-    $('hTime').textContent = '⏱ ' + fmt(G.t);
-    $('barFill').style.width = ((prog() % LVL) / LVL) * 100 + '%';
-    $('phase').textContent =
-      'SUPERVIVENCIA · Nivel ' +
-      level() +
-      (best ? ' · récord ' + fmt(best) : '') +
-      (G.run.invincible ? ' · modo demo' : '');
+    put('hTime', '{timer} ' + fmt(G.t));
+    /* con un jefe en pantalla, la barra es su vida y el texto dice cuánto falta para que se vaya */
+    const boss = G.run.stage === 'mini' && G.run.boss;
+    $('barFill').style.width = (boss ? Math.max(0, boss.hp / boss.max) : (prog() % LVL) / LVL) * 100 + '%';
+    put(
+      'phase',
+      (boss
+        ? 'JEFE · ' + bossName(boss) + ' · se va en ' + Math.max(0, Math.ceil(G.run.bossLeft)) + ' s'
+        : 'SUPERVIVENCIA · Nivel ' + level() + (best ? ' · récord ' + fmt(best) : '')) +
+        (G.run.invincible ? ' · modo demo' : ''),
+    );
   } else if (G.run.stage === 'mini' && G.run.boss) {
     const b = G.run.boss;
-    $('hTime').textContent = '⚔ ' + Math.max(0, Math.ceil((b.hp / b.max) * 100)) + '%';
+    put('hTime', '{swords} ' + Math.max(0, Math.ceil((b.hp / b.max) * 100)) + '%');
     $('barFill').style.width = Math.max(0, (b.hp / b.max) * 100) + '%';
-    $('phase').textContent = 'JEFE INTERMEDIO · Vigía Ámbar' + (G.run.invincible ? ' · modo demo' : '');
+    put('phase', 'JEFE INTERMEDIO · Vigía Ámbar' + (G.run.invincible ? ' · modo demo' : ''));
   } else {
-    $('hTime').textContent = '🎯 ' + Math.min(GOAL, Math.floor(G.run.pts)) + '/' + GOAL;
+    put('hTime', '{target} ' + Math.min(GOAL, Math.floor(G.run.pts)) + '/' + GOAL);
     $('barFill').style.width = Math.min(100, prog()) + '%';
-    $('phase').textContent =
+    put(
+      'phase',
       (G.run.stage === 'run' ? PH[Math.max(0, G.run.phase)].name : '¡Jefe final en camino!') +
-      (G.run.invincible ? ' · modo demo (no mueres)' : '');
+        (G.run.invincible ? ' · modo demo (no mueres)' : ''),
+    );
   }
 }
 function hudBoss() {
   const b = G.run.boss;
-  $('hCoins').textContent = '🪙 ' + G.run.coins;
-  $('hCombo').textContent = '';
-  $('hPow').textContent = powTxt() || 'sin arma';
-  $('hTime').textContent = '⏱ ' + Math.floor(G.run.bt) + ' s';
+  put('hCoins', '{coin} ' + G.run.coins);
+  put('hCombo', '');
+  put('hPow', powTxt() || 'sin arma');
+  put('hTime', '{timer} ' + Math.floor(G.run.bt) + ' s');
   $('barFill').style.width = Math.max(0, (b.hp / b.max) * 100) + '%';
-  $('phase').textContent =
+  put(
+    'phase',
     'JEFE · Centinela del Vacío · Fase ' +
-    (Math.max(0, G.run.phase) + 1) +
-    ' de 3' +
-    (G.run.invincible ? ' · modo demo' : '');
+      (Math.max(0, G.run.phase) + 1) +
+      ' de 3' +
+      (G.run.invincible ? ' · modo demo' : ''),
+  );
 }
 function spaceHud() {
   const best = (S.topSpace || [])[0];
-  $('hCoins').textContent = '🪙 ' + G.run.coins;
-  $('hCombo').textContent = SPC.near ? '✨ ' + SPC.near : '';
-  $('hPow').textContent = '🪐 Sector ' + SPC.sector;
-  $('hTime').textContent = '📏 ' + km() + ' km';
+  put('hCoins', '{coin} ' + G.run.coins);
+  put('hCombo', SPC.near ? '{sparkle} ' + SPC.near : '');
+  put('hPow', '{planet} Sector ' + SPC.sector);
+  put('hTime', '{ruler} ' + km() + ' km');
   $('barFill').style.width = ((G.t % 30) / 30) * 100 + '%';
-  $('phase').textContent =
-    'VIAJE ESPACIAL · ⏱ ' +
-    fmt(G.t) +
-    (best ? ' · récord ' + best + ' km' : '') +
-    (G.run.invincible ? ' · modo demo' : '');
+  put(
+    'phase',
+    'VIAJE ESPACIAL · {timer} ' +
+      fmt(G.t) +
+      (best ? ' · récord ' + best + ' km' : '') +
+      (G.run.invincible ? ' · modo demo' : ''),
+  );
 }

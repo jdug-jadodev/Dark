@@ -18,7 +18,7 @@ const FLIP_EVERY = [40, 75, 60, 45, 40]; // cuánto progreso (%) pasa entre un g
 const pickIn = (r) => rand(r[0], r[1]);
 export const spinning = () => G.run.spin.t >= 0;
 /* ¿puede empezar un movimiento nuevo? (c = tramo de locura; en 0 mandan las reglas de siempre) */
-const free = (c) => !c || (G.run.calm <= 0 && !spinning() && G.run.wb.t < 0 && G.run.rot.st === 0);
+const free = (c) => !c || (G.run.calm <= 0 && !G.run.bossDue && !spinning() && G.run.wb.t < 0 && G.run.rot.st === 0); // con un jefe por llegar, la pantalla se queda quieta
 const rest = (c) => {
   if (c) G.run.calm = pickIn(REST[c]);
 };

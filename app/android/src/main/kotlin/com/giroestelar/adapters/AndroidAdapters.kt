@@ -47,10 +47,39 @@ class AndroidThermal(context: Context) : Thermal {
  * Puente con el juego: en JavaScript aparece como `window.GiroNative`.
  * Es un adaptador de entrada: solo traduce las llamadas del juego a [GameHost].
  */
-class GameBridge(private val host: GameHost, private val debuggable: Boolean) {
+class GameBridge(
+    private val host: GameHost,
+    private val debuggable: Boolean,
+    private val reminder: ReminderControl,
+    private val testApi: String = "",
+) {
     @JavascriptInterface fun loadState(): String = host.loadState() ?: ""
     @JavascriptInterface fun saveState(json: String) { host.saveState(json) }
     @JavascriptInterface fun haptic(milliseconds: Int) = host.vibrate(milliseconds.toLong())
     @JavascriptInterface fun heat(): Int = host.heat()
     @JavascriptInterface fun isDebug(): Boolean = debuggable
+
+    /** Servidor de pruebas (vacío casi siempre): ver [testApiOf]. */
+    @JavascriptInterface fun testApi(): String = testApi
+
+    /* recordatorio diario: el juego lo enciende o apaga, pregunta cómo está y cuenta la racha */
+    @JavascriptInterface fun setReminder(on: Boolean) = reminder.set(on)
+    @JavascriptInterface fun reminderOn(): Boolean = reminder.isOn()
+    @JavascriptInterface fun noteStreak(days: Int) = reminder.noteStreak(days)
 }
+
+/** Lo que el puente necesita del recordatorio. Encenderlo puede requerir pedirle permiso al jugador. */
+interface ReminderControl {
+    fun set(on: Boolean)
+    fun isOn(): Boolean
+    fun noteStreak(days: Int)
+}
+
+/**
+ * Para probar la copa sin publicar el servidor: en una app de pruebas (nunca en la de la tienda)
+ * se puede dejar escrita la dirección de un servidor de pruebas, y el juego usa esa.
+ * Se escribe desde el computador:  shared_prefs/giro_estelar_pruebas.xml, clave "api".
+ */
+fun testApiOf(context: Context, debuggable: Boolean): String =
+    if (!debuggable) ""
+    else context.getSharedPreferences("giro_estelar_pruebas", Context.MODE_PRIVATE).getString("api", "") ?: ""

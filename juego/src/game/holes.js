@@ -6,6 +6,7 @@ import { ap } from '../core/difficulty.js';
 import { clamp, pick, rand } from '../core/util.js';
 import { explode } from './run.js';
 import { $ } from '../ui/dom.js';
+import { T } from '../ui/icons.js';
 import { crash } from '../ui/flow.js';
 import { showToast } from '../ui/hud.js';
 export function spawnHole() {
@@ -20,13 +21,13 @@ export function spawnHole() {
   G.pops.push({
     x: h.x,
     y: 40,
-    text: '🕳 ¡AGUJERO NEGRO!',
+    text: '{hole} ¡AGUJERO NEGRO!',
     life: 1.6,
     col: '#c792ff',
   });
   if (!G.run.bhSeen) {
     G.run.bhSeen = true;
-    showToast('🕳 Agujeros negros', 'Te atraen · escapa con 🚀 NITRO (se llena con cada ¡CASI!)');
+    showToast('{hole} Agujeros negros', 'Te atraen · escapa con {rocket} NITRO (se llena con cada ¡CASI!)');
   }
 }
 /* mueve los agujeros y atrae la nave; si llega al centro empieza la succión */
@@ -76,7 +77,7 @@ export function updateHoles(dt) {
       G.pops.push({
         x: G.ship.x,
         y: G.ship.y - 36,
-        text: '¡ESCAPE GRAVITATORIO! +4 ⚡',
+        text: '¡ESCAPE GRAVITATORIO! +4 {bolt}',
         life: 1.3,
         col: '#c792ff',
       });
@@ -126,7 +127,7 @@ export function updateSuck(dt) {
       max: 0.4,
       col: pick([G.ship.color, '#ffffff', '#c792ff']),
     });
-  $('warnTxt').textContent = G.run.nitro >= NITRO_COST ? '¡USA EL NITRO! 🚀' : '¡SIN NITRO!';
+  $('warnTxt').innerHTML = T(G.run.nitro >= NITRO_COST ? '¡USA EL NITRO! {rocket}' : '¡SIN NITRO!');
   $('warn').classList.add('show');
   emit('suck');
   if (p >= 1) {
@@ -144,8 +145,9 @@ export function updateSuck(dt) {
     G.shake = 0.6;
     emit('spaghetti');
     crash();
-    $('crashInfo').textContent =
-      '🕳 Un agujero negro te hizo espagueti · ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos';
+    $('crashInfo').innerHTML = T(
+      '{hole} Un agujero negro te hizo espagueti · ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos',
+    );
     return true;
   }
   return false;
@@ -201,7 +203,7 @@ export function useNitro() {
   G.pops.push({
     x: G.ship.x,
     y: G.ship.y - 30,
-    text: '🚀 ¡NITRO!',
+    text: '{rocket} ¡NITRO!',
     life: 1,
     col: '#4fc3ff',
   });

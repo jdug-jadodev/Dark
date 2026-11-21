@@ -16,21 +16,21 @@
     <canvas id="fx"></canvas>
 
     <div id="hud">
-      <div class="row"><span id="hCoins">🪙 0</span><span id="hCombo"></span><span id="hPow"></span><span id="hTime">⏱ 60</span></div>
+      <div class="row"><span id="hCoins">{coin} 0</span><span id="hCombo"></span><span id="hPow"></span><span id="hTime">{timer} 60</span></div>
       <div id="bar"><i id="barFill"></i></div>
       <div id="phase"></div>
-      <div id="nitro"><i id="nitroFill"></i><b></b><span>🚀 NITRO</span></div>
-      <div id="hull"><i id="hullFill"></i><span id="hullTxt">🛡 CASCO 100%</span></div>
+      <div id="nitro"><i id="nitroFill"></i><b></b><span>{rocket} NITRO</span></div>
+      <div id="hull"><i id="hullFill"></i><span id="hullTxt">{shield} CASCO 100%</span></div>
     </div>
-    <button id="nitroBtn" aria-label="Nitro"><span>🚀</span><small>NITRO</small></button>
-    <button id="pauseBtn" aria-label="Pausa">⏸</button>
-    <div id="warn"><span>📱</span> <em id="warnTxt" style="font-style:normal">¡GIRA EL CELU!</em></div>
+    <button id="nitroBtn" aria-label="Nitro"><span>{rocket}</span><small>NITRO</small></button>
+    <button id="pauseBtn" aria-label="Pausa">{pause}</button>
+    <div id="warn"><span>{phone}</span> <em id="warnTxt" style="font-style:normal">¡GIRA EL CELU!</em></div>
     <div id="toast"></div>
     <div id="count"></div>
     <div id="hint">Desliza el dedo en cualquier parte para mover la nave</div>
     <div id="pad">
-      <div class="pl"><button data-d="up" aria-label="Adelante">▲</button><button data-d="down" aria-label="Atrás">▼</button></div>
-      <div class="pr"><button data-d="left" aria-label="Izquierda">◀</button><button data-d="right" aria-label="Derecha">▶</button></div>
+      <div class="pl"><button data-d="up" aria-label="Adelante">{up}</button><button data-d="down" aria-label="Atrás">{down}</button></div>
+      <div class="pr"><button data-d="left" aria-label="Izquierda">{prev}</button><button data-d="right" aria-label="Derecha">{next}</button></div>
     </div>
 
     <!-- Lobby (menú principal): la nave del jugador se ve al fondo, en el centro -->
@@ -38,23 +38,25 @@
       <div class="ltop">
         <h1>Giro Estelar</h1>
         <div class="ltools">
-          <button class="lbtn round" id="statsBtn" aria-label="Métricas">📊</button>
-          <button class="lbtn round" data-open="settings" aria-label="Configuración">⚙</button>
+          <button class="lbtn round" id="statsBtn" aria-label="Métricas">{stats}</button>
+          <button class="lbtn round" data-open="settings" aria-label="Configuración">{gear}</button>
         </div>
       </div>
-      <div class="coins" id="mCoins">🪙 0</div>
+      <div class="coins" id="mCoins">{coin} 0</div>
       <div class="lmid">
-        <button class="lship" id="shipTap" aria-label="Abrir el taller"><span>🔧 Toca para personalizar · desliza para girar</span></button>
+        <button class="lship" id="shipTap" aria-label="Abrir el taller"><span>{wrench} Toca para personalizar · desliza para girar</span></button>
+        <div class="lnews" id="lNews"></div>
         <div class="lside">
-          <button class="lbtn" id="garageBtn"><b>🔧</b>Taller</button>
-          <button class="lbtn" id="chestBtn"><b>🎁</b>Cofre</button>
-          <button class="lbtn" id="misBtn"><b>📅</b>Misiones<small>0/3</small></button>
-          <button class="lbtn" id="shopBtn"><b>🛒</b>Tienda</button>
+          <button class="lbtn" id="garageBtn"><b>{wrench}</b>Taller</button>
+          <button class="lbtn" id="chestBtn"><b>{gift}</b>Cofre</button>
+          <button class="lbtn" id="misBtn"><b>{calendar}</b>Misiones<small>0/3</small></button>
+          <button class="lbtn" id="cupBtn"><b>{trophy}</b>Copa<small>nueva</small></button>
+          <button class="lbtn" id="shopBtn"><b>{cart}</b>Tienda</button>
         </div>
       </div>
       <div class="lplay">
-        <button class="btn" id="play">▶ Aventura</button>
-        <div class="lrow"><button class="btn surv" id="survBtn">⏱ Supervivencia</button><button class="btn space" id="spaceBtn">🪐 Viaje espacial</button></div>
+        <button class="btn" id="play">{play} Aventura</button>
+        <div class="lrow"><button class="btn surv" id="survBtn">{timer} Supervivencia</button><button class="btn space" id="spaceBtn">{planet} Viaje espacial</button></div>
         <label class="chk"><input type="checkbox" id="inv"> Modo demo: no morir y probar todas las piezas</label>
         <div class="ctrl" id="lvlPick" style="display:none"><span>Supervivencia desde el nivel:</span><button class="opt sel" data-lv="1">1</button><button class="opt" data-lv="5">5</button><button class="opt" data-lv="10">10</button><button class="opt" data-lv="15">15</button><button class="opt" data-lv="20">20</button></div>
       </div>
@@ -64,15 +66,16 @@
          abajo, los grupos, las ranuras del grupo y las piezas -->
     <div class="screen garage" id="garage">
       <div class="gtop">
-        <button class="lbtn round" id="garageBack" aria-label="Volver">←</button>
+        <button class="lbtn round" id="garageBack" aria-label="Volver">{back}</button>
         <b>TALLER</b>
-        <button class="gcoins" id="gCoins">🪙 0</button>
+        <button class="gcoins" id="gCoins">{coin} 0</button>
       </div>
       <div class="gview" id="gView">
         <i class="gcorner tl"></i><i class="gcorner tr"></i><i class="gcorner bl"></i><i class="gcorner br"></i>
-        <button class="garrow l" id="gPrev" aria-label="Pieza anterior">‹</button>
-        <button class="garrow r" id="gNext" aria-label="Pieza siguiente">›</button>
-        <button class="gdice" id="gDice" aria-label="Combinar al azar">🎲</button>
+        <button class="garrow l" id="gPrev" aria-label="Pieza anterior">{prev}</button>
+        <button class="garrow r" id="gNext" aria-label="Pieza siguiente">{next}</button>
+        <button class="gdice" id="gDice" aria-label="Combinar al azar">{dice}</button>
+        <button class="ggoal" id="gGoal" aria-label="Marcar como meta"></button>
         <div class="gplate"><small id="gSlot"></small><b id="gName"></b><em id="gRar"></em></div>
         <small id="gHint"></small>
       </div>
@@ -89,9 +92,9 @@
     <!-- Choque -->
     <div class="screen" id="crash">
       <div class="card">
-        <h2>💥 ¡Chocaste!</h2>
+        <h2>{boom} ¡Chocaste!</h2>
         <div class="sub" id="crashInfo"></div>
-        <button class="btn ad" id="reviveBtn">▶ Revivir viendo un anuncio</button>
+        <button class="btn ad" id="reviveBtn">{play} Revivir viendo un anuncio</button>
         <button class="btn alt" id="giveUp">No, gracias</button>
         <div class="note">Una vez por partida, voluntario. El jugador siempre ve qué gana antes de aceptar.</div>
       </div>
@@ -112,10 +115,15 @@
       <div class="card" id="misBox"></div>
     </div>
 
+    <!-- Copa semanal: tabla de la semana en Supervivencia -->
+    <div class="screen" id="cup">
+      <div class="card" id="cupBox"></div>
+    </div>
+
     <!-- Métricas: récords, racha y piezas -->
     <div class="screen" id="stats">
       <div class="card">
-        <h2>📊 Métricas</h2>
+        <h2>{stats} Métricas</h2>
         <div class="best" id="mBest"></div>
         <div id="statsBox"></div>
         <button class="btn alt" id="statsClose">Cerrar</button>
@@ -125,11 +133,11 @@
     <!-- Pausa -->
     <div class="screen" id="pause">
       <div class="card">
-        <h2>⏸ Pausa</h2>
+        <h2>{pause} Pausa</h2>
         <div class="sub" id="pauseInfo"></div>
-        <button class="btn" id="resumeBtn">▶ Continuar</button>
-        <button class="btn alt" data-open="settings">⚙ Configuración</button>
-        <button class="btn alt" id="quitBtn">🚪 Salir al menú</button>
+        <button class="btn" id="resumeBtn">{play} Continuar</button>
+        <button class="btn alt" data-open="settings">{gear} Configuración</button>
+        <button class="btn alt" id="quitBtn">{door} Salir al menú</button>
         <div class="note">Si sales, la partida termina y conservas las monedas que juntaste.</div>
       </div>
     </div>
@@ -137,12 +145,16 @@
     <!-- Configuración (después de la pausa, para quedar encima de ella) -->
     <div class="screen" id="settings">
       <div class="card">
-        <h2>⚙ Configuración</h2>
-        <label class="vol"><span>🎵 Música</span><input type="range" id="volMusic" min="0" max="100" step="5"><b id="volMusicN"></b></label>
-        <label class="vol"><span>💥 Efectos</span><input type="range" id="volSfx" min="0" max="100" step="5"><b id="volSfxN"></b></label>
+        <h2>{gear} Configuración</h2>
+        <label class="vol"><span>{music} Música</span><input type="range" id="volMusic" min="0" max="100" step="5"><b id="volMusicN"></b></label>
+        <label class="vol"><span>{sound} Efectos</span><input type="range" id="volSfx" min="0" max="100" step="5"><b id="volSfxN"></b></label>
         <div class="ctrl" id="gfx"><span>Gráficos:</span><button class="opt" data-gfx="auto">Auto</button><button class="opt" data-gfx="high">Alta</button><button class="opt" data-gfx="medium">Media</button><button class="opt" data-gfx="low">Baja</button></div>
         <div class="note" id="gfxNote"></div>
-        <div class="ctrl" id="ctrl"><span>Control:</span><button class="opt" data-ctrl="swipe">👆 Deslizar</button><button class="opt" data-ctrl="btn">🎮 Flechas</button></div>
+        <div class="ctrl" id="ctrl"><span>Control:</span><button class="opt" data-ctrl="swipe">{tap} Deslizar</button><button class="opt" data-ctrl="btn">{pad} Flechas</button></div>
+        <div id="remRow" style="display:none">
+          <div class="ctrl" id="rem"><span>{bell} Aviso diario:</span><button class="opt" data-rem="1">Sí</button><button class="opt" data-rem="0">No</button></div>
+          <div class="note">Un aviso al día a las 7 de la noche, solo si ese día no has jugado.</div>
+        </div>
         <button class="btn" id="settingsClose">Listo</button>
       </div>
     </div>
@@ -150,8 +162,8 @@
     <!-- Tienda: monedas y sin anuncios (encima del lobby y del taller) -->
     <div class="screen" id="shop">
       <div class="card">
-        <h2>🛒 Tienda</h2>
-        <div class="coins" id="shopCoins">🪙 0</div>
+        <h2>{cart} Tienda</h2>
+        <div class="coins" id="shopCoins">{coin} 0</div>
         <div id="shopList"></div>
         <div class="note">Las monedas solo compran piezas de apariencia: nada de aquí da ventaja en el juego.</div>
         <button class="btn alt" id="shopClose">Cerrar</button>

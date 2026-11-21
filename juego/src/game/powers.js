@@ -8,7 +8,7 @@ import { liveBoss } from './boss.js';
 import { hitEnemy } from './enemies.js';
 import { explode } from './run.js';
 /* ---------- Poderes y armas ---------- */
-/* El abanico (🔱) es el arma más fuerte: sale menos que las demás */
+/* El abanico ({trident}) es el arma más fuerte: sale menos que las demás */
 export const rndWeapon = () => pick(['twin', 'twin', 'twin', 'heavy', 'heavy', 'laser', 'laser', 'spread']);
 export function rndCap() {
   return pick(['twin', 'twin', 'heavy', 'laser', 'spread', 'shield', 'shield', 'orbit', 'magnet', 'nova']);
@@ -34,7 +34,7 @@ function applyCap(type) {
   if (type === 'repair') {
     const g = Math.min(HULL_KIT, 100 - G.run.hull);
     G.run.hull += g;
-    text = g > 0 ? '🔧 +' + g + '% casco' : '🔧 Casco al máximo';
+    text = g > 0 ? '{wrench} +' + g + '% casco' : '{wrench} Casco al máximo';
   }
   emit(type === 'nova' ? 'nova' : 'power', type);
   G.pops.push({
@@ -240,12 +240,12 @@ export function updateCaps(dt) {
   }
 }
 export function powTxt() {
-  let p = G.ship.shield ? '🛡 ' : '';
+  let p = G.ship.shield ? '{shield} ' : '';
   if (G.ship.gun) p += CAPDEF[G.ship.gun.type].i + Math.ceil(G.ship.gun.t) + ' ';
   for (const [k, i] of [
-    ['laser', '🔴'],
-    ['orbit', '🌀'],
-    ['mag', '🧲'],
+    ['laser', '{laser}'],
+    ['orbit', '{orbit}'],
+    ['mag', '{magnet}'],
   ])
     if (G.ship[k] > 0) p += i + Math.ceil(G.ship[k]) + ' ';
   return p;

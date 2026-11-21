@@ -1,13 +1,14 @@
-/** Métricas del jugador: récords de cada modo, racha y piezas. Se abre con el botoncito 📊 del lobby. */
+/** Métricas del jugador: récords de cada modo, racha y piezas. Se abre con el botoncito {stats} del lobby. */
 import { GOAL } from '../core/config.js';
 import { missionsDone, streakNow } from '../core/daily.js';
 import { owns } from '../core/garage.js';
 import { PARTS } from '../core/parts.js';
 import { S } from '../core/profile.js';
 import { fmt } from '../core/util.js';
-import { $ } from './dom.js';
+import { daysPlayed } from '../core/visits.js';
+import { $, tok } from './dom.js';
 
-const MEDAL = ['🥇', '🥈', '🥉', '4.', '5.'];
+const MEDAL = ['{medal1}', '{medal2}', '{medal3}', '4.', '5.'];
 const top = (title, list, show) =>
   '<div class="top"><b>' +
   title +
@@ -38,13 +39,16 @@ function render() {
     '<div><b>' +
     missionsDone() +
     '/3</b><span>Misiones hoy</span></div></div>' +
-    top('⏱ Supervivencia: mejores tiempos', S.topTimes || [], fmt) +
-    top('🪐 Viaje espacial: mejores distancias', S.topSpace || [], (v) => v + ' km') +
-    '<div class="top"><div><span>🧩 Piezas de la nave</span><b>' +
+    top('{timer} Supervivencia: mejores tiempos', S.topTimes || [], fmt) +
+    top('{planet} Viaje espacial: mejores distancias', S.topSpace || [], (v) => v + ' km') +
+    '<div class="top"><div><span>{puzzle} Piezas de la nave</span><b>' +
     mine +
     ' de ' +
     parts.length +
+    '</b></div><div><span>{calendar} Días que has jugado</span><b>' +
+    daysPlayed() +
     '</b></div></div>';
+  tok('statsBox');
 }
 /* devuelve true si estaba abierta (para el botón "atrás" del sistema) */
 export function closeStats() {

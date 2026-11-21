@@ -1,3 +1,4 @@
+import { drawIcon } from '../ui/icons.js';
 /** Piezas 3D compartidas: geometrías básicas, materiales en caché, texturas de punto y emoji, extrusión. */
 /* -- utilidades -- */
 const CC = {};
@@ -46,6 +47,19 @@ export function emojiMat(e) {
   g.textBaseline = 'middle';
   g.fillText(e, 32, 35);
   return (ETX[e] = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(c),
+    transparent: true,
+    depthWrite: false,
+  }));
+}
+/* un icono propio como etiqueta que siempre mira a la cámara (las cápsulas). name puede venir como {nombre} */
+export function iconMat(name) {
+  const key = 'ic:' + name;
+  if (ETX[key]) return ETX[key];
+  const c = document.createElement('canvas');
+  c.width = c.height = 96;
+  drawIcon(c.getContext('2d'), name.replace(/[{}]/g, ''), 8, 8, 80);
+  return (ETX[key] = new THREE.SpriteMaterial({
     map: new THREE.CanvasTexture(c),
     transparent: true,
     depthWrite: false,

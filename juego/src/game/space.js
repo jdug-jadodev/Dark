@@ -245,7 +245,7 @@ export function spaceUpdate(dt) {
   if (sec !== SPC.sector) {
     SPC.sector = sec;
     G.run.coins += 5;
-    showToast('Sector ' + sec, pick(SPACE_TIPS) + ' · +5 🪙');
+    showToast('Sector ' + sec, pick(SPACE_TIPS) + ' · +5 {coin}');
     emit('phase');
   }
   /* el universo gira lento, cada vez más */

@@ -72,7 +72,7 @@ const EVERY = [
 /* Avanza los cometas. Devuelve true si la nave chocó y la partida se detuvo. */
 export function updateComets(dt) {
   const R = G.run;
-  if (chaos() >= 1 && !flipping()) {
+  if (chaos() >= 1 && !flipping() && !R.bossDue) {
     R.cometT -= dt;
     if (R.cometT <= 0) {
       const lv = level(),

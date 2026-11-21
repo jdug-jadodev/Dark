@@ -1,4 +1,8 @@
 /** Números de balance y datos fijos del juego (metas, fases, daños, tiempos). Sin lógica. */
+/* Dirección del servidor del juego (copa semanal y medición). Vacía = sin conexión: todo
+   funciona igual, solo que la tabla de la copa no aparece. Se llena al publicar el
+   servidor, que es un proyecto aparte (carpeta back-nave, al lado de esta). */
+export const API_URL = 'https://giro-estelar.giro-estelar-servidor.workers.dev';
 export const W = 360;
 export const H = 640;
 /* ---------- Datos ---------- */
@@ -56,47 +60,47 @@ export const WEAPONS = ['twin', 'spread', 'heavy', 'laser'];
 export const CAPDEF = {
   shield: {
     c: '#78e6ff',
-    i: '🛡',
+    i: '{shield}',
     t: '¡ESCUDO!',
   },
   twin: {
     c: '#ffb454',
-    i: '🔫',
+    i: '{blaster}',
     t: '¡DOBLE CAÑÓN!',
   },
   spread: {
     c: '#b4ff5e',
-    i: '🔱',
+    i: '{trident}',
     t: '¡ABANICO!',
   },
   heavy: {
     c: '#ff8a3c',
-    i: '💣',
+    i: '{bomb}',
     t: '¡CAÑÓN PESADO!',
   },
   orbit: {
     c: '#c792ff',
-    i: '🌀',
+    i: '{orbit}',
     t: '¡ESCUDO ORBITAL!',
   },
   laser: {
     c: '#ff6b8a',
-    i: '🔴',
+    i: '{laser}',
     t: '¡LÁSER!',
   },
   magnet: {
     c: '#6ef2a5',
-    i: '🧲',
+    i: '{magnet}',
     t: '¡IMÁN!',
   },
   nova: {
     c: '#ffffff',
-    i: '💥',
+    i: '{nova}',
     t: '¡NOVA!',
   },
   repair: {
     c: '#6ef2a5',
-    i: '🔧',
+    i: '{wrench}',
     t: '¡REPARACIÓN!',
   },
 };
@@ -120,6 +124,7 @@ export const SURV_TIPS = [
 /* Avisos de los niveles donde empieza algo nuevo (los demás usan SURV_TIPS) */
 export const SURV_TIP_AT = {
   5: '¡Giros de 360° y cometas! Mira de dónde vienen',
+  9: 'En el nivel 10 te espera un jefe',
   10: 'Menos naves, más asteroides',
   15: '¡Arcoíris! Todo gira y se mueve más rápido',
   20: '¡Locura total! Cometas a toda velocidad',
@@ -158,6 +163,13 @@ export const KIT_EVERY = 3;
 export const HULL_REVIVE = 50;
 /* Máximo de naves enemigas a la vez según el nivel; desde el 30 ya no hay límite */
 export const UNCAP_LVL = 30;
+/* Jefes de Supervivencia: uno cada SURV_BOSS_EVERY niveles. Si no se le derriba en su tiempo
+   (segundos), se retira sin dar premio y la partida sigue: nunca se queda trabada. */
+export const SURV_BOSS_EVERY = 10;
+export const SURV_BOSS_TIME = { mini: 45, final: 60 };
+export const SURV_BOSS_HP = 0.7; // aguante frente al mismo jefe de Aventura (1 = igual)
+export const SURV_BOSS_COINS = { mini: 40, final: 80 };
+export const SURV_BOSS_REPAIR = 25; // casco que se repara al derribarlo
 /* =====================================================================
    MOTOR 3D
    La lógica del juego sigue en el plano 2D original (W×H). Aquí solo se

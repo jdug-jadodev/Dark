@@ -2,7 +2,7 @@
 import { CAPDEF, WEAPONS } from '../../core/config.js';
 import { look } from '../../core/garage.js';
 import { rand } from '../../core/util.js';
-import { BOX, DOT, SPH, bmat, col3, emojiMat } from '../kit.js';
+import { BOX, DOT, SPH, bmat, col3, emojiMat, iconMat } from '../kit.js';
 /* -- rocas -- */
 function rockGeo() {
   const g = new THREE.IcosahedronGeometry(1, 1),
@@ -87,8 +87,8 @@ export function mkCap(c) {
   const glow = new THREE.Mesh(SPH, bmat(d.c, true, WEAPONS.includes(c.type) ? 0.3 : 0.18));
   glow.scale.setScalar(12);
   g.add(glow);
-  const sp = new THREE.Sprite(emojiMat(d.i));
-  sp.scale.set(19, 19, 1);
+  const sp = new THREE.Sprite(iconMat(d.i));
+  sp.scale.set(17, 17, 1);
   g.add(sp);
   return g;
 }

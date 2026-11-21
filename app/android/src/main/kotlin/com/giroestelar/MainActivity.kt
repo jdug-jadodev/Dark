@@ -1,5 +1,6 @@
 package com.giroestelar
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.pm.ApplicationInfo
@@ -14,6 +15,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -21,9 +23,14 @@ import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
 import com.giroestelar.adapters.AndroidThermal
 import com.giroestelar.adapters.GameBridge
+import com.giroestelar.adapters.ReminderControl
+import com.giroestelar.adapters.canNotify
+import com.giroestelar.adapters.reminders
+import com.giroestelar.adapters.testApiOf
 import com.giroestelar.adapters.SharedPrefsGameStateStore
 import com.giroestelar.adapters.VibratorHaptics
 import com.giroestelar.application.GameHost
+import java.time.LocalDateTime
 
 /**
  * Punto de armado de la app: crea los adaptadores, los conecta con [GameHost] y abre el juego
@@ -31,6 +38,7 @@ import com.giroestelar.application.GameHost
  */
 class MainActivity : Activity() {
     private lateinit var web: WebView
+    private val reminders by lazy { reminders(this) }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +48,8 @@ class MainActivity : Activity() {
 
         /* ---- adaptadores + aplicación ---- */
         val host = GameHost(SharedPrefsGameStateStore(this), VibratorHaptics(this), AndroidThermal(this))
+
+        val testApi = testApiOf(this, debuggable)
 
         /* ---- WebView del juego ---- */
         // Los archivos de la app se sirven como si fueran una página https local (sin internet)
@@ -58,6 +68,8 @@ class MainActivity : Activity() {
             settings.allowContentAccess = false
             settings.setSupportZoom(false)
             settings.textZoom = 100 // el tamaño de letra del sistema no desarma el HUD
+            // solo con un servidor de pruebas configurado: ese servidor no tiene candado (https)
+            if (testApi.isNotEmpty()) settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
                     assets.shouldInterceptRequest(request.url)
@@ -68,7 +80,7 @@ class MainActivity : Activity() {
                     return true
                 }
             }
-            addJavascriptInterface(GameBridge(host, debuggable), "GiroNative")
+            addJavascriptInterface(GameBridge(host, debuggable, reminderControl(), testApi), "GiroNative")
         }
 
         // Fondo negro y margen para la cámara frontal / barras, así el marcador no queda tapado
@@ -96,6 +108,34 @@ class MainActivity : Activity() {
         }
 
         web.loadUrl("https://appassets.androidplatform.net/assets/game/index.html")
+    }
+
+    /* ---- recordatorio diario ---- */
+    private fun reminderControl() = object : ReminderControl {
+        /* el juego llama desde otro hilo: lo que toca la pantalla o pide permiso va al hilo principal */
+        override fun set(on: Boolean) = runOnUiThread {
+            if (on && !canNotify(this@MainActivity) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), ASK_NOTIFY)
+            } else {
+                reminders.setEnabled(on, LocalDateTime.now())
+                tellGame()
+            }
+        }
+        override fun isOn(): Boolean = reminders.enabled && canNotify(this@MainActivity)
+        override fun noteStreak(days: Int) = reminders.noteStreak(days)
+    }
+
+    /** El jugador respondió si deja mostrar avisos: solo si dijo que sí queda encendido. */
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != ASK_NOTIFY) return
+        reminders.setEnabled(canNotify(this), LocalDateTime.now())
+        tellGame()
+    }
+
+    private fun tellGame() {
+        val on = reminders.enabled && canNotify(this)
+        web.evaluateJavascript("window.__giroReminder && window.__giroReminder($on)", null)
     }
 
     private fun askGameBack() {
@@ -135,6 +175,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         web.onResume()
+        reminders.gameOpened(LocalDateTime.now()) // hoy ya jugó: el próximo aviso posible es mañana
     }
 
     override fun onDestroy() {
@@ -142,5 +183,8 @@ class MainActivity : Activity() {
         super.onDestroy()
     }
 
-    private companion object { const val TAG = "GiroEstelar" }
+    private companion object {
+        const val TAG = "GiroEstelar"
+        const val ASK_NOTIFY = 7
+    }
 }

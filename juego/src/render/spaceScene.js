@@ -11,6 +11,7 @@ import { BOX, DOT, SPH, bmat, col3 } from './kit.js';
 import { makePlanet, placePlanet } from './planets.js';
 import { nebTex } from './textures.js';
 import { fctx } from '../ui/dom.js';
+import { drawLabel } from '../ui/icons.js';
 export let uScene;
 export let uCam;
 let uSunDir;
@@ -355,9 +356,7 @@ export function spaceDraw(dt, lazy) {
     fctx.globalAlpha = clamp(p.life, 0, 1);
     fctx.lineWidth = 4;
     fctx.strokeStyle = 'rgba(0,0,0,.6)';
-    fctx.strokeText(p.text, px, py);
-    fctx.fillStyle = p.col;
-    fctx.fillText(p.text, px, py);
+    drawLabel(fctx, p.text, px, py, 15, p.col);
   }
   fctx.globalAlpha = 1;
 }

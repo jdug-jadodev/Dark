@@ -22,7 +22,9 @@ import { RARITY } from '../core/parts.js';
 import { G } from '../core/state.js';
 import { SPC, km } from '../game/space.js';
 import { adTag, showAd } from './ads.js';
-import { $ } from './dom.js';
+import { $, tok } from './dom.js';
+import { T } from './icons.js';
+import { onReminderChange, reminderOffer, setReminder } from './reminder.js';
 
 let refresh = () => {}; // repinta el lobby (lo entrega main.js)
 let opened = null; // lo que salió del cofre en esta sesión (para mostrar la pieza del día 7)
@@ -34,8 +36,8 @@ function renderChest() {
     coins = WEEK[slot - 1],
     streak = streakNow();
   let h =
-    '<div style="font-size:48px">🎁</div><h2>Cofre diario</h2>' +
-    '<div class="sub">🔥 Racha: ' +
+    '<div style="font-size:48px">{gift}</div><h2>Cofre diario</h2>' +
+    '<div class="sub">{fire} Racha: ' +
     streak +
     (streak === 1 ? ' día' : ' días') +
     ' · si faltas un día, solo retrocede un paso</div>' +
@@ -49,37 +51,41 @@ function renderChest() {
         '"><small>Día ' +
         n +
         '</small><b>' +
-        (n === 7 ? '🎁' : '🪙') +
+        (n === 7 ? '{gift}' : '{coin}') +
         '</b><span>' +
         c +
         '</span></div>'
       );
     }).join('') +
     '</div><div class="sub">El día 7 trae además una pieza rara o épica para tu nave.</div>';
-  if (ready) h += '<button class="btn" data-c="open">Abrir cofre del día ' + slot + ' · +' + coins + ' 🪙</button>';
+  if (ready) h += '<button class="btn" data-c="open">Abrir cofre del día ' + slot + ' · +' + coins + ' {coin}</button>';
   else {
-    h += '<div class="gain">+' + coins + ' 🪙</div>';
+    h += '<div class="gain">+' + coins + ' {coin}</div>';
     if (opened && opened.piece)
-      h += '<div class="rec">🎁 Pieza nueva: ' + opened.piece.name + ' (' + RARITY[opened.piece.rar].name + ')</div>';
+      h +=
+        '<div class="rec">{gift} Pieza nueva: ' + opened.piece.name + ' (' + RARITY[opened.piece.rar].name + ')</div>';
     h += chestDoubled()
-      ? '<div class="sub">✔ Duplicado</div>'
-      : '<button class="btn ad" data-c="x2">▶ Duplicar' +
+      ? '<div class="sub">{check} Duplicado</div>'
+      : '<button class="btn ad" data-c="x2">{play} Duplicar' +
         (adTag() ? ' con anuncio' : '') +
         ' · +' +
         coins +
-        ' 🪙</button>';
+        ' {coin}</button>';
     const next = (slot % 7) + 1;
     h +=
       '<div class="sub">Vuelve mañana: día ' +
       next +
       ' · +' +
       WEEK[next - 1] +
-      ' 🪙' +
+      ' {coin}' +
       (next === 7 ? ' y una pieza' : '') +
       '</div>';
+    /* el mejor momento para ofrecer el aviso: acaba de abrir el cofre y mañana hay otro */
+    if (reminderOffer())
+      h += '<button class="btn alt" data-c="remind">{bell} Avísame mañana cuando esté listo</button>';
   }
   h += '<button class="btn alt" data-c="close">Cerrar</button>';
-  $('chestBox').innerHTML = h;
+  $('chestBox').innerHTML = T(h);
 }
 /* devuelve true si estaba abierto (para el botón "atrás" del sistema) */
 export function closeChest() {
@@ -92,7 +98,7 @@ export function closeChest() {
 /* ---------- misiones del día ---------- */
 function renderMissions() {
   $('misBox').innerHTML =
-    '<h2>📋 Misiones de hoy</h2><div class="sub">Cambian cada día: una por modo de juego.</div>' +
+    '<h2>{clipboard} Misiones de hoy</h2><div class="sub">Cambian cada día: una por modo de juego.</div>' +
     missions()
       .map(
         (m) =>
@@ -107,21 +113,22 @@ function renderMissions() {
           (m.have / m.need) * 100 +
           '%"></i></div></div>' +
           '<em>' +
-          (m.done ? '✔' : m.label) +
+          (m.done ? '{check}' : m.label) +
           '<small>+' +
           MISSION_COINS +
-          ' 🪙</small></em></div>',
+          ' {coin}</small></em></div>',
       )
       .join('') +
     '<div class="mis bonus' +
     (bonusDone() ? ' done' : '') +
-    '"><i>🎉</i><div><b>Completa las tres</b></div>' +
+    '"><i>{party}</i><div><b>Completa las tres</b></div>' +
     '<em>' +
-    (bonusDone() ? '✔' : '') +
+    (bonusDone() ? '{check}' : '') +
     '<small>+' +
     BONUS_COINS +
-    ' 🪙</small></em></div>' +
+    ' {coin}</small></em></div>' +
     '<button class="btn alt" data-m="close">Cerrar</button>';
+  tok('misBox');
 }
 export function closeMissions() {
   if (!$('missions').classList.contains('show')) return false;
@@ -162,12 +169,14 @@ export function missionBlock(res) {
           ' ' +
           m.text +
           '</span><b>' +
-          (m.done ? '✔' : m.label) +
+          (m.done ? '{check}' : m.label) +
           '</b></div>',
       )
       .join('') +
-    (res.done.length ? '<div class="rec">¡Misión completada! +' + res.done.length * MISSION_COINS + ' 🪙</div>' : '') +
-    (res.bonus ? '<div class="rec">🎉 ¡Las tres misiones! +' + BONUS_COINS + ' 🪙</div>' : '') +
+    (res.done.length
+      ? '<div class="rec">¡Misión completada! +' + res.done.length * MISSION_COINS + ' {coin}</div>'
+      : '') +
+    (res.bonus ? '<div class="rec">{party} ¡Las tres misiones! +' + BONUS_COINS + ' {coin}</div>' : '') +
     (res.skipped ? '<div>En modo demo las misiones no avanzan.</div>' : '') +
     '</div>'
   );
@@ -188,11 +197,17 @@ export function bootDaily(onChange) {
       if (opened) emit('reward');
       renderChest();
     } else if (a === 'x2') {
-      showAd('Recompensa: duplicar el cofre diario (+' + WEEK[chestSlot() - 1] + ' 🪙)', () => {
+      showAd('Recompensa: duplicar el cofre diario (+' + WEEK[chestSlot() - 1] + ' {coin})', () => {
         if (doubleChest()) emit('reward');
         renderChest();
       });
+    } else if (a === 'remind') {
+      setReminder(true);
+      renderChest();
     } else if (a === 'close') closeChest();
+  });
+  onReminderChange(() => {
+    if ($('chest').classList.contains('show')) renderChest();
   });
   $('misBtn').addEventListener('click', () => {
     renderMissions();

@@ -22,7 +22,7 @@ export function updatePortals(dt) {
       G.pops.push({
         x: G.ship.x,
         y: G.ship.y - 40,
-        text: '🌀 ¡PORTAL!',
+        text: '{nova} ¡PORTAL!',
         life: 1.2,
         col: '#ffffff',
       });

@@ -6,25 +6,32 @@ import { GOAL } from '../core/config.js';
 import { S } from '../core/profile.js';
 import { fmt } from '../core/util.js';
 import { applyNoAds } from './ads.js';
+import { renderCupButton } from './cup.js';
 import { $ } from './dom.js';
+import { T } from './icons.js';
+import { renderNews } from './news.js';
+import { tellStreak } from './reminder.js';
 import { startRun } from './flow.js';
 
 export function renderMenu() {
   applyNoAds(); // por si el mes sin anuncios se venció
   const streak = streakNow();
-  $('mCoins').textContent = '🪙 ' + S.coins + '  ·  🔥 racha ' + streak + (streak === 1 ? ' día' : ' días');
+  tellStreak(streak);
+  $('mCoins').innerHTML = T('{coin} ' + S.coins + '  ·  {fire} racha ' + streak + (streak === 1 ? ' día' : ' días'));
   const bt = (S.topTimes || [])[0],
     parts2 = [];
-  if (S.best) parts2.push('⭐ Aventura: ' + S.best + '/' + GOAL);
-  if (bt) parts2.push('⏱ Supervivencia: ' + fmt(bt));
-  if ((S.topSpace || [])[0]) parts2.push('🪐 ' + S.topSpace[0] + ' km');
-  if (S.bossWins) parts2.push('🏆 ' + S.bossWins);
-  $('mBest').textContent = parts2.length ? parts2.join(' · ') : '⭐ Aún sin récord: ¡juega tu primera partida!';
+  if (S.best) parts2.push('{star} Aventura: ' + S.best + '/' + GOAL);
+  if (bt) parts2.push('{timer} Supervivencia: ' + fmt(bt));
+  if ((S.topSpace || [])[0]) parts2.push('{planet} ' + S.topSpace[0] + ' km');
+  if (S.bossWins) parts2.push('{trophy} ' + S.bossWins);
+  $('mBest').innerHTML = T(parts2.length ? parts2.join(' · ') : '{star} Aún sin récord: ¡juega tu primera partida!');
   /* lo de hoy: cuántas misiones van, y un punto sobre el cofre si está por abrir */
   const done = missionsDone();
-  $('misBtn').querySelector('small').textContent = done === 3 ? '✔ 3/3' : done + '/3';
+  $('misBtn').querySelector('small').innerHTML = T(done === 3 ? '{check} 3/3' : done + '/3');
   $('misBtn').classList.toggle('all', done === 3);
   $('chestBtn').classList.toggle('dot', chestReady());
+  renderCupButton();
+  renderNews();
 }
 export function bootMenu() {
   $('play').addEventListener('click', () => startRun());
