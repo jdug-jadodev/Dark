@@ -13,6 +13,7 @@ private class FakeReminderStore : ReminderStore {
     override var lastOpenDay = -1L
     override var unanswered = 0
     override var streak = 0
+    override var cupRank = 0
 }
 
 private class FakeAlarm : ReminderAlarm {
@@ -25,7 +26,8 @@ class RemindersTest {
     private val store = FakeReminderStore()
     private val alarm = FakeAlarm()
     private val reminders = Reminders(store, alarm)
-    private fun day(d: Int, hour: Int, minute: Int = 0) = LocalDateTime.of(2026, 11, d, hour, minute)
+    /* julio de 2026: el 20 es lunes, el 25 sábado y el 26 domingo */
+    private fun day(d: Int, hour: Int, minute: Int = 0) = LocalDateTime.of(2026, 7, d, hour, minute)
 
     @Test
     fun `apagado no pone alarma ni avisa`() {
@@ -97,5 +99,24 @@ class RemindersTest {
         alarm.next = null
         reminders.restore(day(21, 20))
         assertEquals(day(22, 19), alarm.next, "ya pasaron las 7: queda para mañana")
+    }
+
+    @Test
+    fun `el fin de semana el aviso habla de las monedas dobles`() {
+        reminders.setEnabled(true, day(24, 10))
+        reminders.noteStreak(5)
+        assertEquals("Hoy las monedas valen el doble. Y tu cofre te está esperando.", reminders.alarmFired(day(25, 19)))
+    }
+
+    @Test
+    fun `el domingo, si esta en la copa, el aviso dice su puesto`() {
+        reminders.setEnabled(true, day(24, 10))
+        reminders.noteCup(3)
+        assertEquals(
+            "La copa termina esta noche y vas 3.º. Una partida más para defender tu puesto.",
+            reminders.alarmFired(day(26, 19)),
+        )
+        reminders.noteCup(0)
+        assertEquals("Hoy las monedas valen el doble. Y tu cofre te está esperando.", reminders.alarmFired(day(26, 19)))
     }
 }

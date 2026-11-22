@@ -3,6 +3,7 @@ import { G } from '../core/state.js';
 import { SPAWN, SUCK_T, W, WARP_T } from '../core/config.js';
 import { look, lookVersion } from '../core/garage.js';
 import { clamp, ease, rand } from '../core/util.js';
+import { mkBlast, worldTick } from './worlds.js';
 import { bgTick } from './backdrop.js';
 import { LSEG, PMAX, laserSegs, orbs, pCol, pGeo, pPos, shieldM } from './effects.js';
 import { CAM, X3, Z3, camera, dyn, live, renderer, scene, use } from './engine.js';
@@ -90,11 +91,19 @@ export function draw(dt, lazy) {
   }
   starGeo.attributes.position.needsUpdate = true;
   trackTick();
+  worldTick(now); // el cielo, el terreno y el paisaje del mundo que se esté jugando
   live.clear();
   for (const o of G.obs) {
     const m = use(o, mkRock);
     put(m, o.x, 0, o.y);
-    m.rotation.set(o.rot * 0.7 + m.userData.tilt, o.rot, o.rot * 0.4);
+    if (!m.userData.steady) m.rotation.set(o.rot * 0.7 + m.userData.tilt, o.rot, o.rot * 0.4);
+    if (m.userData.tick) m.userData.tick(now); // lo que tiene vida propia (un volcán que echa humo…)
+  }
+  /* lo que va a explotar: el círculo de aviso en el suelo, y el meteorito cayendo o el cráter */
+  for (const z of G.run.blasts) {
+    const m = use(z, mkBlast);
+    put(m, z.x, -31, z.y);
+    m.userData.tick(z, now);
   }
   for (const c of G.coins) {
     const m = use(c, mkCoin);
@@ -116,13 +125,19 @@ export function draw(dt, lazy) {
     const b = G.run.boss,
       m = use(b, mkBoss),
       u = m.userData;
-    put(m, b.x, 4, b.y);
-    m.rotation.set(0.1, Math.sin(now * 0.7) * 0.08 + (b.tx - b.x) * -0.002, Math.sin(now * 0.9) * 0.06);
-    u.body.emissive.setHex(b.flash > 0 ? 0xffffff : 0x000000);
-    const pulse = 1 + Math.sin(now * 6.3) * 0.12;
-    u.core.scale.setScalar(13 * pulse);
-    u.halo.scale.setScalar(21 * pulse);
-    u.ring.rotation.set(Math.PI / 2 + Math.sin(now) * 0.3, now * 1.5, 0);
+    put(m, b.x, 4 + (u.lift || 0), b.y);
+    if (u.tick) {
+      /* el jefe de un mundo se mueve a su manera */
+      u.tick(b, now);
+      for (const [mt, em] of u.lit) mt.emissive.setHex(b.flash > 0 ? 0xffffff : em);
+    } else {
+      m.rotation.set(0.1, Math.sin(now * 0.7) * 0.08 + (b.tx - b.x) * -0.002, Math.sin(now * 0.9) * 0.06);
+      u.body.emissive.setHex(b.flash > 0 ? 0xffffff : 0x000000);
+      const pulse = 1 + Math.sin(now * 6.3) * 0.12;
+      u.core.scale.setScalar(13 * pulse);
+      u.halo.scale.setScalar(21 * pulse);
+      u.ring.rotation.set(Math.PI / 2 + Math.sin(now) * 0.3, now * 1.5, 0);
+    }
   }
   for (const e of G.eb) {
     const m = use(e, mkEB);
@@ -230,6 +245,20 @@ export function draw(dt, lazy) {
     sm.scale.set(th, th, 1 + 4.5 * p);
   } else sm.scale.set(1, 1, 1);
   sm.visible = !s.hidden && !(s.inv > 0 && Math.floor(performance.now() / 70) % 2 === 0);
+  /* el Devorador ganó: la nave se va en espiral hacia su boca, cada vez más chica, y desaparece */
+  if (G.run.eaten && G.run.boss && G.run.boss.m) {
+    const p = Math.min(1, (now - G.run.eaten.at) / 1.2),
+      e = p * p,
+      to = G.run.boss.m.position;
+    sm.position.set(
+      sx + (to.x - sx) * e + Math.sin(p * 17) * 30 * (1 - p),
+      sh + (to.y + 14 - sh) * e,
+      sz + (to.z + 26 - sz) * e,
+    );
+    sm.rotation.set(0, 0, p * 22);
+    sm.scale.setScalar(Math.max(0.02, 1 - 0.96 * e));
+    sm.visible = p < 1;
+  }
   shipTick(sm, now, s.vys < -60 ? 0.4 : 0, s.nitro > 0 ? 2.4 : 1);
   for (const t of shipTrails(sm, dyn, dt, Math.max(spd, 190), now)) live.add(t.mesh);
   for (const gn of u.guns) gn.visible = !!s.gun || (inGarage && G.showGuns);

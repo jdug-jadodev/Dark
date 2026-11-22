@@ -23,9 +23,9 @@ import {
   W,
 } from '../core/config.js';
 import { chaos, flipping, level } from '../core/difficulty.js';
-import { clamp, rand } from '../core/util.js';
+import { clamp, roll, rollIn } from '../core/util.js';
 import { takeHit } from './adventure.js';
-import { explode } from './run.js';
+import { explode, mark } from './run.js';
 
 /* zona de la que el cometa entra y sale: la pista más un margen */
 const X0 = -40,
@@ -39,12 +39,13 @@ function exitDist(x, y, dx, dy) {
   return Math.min(tx, ty);
 }
 function spawnComet(warn, v) {
-  const a = rand(0, Math.PI * 2),
-    dx = Math.cos(a),
+  const a = rollIn('comet', 0, Math.PI * 2);
+  mark('comet', a);
+  const dx = Math.cos(a),
     dy = Math.sin(a);
   /* apunta a donde está la nave (con un poco de error): hay que moverse para que no pegue */
-  const ax = clamp(G.ship.x + rand(-28, 28), 20, W - 20),
-    ay = clamp(G.ship.y + rand(-28, 28), H * 0.42, SY + 15);
+  const ax = clamp(G.ship.x + rollIn('comet', -28, 28), 20, W - 20),
+    ay = clamp(G.ship.y + rollIn('comet', -28, 28), H * 0.42, SY + 15);
   G.run.comets.push({
     ax,
     ay,
@@ -72,17 +73,21 @@ const EVERY = [
 /* Avanza los cometas. Devuelve true si la nave chocó y la partida se detuvo. */
 export function updateComets(dt) {
   const R = G.run;
-  if (chaos() >= 1 && !flipping() && !R.bossDue) {
+  const wc = R.world && R.world.comets; // en un mundo, el ritmo lo pone el mundo
+  if ((wc || chaos() >= 1) && !flipping() && !R.bossDue) {
     R.cometT -= dt;
-    if (R.cometT <= 0) {
+    if (R.cometT <= 0 && wc) {
+      R.cometT = rollIn('comet', wc.every[0], wc.every[1]);
+      spawnComet(wc.warn, COMET_SLOW + (COMET_FAST - COMET_SLOW) * wc.v);
+    } else if (R.cometT <= 0) {
       const lv = level(),
         warn = Math.max(1, Math.max(1.3, COMET_WARN - (lv - CHAOS_LVL) * 0.04) - Math.max(0, lv - FRENZY_LVL) * 0.02),
         /* velocidad: sube parejo del nivel 5 al 20 */
         v = COMET_SLOW + (COMET_FAST - COMET_SLOW) * clamp((lv - CHAOS_LVL) / (FRENZY_LVL - CHAOS_LVL), 0, 1),
         every = EVERY[Math.min(EVERY.length - 1, Math.floor((lv - CHAOS_LVL) / 5))];
-      R.cometT = rand(every[0], every[1]);
+      R.cometT = rollIn('comet', every[0], every[1]);
       spawnComet(warn, v);
-      if (lv >= 25 && Math.random() < 0.3) spawnComet(warn, v); // desde el 25, a veces dos que se cruzan
+      if (lv >= 25 && roll('comet') < 0.3) spawnComet(warn, v); // desde el 25, a veces dos que se cruzan
     }
   }
   for (let i = R.comets.length - 1; i >= 0; i--) {

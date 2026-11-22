@@ -1,0 +1,210 @@
+/**
+ * La pantalla de la cuenta: entrar con Google para guardar el progreso, ver cuándo se guardó,
+ * elegir entre dos progresos cuando no coinciden, cerrar sesión y borrar la cuenta.
+ * Se abre desde Configuración y desde el aviso "Guarda tu progreso" del lobby.
+ */
+import {
+  accountAvailable,
+  cloudCopy,
+  deleteAccount,
+  keepCloud,
+  keepLocal,
+  lastSync,
+  onAccount,
+  pendingUpload,
+  push,
+  signIn,
+  signOut,
+  signedIn,
+  summary,
+  syncAtStart,
+} from '../core/account.js';
+import { S, saveQuiet } from '../core/profile.js';
+import { G } from '../core/state.js';
+import { fmt } from '../core/util.js';
+import { $ } from './dom.js';
+import { T } from './icons.js';
+
+/* la G de Google, para el botón de entrar */
+const GOOGLE =
+  '<svg class="gmark" viewBox="0 0 48 48" aria-hidden="true">' +
+  '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
+  '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
+  '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
+  '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
+  '</svg>';
+let view = 'home', // 'home' | 'busy' | 'choose' | 'confirm'
+  note = '', // un mensaje para el jugador
+  other = null; // el progreso de la cuenta, cuando hay que elegir
+
+/* hace cuánto fue algo, en palabras */
+function ago(at) {
+  const s = Math.max(0, Math.floor((Date.now() - at) / 1000));
+  if (s < 90) return 'hace un momento';
+  if (s < 3600) return 'hace ' + Math.round(s / 60) + ' minutos';
+  if (s < 86400 * 2) return 'hace ' + Math.round(s / 3600) + ' horas';
+  return 'hace ' + Math.round(s / 86400) + ' días';
+}
+/* la tarjeta de un progreso, para comparar */
+function card(title, d, pick, when) {
+  const x = summary(d);
+  return (
+    '<div class="acard"><b>' +
+    title +
+    '</b>' +
+    (when ? '<small>guardado ' + ago(when) + '</small>' : '<small>&nbsp;</small>') +
+    '<div class="arank">' +
+    x.medal.icon +
+    '<span>' +
+    x.medal.label +
+    '<small>nivel ' +
+    x.level +
+    '</small></span></div><div class="arow">{coin} ' +
+    x.coins.toLocaleString('es-CO') +
+    '</div><div class="arow">{puzzle} ' +
+    x.pieces +
+    ' piezas</div><div class="arow">{rocket} ' +
+    x.worlds +
+    ' mundos</div><div class="arow">{timer} ' +
+    (x.best ? fmt(x.best) : '—') +
+    '</div><button class="btn" data-acct="' +
+    pick +
+    '">Usar este</button></div>'
+  );
+}
+function render() {
+  let h = '<h2>{cloud} Tu progreso</h2>';
+  if (view === 'busy') h += '<div class="sub">' + (note || 'Un momento…') + '</div>';
+  else if (view === 'choose')
+    h +=
+      '<div class="sub">Hay dos progresos distintos: el de este teléfono y el que está guardado en tu cuenta. Elige con cuál te quedas; el otro se reemplaza.</div><div class="apick">' +
+      card('En este teléfono', cloudCopy(), 'local', 0) +
+      card('En tu cuenta', other.data, 'cloud', other.at) +
+      '</div><button class="btn alt" data-acct="later">Decidir después</button>';
+  else if (view === 'confirm')
+    h +=
+      '<div class="sub">¿Borrar tu cuenta y todo lo que está guardado en la nube? Lo que tienes en este teléfono se queda aquí, pero ya no estará a salvo si lo pierdes o reinstalas.</div>' +
+      '<button class="btn danger" data-acct="delete">Sí, borrar mi cuenta</button><button class="btn alt" data-acct="home">No, volver</button>';
+  else if (signedIn())
+    h +=
+      '<div class="astate ok">{check} Tu progreso se guarda en tu cuenta de Google</div><div class="sub">' +
+      (pendingUpload()
+        ? 'Hay cambios por subir.'
+        : lastSync()
+          ? 'Último guardado: ' + ago(lastSync()) + '.'
+          : 'Todavía no se ha guardado.') +
+      ' Si cambias de teléfono o reinstalas, entra con la misma cuenta y lo recuperas.</div>' +
+      (note ? '<div class="note">' + note + '</div>' : '') +
+      '<button class="btn" data-acct="push">{cloud} Guardar ahora</button>' +
+      '<button class="btn alt" data-acct="out">Cerrar sesión</button>' +
+      '<button class="btn alt" data-acct="close">Listo</button>' +
+      '<button class="alink" data-acct="confirm">Borrar mi cuenta y lo guardado</button>';
+  else
+    h +=
+      '<div class="sub">Entra con Google y tu progreso queda guardado: si cambias de teléfono o reinstalas el juego, lo recuperas.</div>' +
+      '<div class="note">{lock} No vemos tu contraseña ni guardamos tu correo o tu nombre. Es opcional: sin cuenta juegas igual.</div>' +
+      (note ? '<div class="note warn">' + note + '</div>' : '') +
+      '<button class="btn gbtn" data-acct="in">' +
+      GOOGLE +
+      'Continuar con Google</button><button class="btn alt" data-acct="close">Ahora no</button>';
+  $('acctBox').innerHTML = T(h);
+}
+const show = (v, text = '') => {
+  view = v;
+  note = text;
+  render();
+};
+export function openAccount() {
+  if (!accountAvailable()) return;
+  S.acctSeen = true; // ya vio la invitación: el aviso del lobby no vuelve a salir
+  saveQuiet();
+  show(other ? 'choose' : 'home');
+  $('account').classList.add('show');
+}
+/* devuelve true si estaba abierta (para el botón "atrás" del sistema) */
+export function closeAccount() {
+  if (!$('account').classList.contains('show')) return false;
+  if (view === 'busy') return true; // a media operación no se cierra
+  $('account').classList.remove('show');
+  return true;
+}
+/* ¿mostrar en el lobby la invitación a guardar el progreso? Una sola vez, cuando ya hay algo que perder */
+export const accountOffer = () => accountAvailable() && !signedIn() && !S.acctSeen && (S.runs || 0) >= 3;
+/* el renglón de Configuración */
+export function renderAccountRow() {
+  const row = $('acctRow');
+  row.style.display = accountAvailable() ? '' : 'none';
+  $('acctOpen').innerHTML = T(signedIn() ? '{check} Guardado en tu cuenta' : '{cloud} Guardar mi progreso');
+}
+
+const WHY = {
+  net: 'No se pudo conectar. Revisa tu internet e intenta de nuevo.',
+  cancel: 'No se completó el inicio de sesión.',
+  denied: 'Google no confirmó la cuenta. Intenta de nuevo.',
+};
+async function act(a) {
+  if (a === 'close' || a === 'later') return void closeAccount();
+  if (a === 'home') return show('home');
+  if (a === 'confirm') return show('confirm');
+  if (a === 'in') {
+    show('busy', 'Entrando con Google…');
+    const r = await signIn();
+    if (!r.ok) return show('home', WHY[r.why]);
+    if (r.result === 'choose') {
+      other = r.cloud;
+      return show('choose');
+    }
+    return show(
+      'home',
+      r.result === 'saved'
+        ? 'Listo: tu progreso quedó guardado.'
+        : r.result === 'same'
+          ? 'Tu progreso ya estaba guardado en tu cuenta.'
+          : '',
+    );
+  }
+  if (a === 'push') {
+    show('busy', 'Guardando…');
+    const r = await push();
+    return show('home', r === 'net' ? WHY.net : r === 'ok' || r === 'idle' ? 'Guardado.' : '');
+  }
+  if (a === 'out') {
+    show('busy', 'Cerrando sesión…');
+    await signOut();
+    return show('home', 'Sesión cerrada. Tu progreso sigue en este teléfono.');
+  }
+  if (a === 'delete') {
+    show('busy', 'Borrando tu cuenta…');
+    const ok = await deleteAccount();
+    return show('home', ok ? 'Tu cuenta y lo guardado en la nube se borraron.' : WHY.net);
+  }
+  if (a === 'local' || a === 'cloud') {
+    const cloud = other;
+    other = null;
+    show('busy', a === 'cloud' ? 'Trayendo tu progreso…' : 'Guardando el de este teléfono…');
+    if (a === 'cloud') return keepCloud(cloud); // el juego vuelve a arrancar con ese progreso
+    const r = await keepLocal(cloud);
+    return show('home', r === 'ok' ? 'Listo: quedó el de este teléfono.' : WHY.net);
+  }
+}
+export function bootAccountScreen(refresh) {
+  $('acctBox').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-acct]');
+    if (b && view !== 'busy') act(b.dataset.acct).then(refresh);
+  });
+  $('acctOpen').addEventListener('click', openAccount);
+  onAccount((what, cloud) => {
+    if (what === 'choose') {
+      other = cloud;
+      /* solo se interrumpe en el menú; a media partida espera a que vuelva */
+      if (G.state === 'menu' && !$('account').classList.contains('show')) openAccount();
+      else if ($('account').classList.contains('show') && view !== 'busy') show('choose');
+    }
+    refresh();
+  });
+  if (accountAvailable()) syncAtStart();
+}
+/* al volver al menú: si quedó pendiente elegir entre dos progresos, se pregunta ahora */
+export function accountAtMenu() {
+  if (other && !$('account').classList.contains('show')) openAccount();
+}

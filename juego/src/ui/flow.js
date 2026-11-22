@@ -1,8 +1,9 @@
 /** Flujo de una partida: empezar, cuenta regresiva, pausa, salir, choque y revivir. */
+import { maybeAskReminder } from './reminder.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { COUNT_STEP, FLIP_AT, GOAL, HULL_REVIVE, MINI_AT } from '../core/config.js';
-import { level } from '../core/difficulty.js';
+import { goal, level } from '../core/difficulty.js';
 import { look } from '../core/garage.js';
 import { S, save } from '../core/profile.js';
 import { fmt } from '../core/util.js';
@@ -90,7 +91,11 @@ export function tickCount(dt) {
   after(3.5, () => {
     $('hint').style.display = 'none';
   });
-  if (G.run.mode === 'boss') showToast('¡JEFE FINAL!', 'Centinela del Vacío · recoge armas en el camino');
+  if (G.run.mode === 'boss')
+    showToast(
+      G.run.world ? '¡EL JEFE DE ESTE MUNDO!' : '¡JEFE FINAL!',
+      (G.run.boss.name || 'Centinela del Vacío') + ' · recoge armas en el camino',
+    );
   if (G.run.mode === 'space') showToast('Viaje espacial', 'Esquiva todo lo que venga');
 }
 /* ---------- Pausa ---------- */
@@ -107,7 +112,7 @@ export function pauseGame() {
         ? 'Supervivencia · ' + fmt(G.t) + ' · Nivel ' + level()
         : G.run.mode === 'boss'
           ? 'Jefe final'
-          : 'Aventura · ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos';
+          : (G.run.world ? G.run.world.name : 'Aventura') + ' · ' + Math.floor(G.run.pts) + ' de ' + goal() + ' puntos';
   $('pause').classList.add('show');
 }
 export function resumeGame() {
@@ -137,31 +142,40 @@ export function backToMenu() {
   showPad(false);
   renderMenu();
   $('menu').classList.add('show');
+  maybeAskReminder();
 }
 export function crash() {
   Platform.haptic(60);
   emit('crash');
   G.state = 'paused';
   G.shake = 0.6;
-  shipBoom(G.ship.x, G.ship.y, look().boom);
+  /* contra el Devorador la nave no estalla: se la traga */
+  const eaten = G.run.mode === 'boss' && G.run.boss && G.run.boss.form === 'devourer';
+  if (eaten) G.run.eaten = { at: performance.now() / 1000 };
+  else shipBoom(G.ship.x, G.ship.y, look().boom);
   if (G.run.revived) {
-    after(0.6, () => {
+    after(eaten ? 1.4 : 0.6, () => {
       if (G.run.mode === 'boss') finishBoss(false);
       else finish(false);
     });
     return;
   }
+  $('crashTitle').innerHTML = T(eaten ? '{skull} ¡Te tragó!' : '{boom} ¡Chocaste!');
   $('crashInfo').innerHTML = T(
     G.run.mode === 'space'
       ? 'Recorriste ' + km() + ' km en ' + fmt(G.t)
       : G.run.mode === 'endless'
         ? 'Aguantaste ' + fmt(G.t) + ' · Nivel ' + level()
         : G.run.mode === 'boss'
-          ? 'Le hiciste ' + Math.round((1 - G.run.boss.hp / G.run.boss.max) * 100) + '% de daño al jefe'
-          : 'Llevabas ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos y ' + G.run.coins + ' {coin}',
+          ? (eaten ? 'El Devorador te tragó · le' : 'Le') +
+            ' hiciste ' +
+            Math.round((1 - G.run.boss.hp / G.run.boss.max) * 100) +
+            '% de daño' +
+            (eaten ? '' : ' al jefe')
+          : 'Llevabas ' + Math.floor(G.run.pts) + ' de ' + goal() + ' puntos y ' + G.run.coins + ' {coin}',
   );
   $('reviveBtn').innerHTML = T(adTag() ? '{play} Revivir viendo un anuncio' : '{play} Revivir');
-  after(0.45, () => {
+  after(eaten ? 1.3 : 0.45, () => {
     if (G.state === 'paused') $('crash').classList.add('show');
   });
 }
@@ -173,6 +187,8 @@ function revive() {
   if (G.run.mode === 'space') spaceRevive();
   if (G.run.mode === 'endless') G.run.hull = Math.max(G.run.hull, HULL_REVIVE);
   G.run.suck = null;
+  G.run.eaten = null;
+  if (G.run.blasts) G.run.blasts.length = 0;
   G.ship.hidden = false;
   G.ship.ghost = 0;
   G.ship.nitro = 0;

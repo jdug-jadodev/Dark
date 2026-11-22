@@ -3,7 +3,7 @@ import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { W, WOB_AT } from '../core/config.js';
 import { chaos, survLv } from '../core/difficulty.js';
-import { ease, rand } from '../core/util.js';
+import { ease, roll, rollIn } from '../core/util.js';
 
 /* ---------- Supervivencia desde el nivel 5: una sola cosa mueve la pantalla a la vez ----------
    Hay tres movimientos: turbulencia (se mece), vuelta de 360° y giro de 180° (queda al revés un
@@ -15,7 +15,7 @@ const TURB_EVERY = [null, [10, 15], [8, 12], [5, 8], [3, 5.5]]; // entre una tur
 const SPIN_EVERY = [null, [22, 32], [15, 22], [10, 14], [6, 9]]; // entre una vuelta de 360° y la siguiente
 const SPIN_DUR = [0, 2.6, 2.2, 1.8, 1.5]; // lo que tarda la vuelta: lenta al principio, para poder seguirla
 const FLIP_EVERY = [40, 75, 60, 45, 40]; // cuánto progreso (%) pasa entre un giro de 180° y el siguiente
-const pickIn = (r) => rand(r[0], r[1]);
+const pickIn = (r) => rollIn('fx', r[0], r[1]);
 export const spinning = () => G.run.spin.t >= 0;
 /* ¿puede empezar un movimiento nuevo? (c = tramo de locura; en 0 mandan las reglas de siempre) */
 const free = (c) => !c || (G.run.calm <= 0 && !G.run.bossDue && !spinning() && G.run.wb.t < 0 && G.run.rot.st === 0); // con un jefe por llegar, la pantalla se queda quieta
@@ -88,13 +88,13 @@ function baseAngle(dt, x, c) {
       B.next -= dt;
       if (B.next <= 0 && free(c)) {
         B.t = 0;
-        B.dur = c ? rand(4, 6) : late ? rand(6, 8) : rand(5, 7);
+        B.dur = c ? rollIn('fx', 4, 6) : late ? rollIn('fx', 6, 8) : rollIn('fx', 5, 7);
         B.n++;
         emit('turbulence');
         G.pops.push({
           x: W / 2,
           y: 140,
-          text: '¡TURBULENCIA!',
+          text: (G.run.world && G.run.world.shake) || '¡TURBULENCIA!',
           life: 1.4,
           col: '#c792ff',
         });
@@ -111,7 +111,11 @@ function baseAngle(dt, x, c) {
       a = Math.sin(B.t * 1.7) * sway * env;
       if (B.t >= B.dur) {
         B.t = -1;
-        B.next = c ? pickIn(TURB_EVERY[c]) : late ? Math.max(3, rand(5, 8) - Math.max(0, x - 100) * 0.01) : rand(9, 13);
+        B.next = c
+          ? pickIn(TURB_EVERY[c])
+          : late
+            ? Math.max(3, rollIn('fx', 5, 8) - Math.max(0, x - 100) * 0.01)
+            : rollIn('fx', 9, 13);
         rest(c);
       }
     }
@@ -137,8 +141,8 @@ function spinAngle(dt, c) {
       return 0;
     }
     P.t = 0;
-    P.dir = Math.random() < 0.5 ? -1 : 1;
-    P.turns = c >= 4 && Math.random() < 0.25 ? 2 : 1; // desde el nivel 20, a veces son dos vueltas seguidas
+    P.dir = roll('fx') < 0.5 ? -1 : 1;
+    P.turns = c >= 4 && roll('fx') < 0.25 ? 2 : 1; // desde el nivel 20, a veces son dos vueltas seguidas
     P.dur = SPIN_DUR[c] * (P.turns === 2 ? 1.6 : 1);
     emit('spin');
     G.pops.push({

@@ -42,7 +42,7 @@
           <button class="lbtn round" data-open="settings" aria-label="Configuración">{gear}</button>
         </div>
       </div>
-      <div class="coins" id="mCoins">{coin} 0</div>
+      <div class="lhead"><div class="coins" id="mCoins">{coin} 0</div><button class="plv" id="pLvl" aria-label="Nivel de piloto"></button></div>
       <div class="lmid">
         <button class="lship" id="shipTap" aria-label="Abrir el taller"><span>{wrench} Toca para personalizar · desliza para girar</span></button>
         <div class="lnews" id="lNews"></div>
@@ -55,7 +55,7 @@
         </div>
       </div>
       <div class="lplay">
-        <button class="btn" id="play">{play} Aventura</button>
+        <button class="btn" id="play">{rocket} Mundos<small id="worldSub"></small></button>
         <div class="lrow"><button class="btn surv" id="survBtn">{timer} Supervivencia</button><button class="btn space" id="spaceBtn">{planet} Viaje espacial</button></div>
         <label class="chk"><input type="checkbox" id="inv"> Modo demo: no morir y probar todas las piezas</label>
         <div class="ctrl" id="lvlPick" style="display:none"><span>Supervivencia desde el nivel:</span><button class="opt sel" data-lv="1">1</button><button class="opt" data-lv="5">5</button><button class="opt" data-lv="10">10</button><button class="opt" data-lv="15">15</button><button class="opt" data-lv="20">20</button></div>
@@ -92,7 +92,7 @@
     <!-- Choque -->
     <div class="screen" id="crash">
       <div class="card">
-        <h2>{boom} ¡Chocaste!</h2>
+        <h2 id="crashTitle">{boom} ¡Chocaste!</h2>
         <div class="sub" id="crashInfo"></div>
         <button class="btn ad" id="reviveBtn">{play} Revivir viendo un anuncio</button>
         <button class="btn alt" id="giveUp">No, gracias</button>
@@ -115,9 +115,31 @@
       <div class="card" id="misBox"></div>
     </div>
 
+    <!-- Mapa de mundos: cada uno con su paisaje, sus enemigos y su jefe -->
+    <div class="screen" id="worlds">
+      <div class="card" id="worldBox"></div>
+    </div>
+
+    <!-- Supervivencia: elegir el mapa, o al azar -->
+    <div class="screen" id="maps">
+      <div class="card" id="mapBox"></div>
+    </div>
+
     <!-- Copa semanal: tabla de la semana en Supervivencia -->
     <div class="screen" id="cup">
       <div class="card" id="cupBox"></div>
+    </div>
+
+    <!-- Pregunta del aviso diario (una sola vez, tras la segunda partida) -->
+    <div class="screen" id="remAsk">
+      <div class="card">
+        <div style="font-size:44px">{bell}</div>
+        <h2>¿Te aviso mañana?</h2>
+        <div class="sub">Cuando tu cofre y las misiones nuevas estén listos. Un solo aviso al día, y solo si ese día no has jugado.</div>
+        <button class="btn" id="remYes">Sí, avísame</button>
+        <button class="btn alt" id="remNo">Ahora no</button>
+        <div class="note">Lo puedes cambiar cuando quieras en Configuración.</div>
+      </div>
     </div>
 
     <!-- Métricas: récords, racha y piezas -->
@@ -155,8 +177,16 @@
           <div class="ctrl" id="rem"><span>{bell} Aviso diario:</span><button class="opt" data-rem="1">Sí</button><button class="opt" data-rem="0">No</button></div>
           <div class="note">Un aviso al día a las 7 de la noche, solo si ese día no has jugado.</div>
         </div>
+        <div id="acctRow" style="display:none">
+          <div class="ctrl"><span>Cuenta:</span><button class="opt" id="acctOpen"></button></div>
+        </div>
         <button class="btn" id="settingsClose">Listo</button>
       </div>
+    </div>
+
+    <!-- Cuenta: guardar el progreso en la nube (opcional) -->
+    <div class="screen" id="account">
+      <div class="card" id="acctBox"></div>
     </div>
 
     <!-- Tienda: monedas y sin anuncios (encima del lobby y del taller) -->

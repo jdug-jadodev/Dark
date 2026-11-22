@@ -3,7 +3,7 @@ import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { H, HULL_SHIP, SPAWN, W } from '../core/config.js';
 import { ap, flipping, heavyMax, pace, shotRest } from '../core/difficulty.js';
-import { clamp, rand } from '../core/util.js';
+import { clamp, roll, rollIn } from '../core/util.js';
 import { takeHit } from './adventure.js';
 import { rndWeapon } from './powers.js';
 import { explode, spawnCap } from './run.js';
@@ -30,15 +30,15 @@ export function hitEnemy(e, d) {
       col: '#ffd54a',
     });
     /* las naves a veces sueltan un arma */
-    if (Math.random() < (inFight() ? 0.5 : 0.22)) spawnCap(rndWeapon(), e.x, Math.max(e.y, 120), 110);
+    if (roll('drop') < (inFight() ? 0.5 : 0.22)) spawnCap(rndWeapon(), e.x, Math.max(e.y, 120), 110);
   }
 }
 export function spawnEnemy(inBoss, ex) {
   const x = pace(),
     bp = G.run.boss ? G.run.boss.ph || 0 : 0;
   const heavy = inBoss
-    ? Math.random() < 0.3 + 0.15 * bp
-    : x >= 35 && Math.random() < Math.min(heavyMax(), 0.2 + x / 250);
+    ? roll('enemy') < 0.3 + 0.15 * bp
+    : x >= 35 && roll('enemy') < Math.min(heavyMax(), 0.2 + x / 250);
   if (!G.en.length)
     G.pops.push({
       x: W / 2,
@@ -48,25 +48,25 @@ export function spawnEnemy(inBoss, ex) {
       col: '#ff6b8a',
     });
   G.en.push({
-    x: ex == null ? rand(50, W - 50) : ex,
+    x: ex == null ? rollIn('enemy', 50, W - 50) : ex,
     y: -SPAWN,
-    ty: inBoss ? rand(190, 270) : rand(70, 210),
+    ty: inBoss ? rollIn('enemy', 190, 270) : rollIn('enemy', 70, 210),
     r: heavy ? 17 : 13,
     hp: heavy ? 6 : 3,
     max: heavy ? 6 : 3,
     heavy,
     t: 0,
-    life: rand(7, 9),
-    fire: rand(0.6, 1.2),
+    life: rollIn('enemy', 7, 9),
+    fire: rollIn('enemy', 0.6, 1.2),
     flash: 0,
-    ph: rand(0, 6.28),
+    ph: rollIn('enemy', 0, 6.28),
     hitCd: 0,
     dead: false,
   });
 }
 /* Escuadrón: 2 o 3 naves a la vez */
 export function spawnSquad(n) {
-  const c = rand(90, W - 90);
+  const c = rollIn('enemy', 90, W - 90);
   for (let i = 0; i < n; i++) spawnEnemy(false, clamp(c + (i - (n - 1) / 2) * 80, 40, W - 40));
 }
 function enemyShoot(e) {
@@ -80,7 +80,7 @@ function enemyShoot(e) {
       vx: Math.cos(a0 + k) * sp,
       vy: Math.sin(a0 + k) * sp,
       r: 6,
-      col: e.heavy ? '#ffb454' : '#ff6b8a',
+      col: G.run.world ? (e.heavy ? G.run.world.shotHeavy : G.run.world.shot) : e.heavy ? '#ffb454' : '#ff6b8a',
     });
 }
 export function updateEnemies(dt) {
@@ -96,7 +96,7 @@ export function updateEnemies(dt) {
       e.x = clamp(e.x + Math.cos(e.t * 1.5 + e.ph) * (e.heavy ? 65 : 100) * dt, 28, W - 28);
       e.fire -= dt;
       if (e.fire <= 0 && e.y > 25) {
-        e.fire = (e.heavy ? 1.8 : 1.25) * rand(0.85, 1.15) * (flipping() ? 1.6 : 1) * shotRest();
+        e.fire = (e.heavy ? 1.8 : 1.25) * rollIn('shot', 0.85, 1.15) * (flipping() ? 1.6 : 1) * shotRest();
         enemyShoot(e);
       }
     } else {

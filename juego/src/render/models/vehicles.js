@@ -1,6 +1,6 @@
 /**
  * Naves únicas: vehículos enteros con su propio modelo (no se arman con piezas).
- * Aquí están el avión, el platillo y el patito; las demás, más detalladas, en vehiclesPro.js.
+ * Aquí están el platillo y el patito; las demás, más detalladas, en vehiclesPro.js.
  * Cada uno se construye con figuras básicas y dice dónde están sus escapes y sus cañones.
  * "Adelante" es −z, x es hacia los lados e y hacia arriba; caben en unas 40 unidades de ancho y de largo.
  */
@@ -40,106 +40,6 @@ export function buildVehicle(V, C) {
   };
 
   switch (V.kind) {
-    /* ---------- avión de combate: gris, alas en delta, doble cola y misiles ---------- */
-    case 'jet': {
-      const gray = mat(0x8a93a8, { metalness: 0.5 }),
-        dk = mat(0x4f586c, { metalness: 0.5 }),
-        prof = [
-          [0, -15],
-          [2.6, -13],
-          [3.4, -5],
-          [3.5, 4],
-          [2.6, 12],
-          [1.2, 19],
-          [0, 24],
-        ];
-      add(lathe('jet', prof), gray, 1, 0.85, 1);
-      add(coneF(16), dk, 1.25, 1.05, 5.4, 0, 0, -18.6); // punta oscura
-      add(
-        geo('jetWing', () =>
-          extrude(
-            mirror([
-              [3, -5],
-              [20, 9],
-              [20, 12],
-              [3, 11],
-            ]),
-            1,
-            0.4,
-          ),
-        ),
-        gray,
-        1,
-        1,
-        1,
-        0,
-        -0.5,
-        0,
-      );
-      add(
-        geo('jetTail', () =>
-          extrude(
-            mirror([
-              [2, 11],
-              [9.5, 16],
-              [9.5, 18.5],
-              [2, 17],
-            ]),
-            0.8,
-            0.3,
-          ),
-        ),
-        gray,
-        1,
-        1,
-        1,
-        0,
-        0,
-        0,
-      );
-      add(
-        geo('jetCamo', () =>
-          extrude(
-            mirror([
-              [6, 2],
-              [14, 7],
-              [14, 9],
-              [6, 8],
-            ]),
-            1.1,
-            0.2,
-          ),
-        ),
-        dk,
-        1,
-        1,
-        1,
-        0,
-        -0.45,
-        0,
-      );
-      for (const sx of [-1, 1]) {
-        const tail = add(BOX, gray, 0.6, 7.5, 6, sx * 2.8, 4.3, 12.5); // doble cola
-        tail.rotation.set(0.22, 0, -sx * 0.3);
-        add(BOX, dk, 2.6, 2.6, 9, sx * 4.3, -0.2, -1); // tomas de aire
-        add(BOX, bmat('#05060c'), 2.2, 2.2, 0.3, sx * 4.3, -0.2, -5.6);
-        for (const mx of [10, 15]) {
-          add(tubeZ(), mat(0xf4f6fa), 0.55, 0.55, 8, sx * mx, -1.5, 6); // misiles
-          add(coneF(10), bmat('#ff3b3b'), 0.55, 0.55, 1.8, sx * mx, -1.5, 2);
-        }
-        add(tubeZ(), dk, 2, 1.8, 4, sx * 2.2, 0, 14.5); // toberas
-      }
-      add(SPH, mat(0xffc46b, { metalness: 0.4, roughness: 0.05, emissive: 0x553a0f }), 2.2, 2, 6.4, 0, 2.5, -9);
-      return {
-        exits: [
-          [-2.2, 0, 16.6, 0.8],
-          [2.2, 0, 16.6, 0.8],
-        ],
-        gunX: 8,
-        gunY: -0.2,
-      };
-    }
-
     /* ---------- platillo volador con su extraterrestre: luces que giran y rayo abajo ---------- */
     case 'ufo': {
       const silver = mat(0xc9d2e4, { metalness: 0.75, roughness: 0.22 }),

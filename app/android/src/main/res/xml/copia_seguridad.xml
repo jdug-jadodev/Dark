@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copias de seguridad (Android 11 o anterior): todo menos la llave de sesión de la cuenta. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="giro_cuenta.xml" />
+</full-backup-content>

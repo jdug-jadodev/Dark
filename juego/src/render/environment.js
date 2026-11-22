@@ -32,6 +32,13 @@ export function envTarget() {
   let bg = 0x0a1030,
     ac = 0x5ee0ff;
   if (G.state !== 'menu' && G.run) {
+    /* dentro de un mundo mandan sus colores (también contra su jefe) */
+    const w = G.run.world;
+    if (w && w.look && G.run.mode !== 'endless' && G.run.mode !== 'space') {
+      _tb.setHex(w.sky);
+      _ta.setHex(w.acc);
+      return;
+    }
     if (G.run.mode === 'boss') {
       const r = G.run.boss ? G.run.boss.hp / G.run.boss.max : 1;
       if (r > 0.66) {
@@ -45,17 +52,25 @@ export function envTarget() {
         ac = 0xffd54a;
       }
     } else if (G.run.mode === 'endless') {
-      const c = chaos();
+      const c = chaos(),
+        map = G.run.map;
+      /* en el mapa de un mundo el cielo es el de ese mundo; antes de la locura, también el color */
+      if (map && c === 0) {
+        _tb.setHex(map.sky);
+        _ta.setHex(map.acc);
+        return;
+      }
       if (c >= 3) {
         /* arcoíris: el color de la pista da la vuelta completa y el fondo lo sigue, siempre oscuro */
         const hue = (G.t / RAINBOW_LAP[c]) % 1;
-        _tb.setHSL((hue + 0.62) % 1, 0.7, 0.09);
+        if (map) _tb.setHex(map.sky);
+        else _tb.setHSL((hue + 0.62) % 1, 0.7, 0.09);
         _ta.setHSL(hue, 1, 0.62);
         return;
       }
       /* desde el nivel 5 la paleta va cambiando también dentro del nivel */
       const p = SURV_PAL[(level() - 1 + (c ? Math.floor(G.t / PAL_EVERY[c]) : 0)) % SURV_PAL.length];
-      bg = p[0];
+      bg = map ? map.sky : p[0];
       ac = p[1];
     } else if (G.run.stage === 'mini') {
       bg = 0x0b2a1c;

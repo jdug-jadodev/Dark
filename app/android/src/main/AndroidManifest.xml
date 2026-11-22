@@ -11,8 +11,11 @@
 
     <application
         android:allowBackup="true"
+        android:fullBackupContent="@xml/copia_seguridad"
+        android:dataExtractionRules="@xml/extraccion_datos"
         android:label="Giro Estelar"
-        android:icon="@android:drawable/sym_def_app_icon"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:hardwareAccelerated="true"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
         android:enableOnBackInvokedCallback="true">

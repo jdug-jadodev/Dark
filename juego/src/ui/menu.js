@@ -1,4 +1,5 @@
 /** Lobby (menú principal): monedas, racha, récords, lo de hoy y los botones de los modos. */
+import { accountAtMenu } from './account.js';
 import { chestReady, missionsDone, streakNow } from '../core/daily.js';
 import { touchLook } from '../core/garage.js';
 import { G } from '../core/state.js';
@@ -10,6 +11,9 @@ import { renderCupButton } from './cup.js';
 import { $ } from './dom.js';
 import { T } from './icons.js';
 import { renderNews } from './news.js';
+import { renderWorldButton } from './worlds.js';
+import { WORLDS, worldsDone } from '../core/worlds.js';
+import { renderPilot } from './pilot.js';
 import { tellStreak } from './reminder.js';
 import { startRun } from './flow.js';
 
@@ -20,7 +24,7 @@ export function renderMenu() {
   $('mCoins').innerHTML = T('{coin} ' + S.coins + '  ·  {fire} racha ' + streak + (streak === 1 ? ' día' : ' días'));
   const bt = (S.topTimes || [])[0],
     parts2 = [];
-  if (S.best) parts2.push('{star} Aventura: ' + S.best + '/' + GOAL);
+  if (worldsDone()) parts2.push('{star} Mundos: ' + worldsDone() + ' de ' + WORLDS.length);
   if (bt) parts2.push('{timer} Supervivencia: ' + fmt(bt));
   if ((S.topSpace || [])[0]) parts2.push('{planet} ' + S.topSpace[0] + ' km');
   if (S.bossWins) parts2.push('{trophy} ' + S.bossWins);
@@ -32,10 +36,11 @@ export function renderMenu() {
   $('chestBtn').classList.toggle('dot', chestReady());
   renderCupButton();
   renderNews();
+  renderWorldButton();
+  renderPilot();
+  accountAtMenu(); // si quedó pendiente elegir entre dos progresos
 }
 export function bootMenu() {
-  $('play').addEventListener('click', () => startRun());
-  $('survBtn').addEventListener('click', () => startRun('endless'));
   $('spaceBtn').addEventListener('click', () => startRun('space'));
   $('inv').addEventListener('change', () => {
     G.demo = $('inv').checked; // en modo demo el taller deja equipar todo

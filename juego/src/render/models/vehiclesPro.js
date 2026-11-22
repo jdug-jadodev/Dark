@@ -1,5 +1,5 @@
 /**
- * Naves únicas con modelo detallado: carro clásico, carro de helados, tiburón, unicornio, dragón
+ * Naves únicas con modelo detallado: avión de combate, carro clásico, carro de helados, tiburón, unicornio, dragón
  * y trineo de Papá Noel. Cada una se arma con muchas piezas pequeñas (siluetas estiradas, figuras
  * de revolución, tubos y esferas); al final ship.js junta las piezas quietas para que dibujarlas
  * no cueste. Lo que se mueve (patas, alas, cola) va en grupos aparte.
@@ -68,6 +68,548 @@ export function buildPremium(V, C) {
   };
 
   switch (V.kind) {
+    /* =====================================================================================
+       AVIÓN DE COMBATE: caza furtivo de dos motores. Morro afilado con aristas, cabina dorada
+       con su piloto, tomas de aire en cuña, alas en trapecio con alerones, doble cola inclinada,
+       timones de cola que se mueven, toberas de metal quemado, misiles y luces de navegación.
+       ===================================================================================== */
+    case 'jet': {
+      const skin = mat(0x9aa5b6, { metalness: 0.55, roughness: 0.36 }),
+        skin2 = mat(0x5a6475, { metalness: 0.55, roughness: 0.4 }), // tono oscuro del camuflaje
+        camo = mat(0x7a8696, { metalness: 0.55, roughness: 0.4 }),
+        edge = mat(0xc6ced9, { metalness: 0.5, roughness: 0.34 }), // bordes de ataque, más claros
+        panel = mat(0x363c49, { metalness: 0.6, roughness: 0.5 }),
+        nozzle = C.chrome(0x8a7a70),
+        white = mat(0xf2f4f8, { roughness: 0.35 }),
+        red = mat(0xd9342b, { roughness: 0.4 }),
+        accent = mat(0xff7a1a, { roughness: 0.4, emissive: 0x4a1c00 }),
+        void0 = bmat('#05060c'),
+        glass = keep(
+          new THREE.MeshStandardMaterial({
+            color: 0xffc04a,
+            transparent: true,
+            opacity: 0.46,
+            metalness: 0.7,
+            roughness: 0.04,
+            emissive: 0x3a2606,
+          }),
+        );
+
+      /* ---------- fuselaje ---------- */
+      /* morro: afilado y algo aplastado, con la punta (el radar) más oscura y su sonda */
+      const nose = [
+        [2.9, 5],
+        [2.9, 8],
+        [2.62, 12],
+        [2.05, 16],
+        [1.25, 20],
+        [0.47, 22.8],
+        [0, 23.6],
+      ];
+      add(lathe('jetNose', nose), skin, 1.15, 0.78, 1);
+      add(
+        lathe('jetRadome', [
+          [1.27, 19.9],
+          [0.49, 22.8],
+          [0, 23.7],
+        ]),
+        panel,
+        1.17,
+        0.8,
+        1,
+      );
+      add(tubeZ(), panel, 0.09, 0.09, 2.4, 0, 0, -24.6);
+      /* arista afilada a los lados del morro, que se abre hasta la raíz del ala */
+      add(
+        plate(
+          'jetChine',
+          [
+            [0.25, -23],
+            [2.2, -17.5],
+            [3.3, -12],
+            [4.6, -7.5],
+            [6.7, -5.2],
+            [6.7, -3],
+          ],
+          0.5,
+          0.18,
+        ),
+        skin,
+        1,
+        1,
+        1,
+        0,
+        0.35,
+        0,
+      );
+      /* cuerpo central: ancho y bajo, con el lomo detrás de la cabina */
+      add(
+        slab(
+          'jetBody',
+          [
+            [-8, -1.9],
+            [-9.6, -0.6],
+            [-8.6, 1.3],
+            [-4, 2.3],
+            [2, 2.5],
+            [9, 2.1],
+            [14.4, 1.5],
+            [15.4, 0.2],
+            [14.7, -1.3],
+            [8, -2],
+          ],
+          8.4,
+          1.3,
+        ),
+        skin,
+        1,
+        1,
+        1,
+      );
+      add(
+        slab(
+          'jetSpine',
+          [
+            [-6.6, 1.5],
+            [-4.4, 3.25],
+            [2.5, 3.2],
+            [10.5, 2.3],
+            [10.5, 1.5],
+          ],
+          3.2,
+          0.9,
+        ),
+        skin2,
+        1,
+        1,
+        1,
+      );
+      add(
+        slab(
+          'jetFin',
+          [
+            [-0.9, 0],
+            [0.5, 1.1],
+            [1.3, 1.1],
+            [1.1, 0],
+          ],
+          0.14,
+          0.04,
+        ),
+        panel,
+        1,
+        1,
+        1,
+        0,
+        3.1,
+        4.4,
+      ); // antena
+      add(
+        slab(
+          'jetFin',
+          [
+            [-0.9, 0],
+            [0.5, 1.1],
+            [1.3, 1.1],
+            [1.1, 0],
+          ],
+          0.14,
+          0.04,
+        ),
+        panel,
+        1,
+        -1,
+        1,
+        0,
+        -1.95,
+        2,
+      ); // antena de panza
+
+      /* ---------- cabina: piloto, asiento y visor, bajo una burbuja dorada ---------- */
+      add(BOX, panel, 2.3, 1.2, 7.4, 0, 2.05, -9.4);
+      add(BOX, panel, 1.25, 2.1, 0.7, 0, 2.9, -7.2); // espaldar
+      add(SPH, mat(0x4d5a3c, { roughness: 0.8 }), 1.15, 0.75, 0.85, 0, 2.6, -8.3); // hombros
+      add(SPH, white, 0.82, 0.82, 0.86, 0, 3.32, -8.5); // casco
+      add(SPH, void0, 0.66, 0.4, 0.5, 0, 3.36, -9.05); // visera
+      add(BOX, bmat('#6ef2ff', true, 0.55), 1, 0.75, 0.05, 0, 3.1, -11.5).rotation.x = -0.35; // mira
+      add(SPH, glass, 1.72, 1.78, 5.7, 0, 2.3, -9.3);
+      const bow = add(ring(), panel, 1.56, 1.6, 1.3, 0, 2.3, -11.7); // arco del parabrisas
+      bow.rotation.x = -0.12;
+
+      /* ---------- tomas de aire en cuña, a los lados y bajo la arista ---------- */
+      for (const sx of [-1, 1]) {
+        add(
+          slab(
+            'jetIntake',
+            [
+              [-6.4, -2.3],
+              [-8.3, -0.3],
+              [-7.5, 0.85],
+              [5, 0.85],
+              [8.5, -0.4],
+              [5, -2.3],
+            ],
+            3,
+            0.4,
+          ),
+          skin2,
+          1,
+          1,
+          1,
+          sx * 5.2,
+          0,
+          0,
+        );
+        const mouth = add(BOX, void0, 2.3, 2.5, 0.3, sx * 5.2, -0.72, -7.42); // la boca, oscura
+        mouth.rotation.x = -0.76;
+        const lip = add(BOX, edge, 2.9, 0.22, 0.5, sx * 5.2, 0.72, -7.75); // labio de arriba
+        lip.rotation.x = -0.2;
+        add(tubeZ(), panel, 0.26, 0.26, 1.4, sx * 2.9, 1.75, -4.6); // cañón (boca) y respiradero
+      }
+
+      /* ---------- alas ----------
+         El ala mide 1.3 de grueso (0.8 más el redondeo de arriba y de abajo): todo lo que va
+         pintado encima (alerones, camuflaje, líneas, escarapela) es un poco más grueso que eso. */
+      const WING = [
+        [4.2, -5.5],
+        [18.6, 7.2],
+        [18.6, 10.2],
+        [12.5, 12.6],
+        [4.2, 11.4],
+      ];
+      add(plate('jetWing', WING, 0.8, 0.25), skin, 1, 1, 1, 0, -0.2, 0);
+      add(
+        plate(
+          'jetWingEdge',
+          [
+            [4.2, -5.75],
+            [18.85, 7.15],
+            [18.85, 8.1],
+            [4.2, -4.5],
+          ],
+          1.02,
+          0.2,
+        ),
+        edge,
+        1,
+        1,
+        1,
+        0,
+        -0.2,
+        0,
+      );
+      for (const sx of [-1, 1]) {
+        /* superficies de control (más oscuras) y manchas de camuflaje */
+        add(
+          half(
+            'jetFlap',
+            [
+              [5, 9.3],
+              [12.3, 10.5],
+              [12.5, 12.85],
+              [4.6, 11.7],
+            ],
+            1.2,
+            0.12,
+          ),
+          skin2,
+          sx,
+          1,
+          1,
+          0,
+          -0.2,
+          0,
+        );
+        add(
+          half(
+            'jetAil',
+            [
+              [12.9, 10.3],
+              [18.3, 8.3],
+              [18.85, 10.25],
+              [12.9, 12.7],
+            ],
+            1.2,
+            0.12,
+          ),
+          skin2,
+          sx,
+          1,
+          1,
+          0,
+          -0.2,
+          0,
+        );
+        add(
+          half(
+            'jetCamo',
+            [
+              [6.4, -1],
+              [10.5, 2.4],
+              [14.4, 6.4],
+              [11.5, 8.2],
+              [6.6, 6.2],
+            ],
+            1.16,
+            0.1,
+          ),
+          camo,
+          sx,
+          1,
+          1,
+          0,
+          -0.2,
+          0,
+        );
+        /* líneas de paneles */
+        for (const [x, z0, z1] of [
+          [7.6, -1.4, 9.4],
+          [11.4, 2, 10.2],
+          [15.2, 5.4, 9.2],
+        ])
+          add(BOX, panel, 0.1, 1.4, z1 - z0, sx * x, -0.2, (z0 + z1) / 2);
+        /* escarapela propia del juego */
+        add(tubeY(), mat(0x35c8ff, { roughness: 0.4 }), 1.5, 1.42, 1.5, sx * 9.3, -0.2, 8.4);
+        add(tubeY(), mat(0x14306a, { roughness: 0.4 }), 1.02, 1.48, 1.02, sx * 9.3, -0.2, 8.4);
+        add(tubeY(), white, 0.46, 1.54, 0.46, sx * 9.3, -0.2, 8.4);
+        /* luces: tira de formación, y roja a la izquierda / verde a la derecha en la punta */
+        add(BOX, bmat('#dcff8f'), 0.32, 1.44, 2.6, sx * 17.3, -0.2, 8.5);
+        add(SPH, bmat(sx < 0 ? '#ff3b3b' : '#3bff7a'), 0.36, 0.36, 0.5, sx * 18.75, -0.2, 7.2);
+      }
+
+      /* ---------- misiles: dos en las puntas de las alas y dos bajo cada ala ---------- */
+      const missile = (x, y, z, len, r) => {
+        add(tubeZ(), white, r, r, len, x, y, z);
+        add(coneF(10), panel, r, r, r * 3.4, x, y, z - len / 2);
+        add(tubeZ(), red, r * 1.1, r * 1.1, len * 0.07, x, y, z - len * 0.26);
+        for (const [w, h] of [
+          [r * 4.6, 0.09],
+          [0.09, r * 4.6],
+        ]) {
+          add(BOX, panel, w, h, len * 0.17, x, y, z + len * 0.4); // aletas de atrás
+          add(BOX, panel, w * 0.62, h * 0.62 + 0.03, len * 0.1, x, y, z - len * 0.1); // y del medio
+        }
+      };
+      for (const sx of [-1, 1]) {
+        add(BOX, panel, 0.42, 0.42, 6, sx * 19.05, -0.2, 8.6); // riel de la punta
+        missile(sx * 19.6, -0.2, 8.3, 6.6, 0.4);
+        for (const x of [8, 13]) {
+          add(BOX, skin2, 0.45, 1.1, 3.4, sx * x, -1.1, 6.2 + (x - 8) * 0.5); // pilón
+          missile(sx * x, -2.15, 6.2 + (x - 8) * 0.5, 8, 0.5);
+        }
+      }
+
+      /* ---------- motores: dos carenados, toberas de metal quemado y brillo adentro ---------- */
+      for (const sx of [-1, 1]) {
+        add(tubeZ(), skin2, 2.25, 2.1, 8.4, sx * 2.35, 0.25, 10.3);
+        add(
+          lathe('jetNozzle', [
+            [2.2, -14.4],
+            [2.28, -15.4],
+            [2.02, -17],
+            [1.62, -18.3],
+          ]),
+          nozzle,
+          1,
+          0.95,
+          1,
+          sx * 2.35,
+          0.25,
+          0,
+        );
+        add(ring(), panel, 2.3, 2.2, 1.6, sx * 2.35, 0.25, 15.3); // aro donde empieza la tobera
+        add(ring(), panel, 1.68, 1.6, 1.2, sx * 2.35, 0.25, 18.25); // y donde termina
+        add(tubeZ(), panel, 1.95, 1.85, 0.4, sx * 2.35, 0.25, 15.6); // fondo oscuro
+        add(tubeZ(), bmat('#ff8a2a'), 1.3, 1.24, 0.2, sx * 2.35, 0.25, 16); // el fuego adentro
+        add(tubeZ(), bmat('#ffe9a8'), 0.7, 0.66, 0.2, sx * 2.35, 0.25, 16.15);
+        /* largueros de cola, donde van los timones */
+        add(BOX, skin, 1.5, 1.3, 7, sx * 4.9, 0.1, 13.4);
+        add(coneF(4), skin, 0.95, 0.82, 2.2, sx * 4.9, 0.1, 16.9).rotation.y = Math.PI;
+      }
+      add(BOX, skin2, 1.1, 1.2, 4.6, 0, 0.3, 15.2); // aguijón entre los motores
+      add(coneF(4), skin2, 0.72, 0.78, 1.8, 0, 0.3, 17.5).rotation.y = Math.PI;
+
+      /* ---------- doble cola inclinada hacia afuera ---------- */
+      for (const sx of [-1, 1]) {
+        const tail = group(sx * 4.1, 1.5, 0);
+        tail.rotation.z = -sx * 0.45;
+        add(
+          slab(
+            'jetTail',
+            [
+              [7.4, 0],
+              [12.2, 7.7],
+              [15.5, 7.7],
+              [15.9, 0],
+            ],
+            0.56,
+            0.18,
+          ),
+          skin,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          tail,
+        );
+        add(
+          slab(
+            'jetTailEdge',
+            [
+              [7.2, 0],
+              [12.05, 7.75],
+              [12.75, 7.75],
+              [8.2, 0],
+            ],
+            0.66,
+            0.14,
+          ),
+          edge,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          tail,
+        );
+        add(
+          slab(
+            'jetRudder',
+            [
+              [13.3, 0.5],
+              [13.7, 6.1],
+              [15.52, 6.1],
+              [15.85, 0.5],
+            ],
+            0.66,
+            0.1,
+          ),
+          skin2,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          tail,
+        );
+        add(
+          slab(
+            'jetFlash',
+            [
+              [11.5, 6.45],
+              [12, 7.2],
+              [15.5, 7.2],
+              [15.55, 6.45],
+            ],
+            0.68,
+            0.06,
+          ),
+          accent,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          tail,
+        ); // franja del escuadrón
+        add(BOX, bmat('#dcff8f'), 0.7, 0.32, 2.4, 0, 3.4, 11.9, tail); // tira de formación
+        add(SPH, bmat('#ffffff'), 0.26, 0.26, 0.4, 0, 7.5, 15.75, tail); // luz de cola
+      }
+
+      /* ---------- timones de cola: enteros, y se mueven un poco ---------- */
+      const stabs = [];
+      for (const sx of [-1, 1]) {
+        const st = group(sx * 5.5, 0.1, 14.4);
+        add(
+          half(
+            'jetStab',
+            [
+              [0, -3.2],
+              [7.4, 2.5],
+              [7.4, 4.9],
+              [2.6, 5.4],
+              [0, 3.4],
+            ],
+            0.55,
+            0.18,
+          ),
+          skin,
+          sx,
+          1,
+          1,
+          0,
+          0,
+          0,
+          st,
+        );
+        add(
+          half(
+            'jetStabEdge',
+            [
+              [0, -3.5],
+              [7.65, 2.4],
+              [7.65, 3.3],
+              [0, -2.5],
+            ],
+            0.66,
+            0.14,
+          ),
+          edge,
+          sx,
+          1,
+          1,
+          0,
+          0,
+          0,
+          st,
+        );
+        add(
+          half(
+            'jetStabCamo',
+            [
+              [1, 1.2],
+              [5.2, 3.6],
+              [3, 4.9],
+              [0.8, 3.4],
+            ],
+            0.84,
+            0.08,
+          ),
+          camo,
+          sx,
+          1,
+          1,
+          0,
+          0,
+          0,
+          st,
+        );
+        stabs.push(st);
+      }
+      /* baliza roja que parpadea sobre el lomo */
+      const beacon = add(SPH, bmat('#ff3b3b'), 0.34, 0.3, 0.34, 0, 3.32, 1.2);
+      beacon.userData.live = true;
+      anim.push((now) => {
+        const p = Math.sin(now * 1.4) * 0.07;
+        stabs[0].rotation.x = p;
+        stabs[1].rotation.x = p + Math.sin(now * 2.3) * 0.03;
+        beacon.visible = now % 1.3 < 0.16;
+      });
+      return {
+        exits: [
+          [-2.35, 0.25, 18, 0.85],
+          [2.35, 0.25, 18, 0.85],
+        ],
+        gunX: 9,
+        gunY: -0.4,
+      };
+    }
+
     /* =====================================================================================
        CARRO CLÁSICO DEL ESPACIO: dos tonos, aletas de cola con luces de cohete, cromo por todos
        lados, llantas de banda blanca y propulsores atrás.

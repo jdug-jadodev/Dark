@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copias en la nube y traspaso entre teléfonos (Android 12 en adelante): todo menos la llave
+     de sesión de la cuenta. En el teléfono nuevo el jugador vuelve a entrar con Google. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="giro_cuenta.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="giro_cuenta.xml" />
+    </device-transfer>
+</data-extraction-rules>

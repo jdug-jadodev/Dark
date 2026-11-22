@@ -1,5 +1,6 @@
 package com.giroestelar.application
 
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -12,6 +13,8 @@ import java.time.LocalTime
  *   - Después de 3 avisos seguidos sin que el jugador entre, se deja de avisar: no se insiste
  *     con quien ya no quiere jugar. Al volver a entrar, se retoma.
  *   - El jugador lo enciende y lo apaga cuando quiera.
+ *   - El texto cambia con el día: el domingo habla de la copa (termina esa noche), el fin de
+ *     semana de las monedas dobles, y entre semana de la racha o del cofre.
  */
 
 /** Puerto: lo que se recuerda entre un día y otro. */
@@ -23,6 +26,8 @@ interface ReminderStore {
     var unanswered: Int
     /** Racha de días del jugador, para nombrarla en el aviso. */
     var streak: Int
+    /** Puesto del jugador en la copa de la semana (0 = no está en la tabla). */
+    var cupRank: Int
 }
 
 /** Puerto: poner o quitar la alarma que despierta a la app para avisar. */
@@ -54,6 +59,11 @@ class Reminders(private val store: ReminderStore, private val alarm: ReminderAla
         store.streak = days.coerceIn(0, MAX_STREAK)
     }
 
+    /** El juego cuenta el puesto en la copa, para el aviso del domingo. */
+    fun noteCup(rank: Int) {
+        store.cupRank = rank.coerceIn(0, MAX_RANK)
+    }
+
     /**
      * Sonó la alarma. Devuelve el texto del aviso, o null si no hay que avisar. Deja puesta la
      * alarma del día siguiente mientras tenga sentido seguir avisando.
@@ -67,7 +77,7 @@ class Reminders(private val store: ReminderStore, private val alarm: ReminderAla
         }
         store.unanswered += 1
         if (store.unanswered < MAX_UNANSWERED) alarm.setAt(tomorrow(now))
-        return message()
+        return message(now)
     }
 
     /** El teléfono se reinició (las alarmas se pierden): se vuelve a poner si corresponde. */
@@ -75,9 +85,17 @@ class Reminders(private val store: ReminderStore, private val alarm: ReminderAla
         if (store.enabled && store.unanswered < MAX_UNANSWERED) alarm.setAt(nextAfter(now))
     }
 
-    private fun message(): String =
-        if (store.streak >= 2) "Tu racha de ${store.streak} días te espera: abre el cofre de hoy."
-        else "Tu cofre de hoy está listo y hay 3 misiones nuevas."
+    private fun message(now: LocalDateTime): String {
+        val day = now.dayOfWeek
+        return when {
+            day == DayOfWeek.SUNDAY && store.cupRank > 0 ->
+                "La copa termina esta noche y vas ${store.cupRank}.º. Una partida más para defender tu puesto."
+            day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY ->
+                "Hoy las monedas valen el doble. Y tu cofre te está esperando."
+            store.streak >= 2 -> "Tu racha de ${store.streak} días te espera: abre el cofre de hoy."
+            else -> "Tu cofre de hoy está listo y hay 3 misiones nuevas."
+        }
+    }
 
     /** La próxima vez que sean las 7 de la noche (hoy mismo si todavía no han pasado). */
     private fun nextAfter(now: LocalDateTime): LocalDateTime {
@@ -93,6 +111,7 @@ class Reminders(private val store: ReminderStore, private val alarm: ReminderAla
         val HOUR: LocalTime = LocalTime.of(19, 0)
         const val MAX_UNANSWERED = 3
         const val MAX_STREAK = 9999
+        const val MAX_RANK = 99_999
         fun day(date: LocalDate): Long = date.toEpochDay()
     }
 }

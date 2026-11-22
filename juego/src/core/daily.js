@@ -44,13 +44,14 @@ export function streakNow() {
 export const chestSlot = () => ((chestReady() ? streakNow() : streakNow() - 1) % 7) + 1;
 export const chestDoubled = () => S.chestX2 === today();
 
-/* pieza de regalo del día 7: una rara o épica que el jugador no tenga (la decide la fecha) */
-function giftPiece() {
+/* Regala una pieza que el jugador no tenga, de las rarezas pedidas. Cuál sale lo decide el texto
+   `seed` (la fecha, para el cofre del día 7), no el azar. Devuelve la pieza o null si ya las tiene todas. */
+export function giftPiece(rars = ['r', 'e'], seed = today()) {
   const pool = [];
   for (const s of SLOTS)
-    for (const p of BY_SLOT[s.id]) if ((p.rar === 'r' || p.rar === 'e') && !owns(p.id) && !locked(p)) pool.push(p);
+    for (const p of BY_SLOT[s.id]) if (rars.includes(p.rar) && !owns(p.id) && !locked(p)) pool.push(p);
   if (!pool.length) return null;
-  const p = pool[hash(today()) % pool.length];
+  const p = pool[hash(seed) % pool.length];
   S.parts = [...(S.parts || []), p.id];
   return p;
 }
@@ -83,11 +84,11 @@ export const BONUS_COINS = 150; // por completar las tres
 /* stat = qué número de la partida cuenta · sum = se va sumando partida a partida (si no, vale la mejor) */
 const POOL = {
   run: [
-    { t: 'Recoge {n} monedas en Aventura', n: 15, stat: 'coins', sum: true },
-    { t: 'Llega a {n} puntos en Aventura', n: 80, stat: 'pts' },
-    { t: 'Esquiva {n} obstáculos en Aventura', n: 60, stat: 'dodged', sum: true },
-    { t: 'Pasa rozando {n} obstáculos en Aventura', n: 8, stat: 'near', sum: true },
-    { t: 'Recoge {n} armas en Aventura', n: 2, stat: 'weapons', sum: true },
+    { t: 'Recoge {n} monedas en Mundos', n: 15, stat: 'coins', sum: true },
+    { t: 'Llega a {n} puntos en un mundo', n: 80, stat: 'pts' },
+    { t: 'Esquiva {n} obstáculos en Mundos', n: 60, stat: 'dodged', sum: true },
+    { t: 'Pasa rozando {n} obstáculos en Mundos', n: 8, stat: 'near', sum: true },
+    { t: 'Recoge {n} armas en Mundos', n: 2, stat: 'weapons', sum: true },
   ],
   endless: [
     { t: 'Aguanta {n} en Supervivencia', n: 90, stat: 'time', clock: true },
@@ -135,6 +136,7 @@ export const bonusDone = () => !!(S.mis && S.mis.day === today() && S.mis.bonus)
  */
 export function recordRun(stats) {
   const out = { done: [], bonus: false };
+  S.runs = (S.runs || 0) + 1; // partidas de verdad jugadas (sin contar el modo demo)
   const defs = todays(),
     m = progress();
   defs.forEach((d, i) => {

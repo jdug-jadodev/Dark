@@ -1,4 +1,5 @@
 /** Configuración: volumen de la música y de los efectos, calidad gráfica y tipo de control. Se abre desde el menú y desde la pausa. */
+import { renderAccountRow } from './account.js';
 import { play, setVolume, volumes } from '../audio/sound.js';
 import { gfx, setGfx } from '../core/perf.js';
 import { S, save } from '../core/profile.js';
@@ -30,6 +31,7 @@ function render() {
     .querySelectorAll('#ctrl .opt')
     .forEach((b) => b.classList.toggle('sel', b.dataset.ctrl === (S.ctrl || 'swipe')));
   $('remRow').style.display = reminderAvailable() ? '' : 'none';
+  renderAccountRow();
   if (reminderAvailable()) {
     const on = reminderOn();
     document.querySelectorAll('#rem .opt').forEach((b) => b.classList.toggle('sel', (b.dataset.rem === '1') === on));

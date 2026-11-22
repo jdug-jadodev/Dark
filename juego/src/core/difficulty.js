@@ -1,10 +1,14 @@
 /** Curvas de dificultad: progreso, nivel, velocidad, frecuencia de rocas, tope de naves. */
 import { G } from './state.js';
-import { CHAOS_LVL, FRENZY_LVL, GOAL, LVL, RAINBOW_LVL, SPAWN, SURV_RATE, UNCAP_LVL } from './config.js';
+import { CHAOS_LVL, FRENZY_LVL, GOAL, LVL, PH, RAINBOW_LVL, SPAWN, SURV_RATE, UNCAP_LVL } from './config.js';
 import { clamp } from './util.js';
 /* En Supervivencia el progreso es el tiempo. `head` es una ventaja de salida que solo se usa
    para probar niveles altos sin tener que jugar varios minutos (modo demo). */
-export const prog = () => (G.run.mode === 'endless' ? G.t * SURV_RATE + (G.run.head || 0) : (G.run.pts / GOAL) * 100);
+/* puntos para llegar al jefe: cada mundo tiene su largo */
+/* el tramo del recorrido (nombre y consejo): en un mundo, con los nombres de ese mundo */
+export const phaseOf = (i) => (G.run.world && G.run.world.phases ? { name: G.run.world.phases[i], tip: '' } : PH[i]);
+export const goal = () => Math.round(GOAL * (G.run && G.run.world ? G.run.world.len : 1));
+export const prog = () => (G.run.mode === 'endless' ? G.t * SURV_RATE + (G.run.head || 0) : (G.run.pts / goal()) * 100);
 export const level = () => 1 + Math.floor(prog() / LVL);
 /* Ritmo de la dificultad "de fondo" (velocidad, cantidad de rocas, naves). En Aventura es el
    progreso tal cual. En Supervivencia, del nivel 5 al 20 avanza a la mitad: en esos niveles lo

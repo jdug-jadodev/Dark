@@ -4,6 +4,7 @@ import { MINI_AT } from './core/config.js';
 import { prog } from './core/difficulty.js';
 import { lazyFrame, setHeat, tooSoon, watchFps } from './core/perf.js';
 import { G } from './core/state.js';
+import { trackSeed } from './core/util.js';
 import { update } from './game/adventure.js';
 import { ambient, newRun } from './game/run.js';
 import { showroomTick } from './game/showroom.js';
@@ -16,6 +17,7 @@ import { tickCount } from './ui/flow.js';
 import { hud } from './ui/hud.js';
 import { renderMenu } from './ui/menu.js';
 /* ---------- Bucle ---------- */
+const STEP = 1 / 60;
 let fpsN = 0;
 let fpsT = 0;
 let heatT = 0;
@@ -69,7 +71,17 @@ function loop(ts) {
   }
   if (G.state === 'menu') showroomTick(dt);
   if (G.state === 'play') {
-    update(dt);
+    if (trackSeed() === null) update(dt);
+    else {
+      /* con semilla la partida avanza a pasos fijos de 1/60 s: así la pista sale igual en un
+         teléfono rápido que en uno lento */
+      G.acc += dt;
+      /* cuántos pasos tocan: se redondea, para que un cuadro apenas más largo o más corto de
+         lo normal siga siendo un paso (si no, la partida se vería a saltos) */
+      const steps = Math.min(4, Math.max(0, Math.round(G.acc / STEP)));
+      G.acc = Math.max(-STEP, Math.min(STEP, G.acc - steps * STEP));
+      for (let i = 0; i < steps && G.state === 'play'; i++) update(STEP);
+    }
     if (G.state === 'play') hud();
   }
   draw(dt, lazyFrame(G.state));

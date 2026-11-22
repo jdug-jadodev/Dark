@@ -12,6 +12,7 @@ export let renderer;
 export let scene;
 export let camera;
 let sun;
+let hemi;
 let rim;
 export let dyn;
 export let live;
@@ -26,7 +27,8 @@ export function bootEngine() {
   scene.fog = new THREE.Fog(BG, 850, 1650);
   camera = new THREE.PerspectiveCamera(72, 1, 1, 9000);
   camera.rotation.order = 'XYZ';
-  scene.add(new THREE.HemisphereLight(0xa8c0ff, 0x2a1838, 0.85));
+  hemi = new THREE.HemisphereLight(0xa8c0ff, 0x2a1838, 0.85);
+  scene.add(hemi);
   sun = new THREE.DirectionalLight(0xffffff, 1.15);
   sun.position.set(-150, 320, 260);
   scene.add(sun);
@@ -36,6 +38,12 @@ export function bootEngine() {
   dyn = new THREE.Group();
   scene.add(dyn);
   live = new Set();
+}
+/* La luz de cada mundo: T = { hemi: [cielo, suelo], rim } (render/worlds.js); null = la del espacio. */
+export function mood(T) {
+  hemi.color.setHex(T ? T.hemi[0] : 0xa8c0ff);
+  hemi.groundColor.setHex(T ? T.hemi[1] : 0x2a1838);
+  rim.color.setHex(T ? T.rim : 0x5ee0ff);
 }
 export const CAM = {
   y: 180,

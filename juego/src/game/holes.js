@@ -1,4 +1,5 @@
 /** Agujeros negros (atracción, succión, espagueti) y nitro. */
+import { goal } from '../core/difficulty.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { BH_CORE, BH_PULL, GOAL, H, NITRO_COST, NITRO_T, SPAWN, SUCK_T, SY, W } from '../core/config.js';
@@ -146,7 +147,7 @@ export function updateSuck(dt) {
     emit('spaghetti');
     crash();
     $('crashInfo').innerHTML = T(
-      '{hole} Un agujero negro te hizo espagueti · ' + Math.floor(G.run.pts) + ' de ' + GOAL + ' puntos',
+      '{hole} Un agujero negro te hizo espagueti · ' + Math.floor(G.run.pts) + ' de ' + goal() + ' puntos',
     );
     return true;
   }

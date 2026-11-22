@@ -28,7 +28,7 @@ Que quien probó el juego vuelva cada día, sin complicarlo y sin patrones que h
 |---|---|---|
 | 1 | Piezas de nave, Taller y Lobby | **Hecho en el HTML (2026-11-20), falta el visto bueno** |
 | 2 | Día real, misiones diarias y nivel de piloto | **Cofre, racha y misiones hechos en el HTML (2026-11-20)**; falta el nivel de piloto |
-| 3 | Pista con semilla y retos por enlace | Pendiente |
+| 3 | Pista con semilla y retos por enlace | **Hecho (2026-11-21):** pista con semilla y retos con código. La pista del día se hizo y se descartó. Ver `plan-multijugador.md` |
 | 4 | Multijugador en vivo | Pendiente |
 | 5 | Recordatorio diario y medición de retorno (Android) | Pendiente |
 | 6 | Tienda de pago: monedas y sin anuncios | **Hecho en el HTML con pago simulado**; falta el cobro real |
@@ -238,6 +238,96 @@ Todo sale del calendario del teléfono, sin servidor (`core/season.js`):
 - Los jefes derribados se suman a "Jefes vencidos" en Métricas.
 - **Por ajustar jugando:** el aguante (hoy 70 % del de Aventura), el tiempo y los premios, en `core/config.js` (`SURV_BOSS_*`).
 
+## Retención, tercera parte (2026-11-21)
+
+**De dónde salió:** a quienes se les envió el juego "no les dan muchas ganas de jugar o no recuerdan abrirlo". El servidor, con un día de datos, mostraba solo 3 instalaciones (2 del día 20, de las que volvió 1; 1 del día 21) y 2 jugadores en la copa (9:19 y 3:23). Es muy poco para concluir, pero no apunta a que el juego sea demasiado difícil.
+
+| Qué | Para qué | Estado |
+|---|---|---|
+| Icono propio de la app | La app usaba el icono genérico de Android: en la pantalla del teléfono no se reconocía ni se recordaba | Hecho. Vectores en `app/android/src/main/res` |
+| Rango de piloto con medallas | Que ninguna partida sea "en vano": toda partida da experiencia, cada nivel paga y cada medalla es un ascenso | Hecho. `core/pilot.js`, `ui/pilot.js` |
+| Retar a mis amigos | Que los jugadores se recuerden el juego entre ellos por su chat | Hecho. Botón al terminar Supervivencia y en la Copa |
+| Pregunta del aviso | El aviso solo se ofrecía tras abrir el cofre: quien no lo abría nunca lo veía | Hecho. Se pregunta una vez, al volver al lobby tras la segunda partida |
+| Avisos según el día | Que el aviso diga algo que importe ese día | Hecho. Domingo: la copa termina y el puesto; fin de semana: monedas dobles; resto: racha o cofre |
+| Avión de combate | Se veía pobre para ser una nave única | Hecho de nuevo, con más detalle (`vehiclesPro.js`) |
+
+**Rango de piloto, en números:** 1 de experiencia por segundo aguantado, 2 por nave derribada, 40 por jefe de Supervivencia y 60 por vencer al jefe final. Pasar del nivel N al siguiente cuesta 80 + 40·(N−1). Cada nivel da 40 + 10·N monedas. El modo demo no da experiencia.
+
+**Medallas:** Bronce (niveles 1–4), Plata (5–9), Oro (10–14), Platino (15–19), Diamante (20–24), Maestro (25–29) y Leyenda (30 en adelante). Dentro de cada una se sube de I a V. Cambiar de medalla es un ascenso y trae una pieza: rara en Plata, épica en Oro y Platino, legendaria desde Diamante. Cada medalla tiene su dibujo propio (`rank0` a `rank6` en `ui/icons.js`).
+
+**Cómo se ve:** al terminar la partida la barra de experiencia se llena a la vista y el número sube contando; al subir de nivel la medalla salta y la barra destella; en un ascenso aparece la medalla nueva en grande, con rayos, hasta que el jugador toca. El lobby muestra la medalla junto a las monedas y Métricas muestra la escalera completa.
+
+**Fallo corregido (2026-11-21):** los avisos del lobby (monedas dobles, Navidad, oferta) quedaban encima de las ventanas (cofre, misiones, copa, tienda, métricas, configuración) porque tenían prioridad de capa. Ya no.
+
+**Lo que sigue sin poderse medir bien:** con tan pocas instalaciones el panel todavía no dice nada. Hay que repartir este APK (los anteriores al 20 de noviembre no reportan) y mirar el panel a la semana.
+
+## Mundos, en lugar de Aventura (empezado el 2026-11-21)
+
+**De dónde salió:** el usuario pensaba eliminar Aventura y lo que echaba de menos eran pistas de verdad distintas. Su pedido: viajar por un agujero negro, un mundo de hielo, uno de fuego, uno de gases donde caen meteoritos y una ciudad con edificios; en todos se esquivan obstáculos y se pelea contra enemigos distintos, que se vean diferentes.
+
+**Cómo funciona:** el botón "Mundos" del lobby (donde estaba Aventura) abre un mapa con los cinco. Cada mundo es un recorrido con su paisaje, sus obstáculos, sus enemigos y un jefe al final. Vencer al jefe da 300 monedas la primera vez (100 las siguientes) y abre el mundo siguiente.
+
+| # | Mundo | Qué lo distingue | Estado |
+|---|---|---|---|
+| 1 | Mundo de hielo | La nave resbala. Pista de hielo, campo de nieve agrietado, agujas de hielo, cordillera nevada, aurora y nieve. Obstáculos: racimos de agujas y témpanos. Enemigos: drones de escarcha. Jefe: Coloso de Escarcha | **Hecho** |
+| 2 | Mundo de fuego | Bolas de fuego cruzan la pista. Losas con juntas encendidas, ríos de lava, volcanes, brasas. Obstáculos: rocas de lava. Enemigos: murciélagos de magma. Jefe: Señor de la Ceniza | **Hecho** |
+| 3 | Mundo de gases | Pedido del usuario: montañas más grandes, arcos de piedra y menos enemigos. Niebla morada, charcos de gas, agujas de roca. Montañas macizas en la pista, arcos de piedra, meteoritos que cruzan. Enemigos (pocos): medusas de gas. Jefe: Titán de la Tormenta | **Hecho** |
+| 4 | Ciudad | Noche de neón. Asfalto con carriles, torres con ventanas encendidas. Obstáculos: carros voladores de frente y barreras de obra. En la pista: torres y puentes de autopista. Enemigos: drones de policía. Jefe: Guardián de Neón | **Hecho** |
+| 5 | Agujero negro | Cielo negro con el anillo de luz, la rejilla del espacio. Agujeros negros que jalan la nave y la pantalla se voltea. Obstáculos: esquirlas de obsidiana. En la pista: monolitos y aros de luz. Enemigos: espectros del vacío. Jefe: Devorador del Horizonte | **Hecho** |
+
+**Arcos (2026-11-21):** en gases, ciudad y agujero negro, además de las montañas salen arcos: dos pilares con un paso en medio (a veces estrecho, a veces casi toda la pista) y algo por encima (arco de piedra, puente, aro de luz).
+
+**Montañas en la pista (pedido del usuario, 2026-11-21):** además de los obstáculos que vuelan, cada mundo tiene obstáculos grandes plantados en la pista que hay que rodear: montañas nevadas en el hielo y volcanes en el fuego. Se ven venir de lejos, no se rompen con las armas (con nitro se atraviesan) y a veces salen dos dejando un paso entre ellas. Nunca salen junto con una pared. En los mundos que faltan serán nubes de gas, edificios y restos del agujero negro.
+
+**Dónde está:** los datos de cada mundo en `juego/src/core/worlds.js` (colores, largo, qué peligros tiene, jefe, nombres de los tramos); el aspecto en `juego/src/render/worlds.js` (cielo, cordilleras, terreno, paisaje, obstáculos y enemigos); el mapa en `juego/src/ui/worlds.js`. Un mundo nuevo se agrega con una entrada en cada uno.
+
+**Aprobado por el usuario (2026-11-21):** el estilo de hielo y fuego ("me encanta"); con eso se hicieron los otros tres. **Pendiente:** los jefes de mundo son por ahora el jefe final de antes con otros colores y otro nombre; faltan jefes con forma propia. Los números (cuánto resbala la nave, cada cuánto cruzan las bolas de fuego, el aguante de los jefes) son una primera propuesta.
+
+**Segunda vuelta de los mundos (pedido del usuario al probarlos, 2026-11-21):**
+
+- **Nada de cometas cruzando la pista en los mundos.** En su lugar, cosas que avisan en el suelo y luego golpean (`game/blasts.js`): **meteoritos que caen del cielo** donde está la nave (fuego, y en gases desde el 35 %) y **cráteres** que vienen por la pista hirviendo y estallan (gases).
+- **Fuego:** las montañas son volcanes de verdad (relieve, ríos de lava por la ladera, humo, chispas) y hay **charcos de lava** que se rodean, junto a los volcanes y sueltos.
+- **Gases:** piedra café con musgo verde y gas por todos lados (cielo, suelo, bancos de gas junto a la pista); montañas con estratos, cornisas y respiraderos; arcos de piedra quebrada.
+- **Un jefe propio en cada mundo** (`render/bosses.js`), con un ataque suyo que intercala con los de siempre:
+
+| Mundo | Jefe | Qué es | Su ataque |
+|---|---|---|---|
+| Hielo | Coloso de Escarcha | Gigante de hielo con dos puños que flotan | Filas de púas que salen del suelo, con un hueco |
+| Fuego | Señor de la Ceniza | Dragón de magma | Lluvia de meteoritos sobre la nave |
+| Gases | Titán de la Tormenta | Cabeza de piedra con musgo, rodeada de rocas | Cráteres que se abren y estallan uno tras otro |
+| Ciudad | Guardián de Neón | Nave patrulla con sirena y cañones | Marca carriles y los barre con un rayo |
+| Agujero negro | Devorador del Horizonte | Boca con dientes, ojos y tentáculos | Tentáculos que caen a lo largo de la pista, y **traga**: arrastra la nave hacia su boca (hay que tirar hacia atrás; si llega, muerde). Si gana, **se traga la nave** en vez de explotar |
+
+- **Mundos más largos:** de 0.6–0.9 a 1.15–1.6 veces la meta base. Medido en la prueba automática del hielo: de 1:32 a 2:40 hasta el jefe.
+- **La ciudad no se tocó** (el usuario dijo que está perfecta), salvo el jefe y el largo.
+
+**Sin comprobar:** todo esto solo se vio en el navegador; falta en el teléfono (rendimiento incluido). Los números (cada cuánto cae un meteorito, tamaño de los cráteres, fuerza con que traga el Devorador, aguante de los jefes) son un primer intento.
+
+**Supervivencia en un mapa al azar (pedido del usuario, 2026-11-21):** cada partida de Supervivencia se juega en uno de seis mapas, sin saber cuál va a tocar: el del espacio (el de siempre, que se conserva) o el paisaje de uno de los cinco mundos. No repite el de la partida anterior. **Solo cambia lo que se ve** (cielo, pista, terreno, rocas, enemigos); las reglas de Supervivencia son las mismas en todos: no salen montañas, meteoritos ni jefes de mundo. En un reto entre amigos el mapa sale de la semilla, así que los dos juegan en el mismo. Comprobado: con el mapa del espacio la regresión queda idéntica a la de antes. Por decidir con el usuario: si quiere que en cada mapa salgan también los obstáculos propios de ese mundo.
+
+**Elegir el mapa de Supervivencia, y el mundo del espacio (pedido del usuario, 2026-11-21):** al probar el mapa al azar no le salió el del espacio en muchos intentos, así que ahora el botón Supervivencia abre un selector (`ui/maps.js`): "Al azar" o uno de los seis mapas, cada uno con una foto pequeña de cómo se ve. La elección se recuerda (`S.survMap`) y es la que usan "Jugar de nuevo" y la copa. Las fotos las toma `tools/miniaturas.mjs` y quedan en `src/ui/mapThumbs.js`: hay que volver a correrlo cuando cambie cómo se ve un mundo. En Mundos se agregó **Espacio** como mundo 1: la Aventura de siempre (sus tramos, el Vigía Ámbar a mitad de camino, agujeros negros, el giro de pantalla y el Centinela del Vacío). El espacio y el hielo están abiertos desde el principio, para no cerrarle el hielo a quien ya lo tenía.
+
+**Experiencia más lenta y medalla Cósmico (pedido del usuario, 2026-11-22):** dijo que la experiencia subía "demasiado rápido y fácil" y pidió un nivel más, Cósmico, con un agujero negro de insignia.
+
+- Cada partida da cerca de la mitad: 1 por cada 2 segundos (antes 1 por segundo), 1 por nave (antes 2), 30 por jefe de Supervivencia (antes 40), 60 por vencer al jefe final (igual).
+- Cada nivel cuesta más que el anterior, y cada vez más: 150, 230, 320, 420… (antes 80, 120, 160…).
+- Ocho medallas: se agregó **Cósmico** desde el nivel 35 (Leyenda queda de 30 a 34).
+- Quien ya tenía nivel lo conserva: su experiencia se convierte una sola vez a la escala nueva (`S.xpV = 2`).
+
+| Medalla | Nivel | Experiencia total antes | Ahora |
+|---|---|---|---|
+| Plata | 5 | 560 | 1.120 |
+| Oro | 10 | 2.160 | 5.070 |
+| Platino | 15 | 4.760 | 13.020 |
+| Diamante | 20 | 8.360 | 26.220 |
+| Maestro | 25 | 12.960 | 45.920 |
+| Leyenda | 30 | 18.560 | 73.370 |
+| Cósmico | 35 | — | 109.820 |
+
+Como además cada partida da la mitad, llegar a cada medalla cuesta entre 4 y 8 veces más juego que antes. Las horas son una estimación (no hay medición de cuánta experiencia se gana por hora): Leyenda pasaba de unas 4 horas de juego a cerca de 30, y Cósmico queda cerca de 45. **Por confirmar con el usuario** si ese ritmo es el que quiere.
+
+**Sin medir todavía:** el rendimiento de los mundos en el teléfono (el terreno y la pista se pintan con cálculos nuevos en cada punto de la pantalla).
+
 ## Iconos propios en vez de emojis (empezado el 2026-11-20)
 
 Los emojis cambian de un teléfono a otro y no son nuestros. Se reemplazan por un juego de iconos propio dibujado en vectores (`juego/src/ui/icons.js`), de colores planos y formas redondeadas.
@@ -250,3 +340,28 @@ Los emojis cambian de un teléfono a otro y no son nuestros. Se reemplazan por u
 ## Después
 
 Copa semanal (necesita servidor), anuncios reales, ícono y firma para Play Store, prueba en un teléfono de gama baja.
+
+## Cuentas: guardar el progreso en la nube (2026-11-22)
+
+Pedido del usuario: que el jugador no pierda su progreso, entrando con Google o con correo, cuidando la seguridad. **Decidió:** solo Google, y la cuenta es opcional.
+
+**Cómo queda protegido**
+
+| Qué | Cómo |
+|---|---|
+| Contraseñas | No existen: Google confirma quién es el jugador |
+| Correo y nombre | No se piden ni se guardan |
+| Identidad en el servidor | Una huella con secreto del número de cuenta de Google: con la base de datos sola no se sabe de quién es cada cuenta |
+| Llave de sesión, en el servidor | Solo su huella (SHA-256) |
+| Llave de sesión, en el teléfono | Cifrada con el almacén de claves de Android, y fuera de las copias de seguridad |
+| Comprobante de Google | Se revisa la firma, que sea para este juego, que no esté vencido y que traiga el número de un solo uso que dio el servidor (no se puede reutilizar) |
+| Dos teléfonos | Cada guardado lleva su versión; si no coincide, no se pisa nada: el jugador elige con cuál progreso se queda |
+| Abuso | Tope de intentos de entrar por dirección y de guardados por cuenta; tamaño máximo del progreso |
+| Derecho a irse | "Borrar mi cuenta y lo guardado" borra todo del servidor |
+
+**Hecho:** el servidor (`back-nave/src/cuentas.js`, 13 pruebas), el juego (`core/account.js`, `ui/account.js`: aviso en el lobby una sola vez, renglón en Configuración, pantalla de la cuenta) y Android (`adapters/AccountAdapters.kt`). Probado de punta a punta en el navegador con un Google de mentira: guardar, recuperar en otro teléfono, elegir entre dos progresos, cerrar sesión y borrar la cuenta.
+
+**Falta para encenderlo** (pasos en `back-nave/LEEME.md`): que el usuario cree en Google Cloud los identificadores de OAuth; con eso se publican las tablas y el servidor, y se pone el identificador en `app/cuenta.properties`. Mientras tanto la app no muestra nada de cuentas.
+
+**Pendiente después:** probar el inicio con Google en un teléfono de verdad (no se puede hasta tener el identificador); una firma de publicación propia (hoy solo existe la de pruebas de este computador); una página de política de privacidad (la tienda la exige cuando hay cuentas); y recordar que el progreso lo manda el teléfono (alguien con conocimientos podría inventarse monedas): cuando haya compras de verdad, esas se validan en el servidor, aparte.
+

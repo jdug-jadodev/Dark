@@ -1,9 +1,17 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
     kotlin("android")
 }
+
+/* cuenta.properties: el identificador de Google para iniciar sesión (vacío = sin cuentas) */
+val cuenta = Properties().apply {
+    val file = rootProject.file("cuenta.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val googleClientId: String = cuenta.getProperty("googleClientId", "").trim()
 
 android {
     namespace = "com.giroestelar"
@@ -15,12 +23,15 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.2.0"
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"" + googleClientId + "\"")
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    buildFeatures { buildConfig = true }
 
     buildTypes {
         release { isMinifyEnabled = false }
@@ -33,6 +44,10 @@ kotlin {
 
 dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
+    /* entrar con Google por el sistema de Android (Credential Manager) */
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     testImplementation(kotlin("test"))
 }
 

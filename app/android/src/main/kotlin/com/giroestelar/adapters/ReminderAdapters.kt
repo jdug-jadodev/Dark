@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import com.giroestelar.MainActivity
+import com.giroestelar.R
 import com.giroestelar.application.ReminderAlarm
 import com.giroestelar.application.ReminderStore
 import com.giroestelar.application.Reminders
@@ -33,6 +34,9 @@ class PrefsReminderStore(context: Context) : ReminderStore {
     override var streak: Int
         get() = prefs.getInt("streak", 0)
         set(v) = prefs.edit().putInt("streak", v).apply()
+    override var cupRank: Int
+        get() = prefs.getInt("cupRank", 0)
+        set(v) = prefs.edit().putInt("cupRank", v).apply()
 }
 
 /**
@@ -97,7 +101,7 @@ class ReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = Notification.Builder(context, CHANNEL)
-            .setSmallIcon(android.R.drawable.star_on)
+            .setSmallIcon(R.drawable.ic_stat_ship)
             .setContentTitle("Giro Estelar")
             .setContentText(text)
             .setStyle(Notification.BigTextStyle().bigText(text))

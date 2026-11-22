@@ -5,6 +5,7 @@
 import { owns } from '../core/garage.js';
 import { goal, goalLeft, goalPct } from '../core/goal.js';
 import { events } from '../core/season.js';
+import { accountOffer, openAccount } from './account.js';
 import { $ } from './dom.js';
 import { openGarageAt } from './garage.js';
 import { T } from './icons.js';
@@ -27,6 +28,9 @@ export function renderNews() {
       goalPct() +
       '%"></i></i></span></button>'
     : ''; // sin meta no se pide nada: marcarla es opcional, desde el taller
+  /* una sola vez, cuando ya hay algo que perder: la invitación a guardar el progreso */
+  if (accountOffer())
+    h += '<button class="lchip" data-acct="1">{cloud}<span><b>Guarda tu progreso</b> para no perderlo</span></button>';
   /* dos avisos como mucho, para no tapar la nave: primero lo que vale hoy */
   for (const e of events(owns).slice(0, 2))
     h += e.part
@@ -51,6 +55,7 @@ export function goalBlock() {
 }
 export function bootNews() {
   $('lNews').addEventListener('click', (e) => {
+    if (e.target.closest('[data-acct]')) return openAccount();
     const b = e.target.closest('[data-part]');
     if (b) openGarageAt(b.dataset.part);
   });

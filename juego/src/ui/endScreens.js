@@ -2,17 +2,21 @@
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { BOSS_UNLOCK, GOAL, MINI_AT } from '../core/config.js';
-import { level, prog } from '../core/difficulty.js';
+import { goal, level, prog } from '../core/difficulty.js';
 import { S, save } from '../core/profile.js';
 import { doubleCoins, payout } from '../core/season.js';
 import { fmt } from '../core/util.js';
 import { SPC, km } from '../game/space.js';
 import { adTag, showAd } from './ads.js';
-import { cupBlock } from './cup.js';
+import { challenge, cupBlock, duelAction } from './cup.js';
 import { countRun, missionBlock } from './daily.js';
 import { $, tok } from './dom.js';
 import { T } from './icons.js';
+import { openWorlds, playWorld } from './worlds.js';
+import { nextWorld, winWorld } from '../core/worlds.js';
+import { replay } from './tracks.js';
 import { goalBlock } from './news.js';
+import { xpBlock } from './pilot.js';
 import { backToMenu, showPad, startRun } from './flow.js';
 /* en fin de semana las monedas de la partida valen doble: se avisa junto a lo ganado */
 const weekend = () => (doubleCoins() ? '<small>monedas dobles de fin de semana</small>' : '');
@@ -24,14 +28,24 @@ export function finishBoss(win) {
   $('hint').style.display = 'none';
   showPad(false);
   const b = G.run.boss,
-    dmg = Math.round((1 - b.hp / b.max) * 100);
-  const gain = payout((win ? 100 : Math.round(dmg * 0.5)) + G.run.coins);
+    dmg = Math.round((1 - b.hp / b.max) * 100),
+    w = G.run.world,
+    /* vencer al jefe completa el mundo: { first, coins }. En modo demo no cuenta. */
+    won = win && w && !G.run.invincible ? winWorld(w) : null,
+    next = w ? nextWorld(w) : null;
+  const gain = payout((win ? (won ? won.coins : 100) : Math.round(dmg * 0.5)) + G.run.coins);
   S.coins += gain;
   if (win) S.bossWins = (S.bossWins || 0) + 1;
   save();
   $('endBox').innerHTML =
     '<div class="big">' +
-    (win ? '{trophy} ¡Jefe derrotado!' : '{skull} El jefe te venció') +
+    (win
+      ? w
+        ? won
+          ? '{trophy} ¡' + w.name + ' completado!'
+          : '{trophy} ¡' + b.name + ' derrotado!'
+        : '{trophy} ¡Jefe derrotado!'
+      : '{skull} ' + (b.name || 'El jefe') + (b.form === 'devourer' ? ' te tragó' : ' te venció')) +
     '</div>' +
     '<div class="grid"><div><b>' +
     Math.floor(G.run.bt) +
@@ -48,13 +62,24 @@ export function finishBoss(win) {
     '<div class="gain">+' +
     gain +
     ' {coin}' +
-    (win ? '<small>cofre del jefe</small>' : '<small>según el daño que hiciste</small>') +
+    (win
+      ? won && won.first
+        ? '<small>premio por completar el mundo</small>'
+        : '<small>cofre del jefe</small>'
+      : '<small>según el daño que hiciste</small>') +
     weekend() +
     '</div>' +
+    xpBlock(win) +
     goalBlock() +
     '<div class="mini">' +
     (win
-      ? 'Siguiente: un jefe nuevo por zona, con ataques distintos (en el juego real).'
+      ? w
+        ? !won
+          ? 'En modo demo el mundo no cuenta como completado: para abrir el siguiente hay que vencer al jefe de verdad.'
+          : next
+            ? (won.first ? '{sparkle} Se abrió un mundo nuevo: ' : 'Siguiente mundo: ') + next.name + '.'
+            : 'Completaste todos los mundos que hay por ahora. Vienen más.'
+        : 'Siguiente: un jefe nuevo por zona, con ataques distintos (en el juego real).'
       : 'Tip: el jefe cambia de ataque al azar; quédate cerca de las armas que caen y no te quedes quieto.') +
     '</div>' +
     '<button class="btn ad" data-a="x2">{play} Duplicar monedas' +
@@ -62,9 +87,13 @@ export function finishBoss(win) {
     ' +' +
     gain +
     ' {coin}</button>' +
-    '<button class="btn" data-a="boss">{swords} ' +
+    (win && next ? '<button class="btn" data-a="nextworld">{play} Ir a ' + next.name + '</button>' : '') +
+    '<button class="btn' +
+    (win && next ? ' alt' : '') +
+    '" data-a="boss">{swords} ' +
     (win ? 'Pelear otra vez' : 'Reintentar') +
     '</button>' +
+    (w ? '<button class="btn alt" data-a="worlds">{rocket} Mundos</button>' : '') +
     '<button class="btn alt" data-a="menu">Menú</button>';
   tok('endBox');
   $('end').classList.add('show');
@@ -128,6 +157,7 @@ function finishSpace() {
     ' {coin}' +
     weekend() +
     '</div>' +
+    xpBlock() +
     goalBlock() +
     mis +
     (gain > 0
@@ -162,18 +192,24 @@ export function finish(win) {
   if (rec) S.best = pts;
   save();
   const mis = missionBlock(countRun());
-  const nextGoal = !G.run.miniDone
-    ? 'Te faltaron ' + Math.max(0, Math.ceil((GOAL * MINI_AT) / 100 - G.run.pts)) + ' puntos para el jefe intermedio.'
-    : 'Te faltaron ' + Math.max(0, Math.ceil(GOAL - G.run.pts)) + ' puntos para el jefe final.';
+  const w = G.run.world;
+  const nextGoal = w
+    ? 'Te faltaron ' + Math.max(0, Math.ceil(goal() - G.run.pts)) + ' puntos para llegar a ' + w.boss.name + '.'
+    : !G.run.miniDone
+      ? 'Te faltaron ' + Math.max(0, Math.ceil((GOAL * MINI_AT) / 100 - G.run.pts)) + ' puntos para el jefe intermedio.'
+      : 'Te faltaron ' + Math.max(0, Math.ceil(GOAL - G.run.pts)) + ' puntos para el jefe final.';
   $('endBox').innerHTML =
-    '<div class="big">{boom} Partida terminada</div>' +
+    '<div class="big">{boom} ' +
+    (w ? 'No llegaste al jefe' : 'Partida terminada') +
+    '</div>' +
+    (w ? '<div class="sub">' + w.icon + ' ' + w.name + '</div>' : '') +
     (rec
       ? '<div class="rec">{star} ¡Nuevo récord! ' + pts + ' puntos</div>'
       : '<div class="sub">Récord: ' + (S.best || 0) + ' puntos</div>') +
     '<div class="grid"><div><b>' +
     pts +
     '/' +
-    GOAL +
+    goal() +
     '</b><span>Puntos</span></div>' +
     '<div><b>' +
     G.run.dodged +
@@ -190,6 +226,7 @@ export function finish(win) {
     (win ? '<small>incluye +25 por completar el reto</small>' : '') +
     weekend() +
     '</div>' +
+    xpBlock() +
     goalBlock() +
     '<div class="mini">' +
     nextGoal +
@@ -203,6 +240,7 @@ export function finish(win) {
     gain +
     ' {coin}</button>' +
     '<button class="btn" data-a="again">Jugar otra vez</button>' +
+    (w ? '<button class="btn alt" data-a="worlds">{rocket} Mundos</button>' : '') +
     '<button class="btn alt" data-a="menu">Menú</button>';
   tok('endBox');
   $('end').classList.add('show');
@@ -244,6 +282,11 @@ function finishSurv() {
     '<div class="big">{timer} Aguantaste ' +
     fmt(secs) +
     '</div>' +
+    (G.run.kind === 'duel'
+      ? '<div class="sub">{swords} Reto' +
+        (G.run.duel && G.run.duel.rival ? ' contra ' + G.run.duel.rival.nick : ' nuevo') +
+        '</div>'
+      : '') +
     (rec
       ? '<div class="rec">{star} ¡Nuevo récord!</div>'
       : rank > 0
@@ -275,12 +318,16 @@ function finishSurv() {
     ' {coin}' +
     weekend() +
     '</div>' +
+    xpBlock() +
     goalBlock() +
     mis +
     (gain > 0
       ? '<button class="btn ad" data-a="x2">{play} Duplicar monedas' + adTag() + ' +' + gain + ' {coin}</button>'
       : '') +
     '<button class="btn surv" data-a="endless">{timer} Intentar de nuevo</button>' +
+    (G.run.invincible || G.run.kind === 'duel'
+      ? '' // el reto trae su propio botón para enviarlo
+      : '<button class="btn alt" data-a="share">{share} Retar a mis amigos</button>') +
     '<button class="btn alt" data-a="menu">Menú</button>';
   tok('endBox');
   $('end').classList.add('show');
@@ -292,10 +339,16 @@ export function bootEndScreens() {
     if (!b) return;
     const a = b.dataset.a;
     if (a === 'again') startRun();
-    else if (a === 'endless') startRun('endless');
+    else if (a === 'endless') replay();
     else if (a === 'space') startRun('space');
     else if (a === 'boss') startRun('boss');
     else if (a === 'menu') backToMenu();
+    else if (a === 'worlds') {
+      backToMenu();
+      openWorlds();
+    } else if (a === 'nextworld') playWorld(nextWorld(G.run.world));
+    else if (a === 'share') challenge(b, Math.floor(G.t), G.run.kind);
+    else if (a === 'duelshare' || a === 'duelretry') duelAction(a, b);
     else if (a === 'x2') {
       const gain = $('endBox')._gain || 0;
       showAd('Recompensa: duplicar las monedas de esta partida (+' + gain + ' {coin})', () => {

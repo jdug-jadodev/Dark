@@ -75,7 +75,7 @@ export function seenPassed() {
 
 /* ---------- conexión con el servidor ---------- */
 export const LIVE = { table: null, offline: false, busy: false };
-function uid() {
+export function uid() {
   if (!S.uid) {
     S.uid = Platform.randomId();
     save();

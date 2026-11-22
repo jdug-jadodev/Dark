@@ -1,6 +1,34 @@
 # Plan: modo multijugador en línea (Giro Estelar)
 
-Estado: **idea aprobada, sin empezar**. Se implementa después de tener la app móvil base.
+Estado: **en marcha desde el 2026-11-21.** Hechos: la pista con semilla y los retos entre amigos (el paso 1 del orden recomendado). Pendientes: la carrera en vivo con fantasmas y los sabotajes.
+
+## Qué hay hecho (2026-11-21)
+
+**Pista con semilla, en Supervivencia.** Con la misma semilla sale la misma pista en cualquier teléfono; sin semilla todo sigue igual que antes (la prueba de regresión no cambió).
+
+- Todo lo que decide qué sale en la pista pide su azar con nombre propio (`roll('rock')`, `roll('coin')`… en `juego/src/core/util.js`). Hay una fuente por cada cosa (rocas, paredes, monedas, cápsulas, naves, cometas, giros de pantalla, jefe, disparos, botín), para que lo que hace un jugador, como derribar naves, no le cambie las rocas.
+- Con semilla la partida avanza a pasos fijos de 1/60 s, así no depende de qué tan rápido sea el teléfono.
+- La semilla se fija con `G.nextSeed` antes de empezar Supervivencia (todavía no hay botón: es la base para lo que sigue).
+- **Comprobado:** dos partidas con la misma semilla, jugadas de forma distinta y una con el procesador frenado, dejaron idénticas las 240 rocas, 5 paredes, 15 grupos de monedas y 4 cometas que salieron en minuto y medio. Con otra semilla sale otra pista.
+- **Límite conocido:** las naves enemigas pueden variar entre jugadores (cuántas salen depende de cuántas siguen vivas), y después del jefe del nivel 10 la pista sigue en el mismo orden pero desfasada según cuánto dure la pelea de cada quien.
+- Los modos Aventura y Viaje espacial aún no usan semilla.
+
+**Pista del día: descartada (2026-11-21).** Se hizo (un botón en el lobby, la misma pista para todos ese día, con su tabla) y se quitó el mismo día: al usuario no le gustó. Se veía igual que Supervivencia y no se entendía qué tenía de distinto; él esperaba estilos de pista diferentes. No volver a proponerla.
+
+**Retos entre amigos** (lo que este plan llamaba "retos por enlace"). En Copa, pestaña "Retos":
+
+- *Crear un reto:* se juega una pista nueva; al terminar, el servidor entrega un código de 6 letras y el juego ofrece enviarlo por el chat.
+- *Aceptar un reto:* se escribe el código y se juega esa misma pista. El marcador dice contra quién va y su tiempo, y avisa en el momento en que se le supera.
+- Cada reto tiene su tabla: pueden jugarlo varios, las veces que quieran.
+- Si alguien supera al jugador en uno de sus retos, el botón Copa del lobby muestra un punto rojo y el reto lo dice.
+- En vez de enlace se usa un código: el juego no está en una tienda, así que un enlace no tendría a dónde llevar.
+- **No hay nave fantasma todavía:** el rival es su tiempo, no su recorrido. El fantasma queda para la carrera en vivo.
+
+Comprobado con dos jugadores contra un servidor local: el segundo recibió exactamente la misma pista que el creador, la tabla del reto los ordenó bien y el aviso de "te superaron" llegó.
+
+**Lo que sigue:** la carrera en vivo (2 a 4 jugadores en la misma pista al mismo tiempo, viéndose como fantasmas) y, encima, los sabotajes. Necesita salas en tiempo real en el servidor.
+
+**Cambios frente a lo escrito abajo:** el juego ya no está en Kotlin sino en JavaScript, así que la semilla vive en `juego/src/core`, no en un `SeededRandom` del dominio. Y como ya hay servidor en Cloudflare (proyecto `back-nave`), las salas en vivo pueden ir directo ahí, sin el prototipo de conexión directa entre celulares.
 
 ## Decisión
 

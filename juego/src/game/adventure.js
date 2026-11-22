@@ -1,4 +1,5 @@
 /** Paso principal de Aventura y Supervivencia: fases, apariciones, choques, casco. */
+import { spawnCrater, spawnMeteor, updateBlasts } from './blasts.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import {
@@ -25,15 +26,17 @@ import {
   enemyCap,
   extraRock,
   flipping,
+  goal,
   intervalAt,
   level,
   mult,
   pace,
+  phaseOf,
   prog,
   speedAt,
   thirdRock,
 } from '../core/difficulty.js';
-import { clamp, rand } from '../core/util.js';
+import { clamp, roll, rollIn } from '../core/util.js';
 import {
   beginBoss,
   bossTick,
@@ -49,7 +52,7 @@ import { spawnEnemy, spawnSquad, updateEB, updateEnemies } from './enemies.js';
 import { spawnHole, updateHoles, updateSuck } from './holes.js';
 import { spawnPortal, updatePortals } from './portals.js';
 import { killRock, moveBullets, rndCap, updateCaps, updatePowers } from './powers.js';
-import { explode, spawnCap, spawnCoins, spawnRock, spawnWall } from './run.js';
+import { explode, spawnArch, spawnCap, spawnCoins, spawnPeak, spawnPools, spawnRock, spawnWall } from './run.js';
 import { runAngle, spinning } from './screenfx.js';
 import { followPointer } from './ship.js';
 import { spaceUpdate } from './space.js';
@@ -106,7 +109,11 @@ export function update(dt) {
           ? '¡Se acerca un jefe! Busca un arma'
           : lv === UNCAP_LVL
             ? '¡Sin límite de naves! A ver cuánto aguantas'
-            : SURV_TIP_AT[lv] || SURV_TIPS[Math.min(lv - 1, SURV_TIPS.length - 1)],
+            : lv === 1 && G.run.kind === 'duel'
+              ? G.run.duel && G.run.duel.rival
+                ? 'Reto: aguanta más que ' + G.run.duel.rival.nick
+                : 'Reto nuevo: tu tiempo será la marca a superar'
+              : SURV_TIP_AT[lv] || SURV_TIPS[Math.min(lv - 1, SURV_TIPS.length - 1)],
       );
     }
   } else {
@@ -118,7 +125,7 @@ export function update(dt) {
         emit('phase');
       }
       G.run.phase = ph;
-      if (G.run.stage === 'run') showToast(PH[ph].name, PH[ph].tip);
+      if (G.run.stage === 'run') showToast(phaseOf(ph).name, phaseOf(ph).tip);
     }
   }
   updatePortals(dt);
@@ -156,60 +163,95 @@ export function update(dt) {
     const flip = flipping();
     if (G.run.spawnT <= 0) {
       /* con la pantalla girada o dando una vuelta caen menos rocas */
-      G.run.spawnT = intervalAt(xd) * rand(0.8, 1.2) * (flip ? 1.7 : spinning() ? 1.5 : 1);
+      G.run.spawnT = intervalAt(xd) * rollIn('rock', 0.8, 1.2) * (flip ? 1.7 : spinning() ? 1.5 : 1);
       spawnRock(sp);
-      if (!flip && x >= 35 && Math.random() < extraRock()) {
+      if (!flip && x >= 35 && roll('rock') < extraRock()) {
         spawnRock(sp);
         /* Supervivencia avanzada: a veces una tercera */
-        if (thirdRock() && Math.random() < thirdRock()) spawnRock(sp);
+        if (thirdRock() && roll('rock') < thirdRock()) spawnRock(sp);
       }
     }
     G.run.coinT -= dt;
     if (G.run.coinT <= 0) {
-      G.run.coinT = rand(4.5, 7);
+      G.run.coinT = rollIn('coin', 4.5, 7);
       spawnCoins();
     }
     if (flip || spinning()) {
       /* sin paredes mientras la pantalla está girada o dando una vuelta */
+    } else if (G.obs.some((o) => o.peak && o.y < 150)) {
+      /* tampoco mientras se acerca una montaña */
     } else if (G.run.wallIdx < WALLS.length && x >= WALLS[G.run.wallIdx]) {
       spawnWall(sp * 0.9);
       G.run.wallIdx++;
-      G.run.nextWall = x + rand(9, 13);
+      G.run.nextWall = x + rollIn('wall', 9, 13);
     } else if (surv && G.run.wallIdx >= WALLS.length && x >= G.run.nextWall) {
       spawnWall(sp * 0.9);
-      G.run.nextWall = x + rand(9, 13);
+      G.run.nextWall = x + rollIn('wall', 9, 13);
+    }
+    /* montañas en la pista (en los mundos que las tienen): nunca junto con una pared */
+    const pk = G.run.world && G.run.world.peaks;
+    if (pk && x >= pk.from) {
+      G.run.peakT -= dt;
+      if (G.run.peakT <= 0) {
+        if (G.obs.some((o) => o.wall)) G.run.peakT = 1;
+        else {
+          G.run.peakT = rollIn('peak', pk.every[0], pk.every[1]);
+          if (pk.arch && roll('peak') < pk.arch.p) spawnArch(pk.arch);
+          else if (pk.pools && roll('peak') < pk.pools.alone) spawnPools(pk.pools);
+          else spawnPeak(pk);
+        }
+      }
+    }
+    /* meteoritos que caen del cielo y cráteres que estallan (en los mundos que los tienen) */
+    const wd = G.run.world;
+    if (wd && wd.meteors && x >= wd.meteors.from) {
+      G.run.meteorT -= dt;
+      if (G.run.meteorT <= 0) {
+        G.run.meteorT = rollIn('blast', wd.meteors.every[0], wd.meteors.every[1]);
+        spawnMeteor(wd.meteors);
+      }
+    }
+    if (wd && wd.craters && x >= wd.craters.from) {
+      G.run.craterT -= dt;
+      if (G.run.craterT <= 0) {
+        G.run.craterT = rollIn('blast', wd.craters.every[0], wd.craters.every[1]);
+        spawnCrater(wd.craters);
+      }
     }
     G.run.pcT -= dt;
     if (G.run.pcT <= 0 && (x >= 4 || G.t >= 8)) {
-      G.run.pcT = rand(8, 11);
+      G.run.pcT = rollIn('cap', 8, 11);
       spawnCap(rndCap());
     }
     G.run.enT -= dt;
     if (G.run.enT <= 0 && (x >= 4 || G.t >= 8)) {
       G.run.enT =
-        (xd < MINI_AT ? rand(4.5, 6.5) : xd < 75 ? rand(3.5, 5) : rand(2.6, 4)) *
-        Math.max(0.55, 1 - Math.max(0, xd - 100) / 300);
+        (xd < MINI_AT ? rollIn('enemy', 4.5, 6.5) : xd < 75 ? rollIn('enemy', 3.5, 5) : rollIn('enemy', 2.6, 4)) *
+        Math.max(0.55, 1 - Math.max(0, xd - 100) / 300) *
+        ((G.run.world && G.run.world.enemyRest) || 1); // hay mundos con menos enemigos
       /* tope de naves a la vez: difícil pero con espacio para maniobrar */
       const room = enemyCap() - G.en.filter((e) => !e.dead && e.life > 0).length;
       if (room <= 0) G.run.enT = Math.min(G.run.enT, 1.2);
       else {
-        const sq = xd >= 25 && Math.random() < Math.min(0.7, 0.3 + xd / 300);
-        if (sq && room >= 2) spawnSquad(Math.min(room, xd >= 60 && Math.random() < 0.5 ? 3 : 2));
+        const sq = xd >= 25 && roll('enemy') < Math.min(0.7, 0.3 + xd / 300);
+        if (sq && room >= 2) spawnSquad(Math.min(room, xd >= 60 && roll('enemy') < 0.5 ? 3 : 2));
         else spawnEnemy();
       }
     }
-    if (G.run.mode === 'run' && x >= 12) {
+    if (G.run.mode === 'run' && x >= 12 && !(G.run.world && !G.run.world.holes)) {
       G.run.bhT -= dt;
       if (G.run.bhT <= 0 && !G.run.suck) {
-        G.run.bhT = rand(15, 22) * Math.max(0.6, 1 - x / 250);
+        G.run.bhT = rollIn('hole', 15, 22) * Math.max(0.6, 1 - x / 250);
         spawnHole();
       }
     }
+    /* en algunos mundos hay cosas que cruzan la pista (bolas de fuego, meteoritos) */
+    if (!surv && G.run.world && G.run.world.comets && updateComets(dt)) return;
     if (surv) {
       if (updateComets(dt)) return;
       if (G.run.bossDue && survBossFree()) startSurvBoss();
-    } else if (!G.run.miniDone && x >= MINI_AT) startMini();
-    else if (G.run.pts >= GOAL) {
+    } else if (!G.run.miniDone && x >= MINI_AT && !(G.run.world && !G.run.world.mini)) startMini();
+    else if (G.run.pts >= goal()) {
       G.run.stage = 'warn';
       G.run.transT = 3.4;
       showToast('¡ALERTA!', 'Algo enorme se acerca…');
@@ -228,6 +270,7 @@ export function update(dt) {
       return;
     }
   }
+  if (G.run.blasts.length && updateBlasts(dt)) return;
   G.ship.inv = Math.max(0, G.ship.inv - dt);
   if (G.run.combo > 0) {
     G.run.comboT -= dt;
@@ -236,7 +279,7 @@ export function update(dt) {
   if (updateEnemies(dt)) return;
   for (const o of G.obs) {
     o.x += o.vx * dt;
-    o.y += o.vy * dt * ap(o.y);
+    o.y += o.peak ? G.run.sp * dt : o.vy * dt * ap(o.y); // las montañas van pegadas al suelo
     o.rot += o.vr * dt;
     if ((o.x < o.r && o.vx < 0) || (o.x > W - o.r && o.vx > 0)) o.vx *= -1;
   }
@@ -248,8 +291,10 @@ export function update(dt) {
     const d = Math.hypot(o.x - G.ship.x, o.y - G.ship.y) - o.r - G.ship.r;
     if (d <= 0) {
       if (G.ship.nitro > 0) {
-        killRock(i);
-        G.shake = Math.max(G.shake, 0.15);
+        if (!o.peak) {
+          killRock(i);
+          G.shake = Math.max(G.shake, 0.15);
+        }
         continue;
       }
       if (G.ship.inv > 0 || G.ship.ghost > 0) {
@@ -260,7 +305,7 @@ export function update(dt) {
         G.shake = 0.35;
         explode(o.x, o.y, '#78e6ff', 16);
         emit('shieldBreak');
-        G.obs.splice(i, 1);
+        if (!o.peak) G.obs.splice(i, 1); // la montaña sigue ahí: el escudo solo salvó la nave
         G.pops.push({
           x: G.ship.x,
           y: G.ship.y - 30,
@@ -273,7 +318,8 @@ export function update(dt) {
         G.shake = 0.25;
         explode(o.x, o.y, '#ff6b8a', 12);
         emit('hullHit');
-        G.obs.splice(i, 1);
+        if (o.peak) G.ship.inv = 0.8;
+        else G.obs.splice(i, 1);
         continue;
       } else if (hullHit(HULL_ROCK, o.x, o.y)) {
         explode(o.x, o.y, '#ffb454', 8);

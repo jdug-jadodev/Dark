@@ -3,15 +3,15 @@ import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { CAPDEF, GUN_T, H, HULL_KIT, LASER_T, SPAWN, W } from '../core/config.js';
 import { ap } from '../core/difficulty.js';
-import { pick } from '../core/util.js';
+import { rollPick } from '../core/util.js';
 import { liveBoss } from './boss.js';
 import { hitEnemy } from './enemies.js';
 import { explode } from './run.js';
 /* ---------- Poderes y armas ---------- */
 /* El abanico ({trident}) es el arma más fuerte: sale menos que las demás */
-export const rndWeapon = () => pick(['twin', 'twin', 'twin', 'heavy', 'heavy', 'laser', 'laser', 'spread']);
+export const rndWeapon = () => rollPick('drop', ['twin', 'twin', 'twin', 'heavy', 'heavy', 'laser', 'laser', 'spread']);
 export function rndCap() {
-  return pick(['twin', 'twin', 'heavy', 'laser', 'spread', 'shield', 'shield', 'orbit', 'magnet', 'nova']);
+  return rollPick('cap', ['twin', 'twin', 'heavy', 'laser', 'spread', 'shield', 'shield', 'orbit', 'magnet', 'nova']);
 }
 function applyCap(type) {
   const d = CAPDEF[type],
@@ -67,6 +67,7 @@ function nova() {
 }
 export function killRock(j) {
   const o = G.obs[j];
+  if (o.peak) return; // las montañas no se rompen
   explode(o.x, o.y, '#ffb454', 9);
   emit('rockBreak');
   G.obs.splice(j, 1);

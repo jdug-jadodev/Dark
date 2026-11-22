@@ -6,6 +6,10 @@ import { dragBy } from '../game/ship.js';
 import { $, cv } from './dom.js';
 import { pauseGame, quitGame, resumeGame } from './flow.js';
 import { closeCup } from './cup.js';
+import { closeAccount } from './account.js';
+import { closeMaps } from './maps.js';
+import { closeWorlds } from './worlds.js';
+import { closeRemAsk } from './reminder.js';
 import { closeChest, closeMissions } from './daily.js';
 import { closeGarage } from './garage.js';
 import { closeSettings } from './settings.js';
@@ -88,6 +92,7 @@ export function bootInput() {
   });
   /* Atrás: devuelve true si el juego lo usó; false = la app puede cerrarse */
   window.__giroBack = () => {
+    if (closeRemAsk()) return true;
     if (closeSettings()) return true;
     if (closeShop()) return true;
     if (closeGarage()) return true;
@@ -99,7 +104,8 @@ export function bootInput() {
       resumeGame();
       return true;
     }
-    if (closeChest() || closeMissions() || closeStats() || closeCup()) return true;
+    if (closeChest() || closeMissions() || closeStats() || closeCup() || closeWorlds() || closeMaps() || closeAccount())
+      return true;
     return G.state !== 'menu';
   };
   window.__giroPause = () => pauseGame();

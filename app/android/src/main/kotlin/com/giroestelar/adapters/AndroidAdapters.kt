@@ -52,6 +52,8 @@ class GameBridge(
     private val debuggable: Boolean,
     private val reminder: ReminderControl,
     private val testApi: String = "",
+    private val share: (String) -> Unit = {},
+    private val account: AccountControl? = null,
 ) {
     @JavascriptInterface fun loadState(): String = host.loadState() ?: ""
     @JavascriptInterface fun saveState(json: String) { host.saveState(json) }
@@ -66,6 +68,18 @@ class GameBridge(
     @JavascriptInterface fun setReminder(on: Boolean) = reminder.set(on)
     @JavascriptInterface fun reminderOn(): Boolean = reminder.isOn()
     @JavascriptInterface fun noteStreak(days: Int) = reminder.noteStreak(days)
+    @JavascriptInterface fun noteCup(rank: Int) = reminder.noteCup(rank)
+
+    /** Compartir un texto (retar a los amigos) con la app que el jugador elija. */
+    @JavascriptInterface fun share(text: String) = share.invoke(text.take(MAX_SHARE_CHARS))
+
+    /* cuenta: entrar con Google y guardar (cifrada) la llave de sesión. Ver AccountAdapters.kt */
+    @JavascriptInterface fun googleReady(): Boolean = account?.ready() ?: false
+    @JavascriptInterface fun googleSignIn(nonce: String) { account?.signIn(nonce) }
+    @JavascriptInterface fun secretGet(): String = account?.secret() ?: ""
+    @JavascriptInterface fun secretSet(value: String) { account?.setSecret(value) }
+
+    private companion object { const val MAX_SHARE_CHARS = 500 }
 }
 
 /** Lo que el puente necesita del recordatorio. Encenderlo puede requerir pedirle permiso al jugador. */
@@ -73,6 +87,7 @@ interface ReminderControl {
     fun set(on: Boolean)
     fun isOn(): Boolean
     fun noteStreak(days: Int)
+    fun noteCup(rank: Int)
 }
 
 /**

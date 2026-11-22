@@ -3,6 +3,7 @@ import { CAPDEF, WEAPONS } from '../../core/config.js';
 import { look } from '../../core/garage.js';
 import { rand } from '../../core/util.js';
 import { BOX, DOT, SPH, bmat, col3, emojiMat, iconMat } from '../kit.js';
+import { worldComet, worldLook, worldRock } from '../worlds.js';
 /* -- rocas -- */
 function rockGeo() {
   const g = new THREE.IcosahedronGeometry(1, 1),
@@ -26,7 +27,8 @@ let torusGeo;
 let ebCoreMat;
 let ringGeo;
 let tailGeo;
-let cometMats;
+const COMETS = {}; // las piezas del cometa, por mundo
+const SPACE_COMET = { shell: 0x7fdcff, tail: 0x4fb4ff, trail: 0xbfefff, glow: 0x9fe8ff };
 export function bootProps() {
   ROCKG = Array.from(
     {
@@ -65,6 +67,9 @@ export function bootProps() {
   ringGeo.rotateX(-Math.PI / 2);
 }
 export function mkRock(o) {
+  /* en un mundo los obstáculos tienen su propio modelo (agujas de hielo, rocas de lava…) */
+  const look = worldLook();
+  if (look) return worldRock(o, look);
   const m = new THREE.Mesh(ROCKG[Math.floor(Math.random() * ROCKG.length)], o.wall ? wallMat : rockMat);
   m.scale.setScalar(o.r);
   m.userData.tilt = rand(0, 6);
@@ -257,12 +262,14 @@ export function mkEB(e) {
 }
 /* Las piezas del cometa se crean la primera vez que aparece uno (en Supervivencia) y no
    en el arranque: así el resto del juego arranca exactamente igual que antes. */
-function cometKit() {
-  if (cometMats) return;
-  /* cola: un cono acostado, ancho en la cabeza (z=0) y en punta hacia atrás (z=1) */
-  tailGeo = new THREE.ConeGeometry(1, 1, 12, 1, true);
-  tailGeo.rotateX(Math.PI / 2);
-  tailGeo.translate(0, 0, 0.5);
+function cometKit(key, col) {
+  if (COMETS[key]) return COMETS[key];
+  if (!tailGeo) {
+    /* cola: un cono acostado, ancho en la cabeza (z=0) y en punta hacia atrás (z=1) */
+    tailGeo = new THREE.ConeGeometry(1, 1, 12, 1, true);
+    tailGeo.rotateX(Math.PI / 2);
+    tailGeo.translate(0, 0, 0.5);
+  }
   const add = (color, opacity) =>
     new THREE.MeshBasicMaterial({
       color,
@@ -273,24 +280,26 @@ function cometKit() {
       side: THREE.DoubleSide,
       fog: false,
     });
-  cometMats = {
-    shell: add(0x7fdcff, 0.85),
-    tail: add(0x4fb4ff, 0.5),
-    trail: add(0xbfefff, 0.6),
+  return (COMETS[key] = {
+    shell: add(col.shell, 0.85),
+    tail: add(col.tail, 0.5),
+    trail: add(col.trail, 0.6),
     glow: new THREE.SpriteMaterial({
       map: DOT,
-      color: 0x9fe8ff,
+      color: col.glow,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       fog: false,
     }),
-  };
+  });
 }
 /* cometa: cabeza blanca, capa azul, resplandor y dos colas (una ancha y una fina más larga).
    Mide 1 de radio y apunta la cola hacia +Z; quien lo dibuja lo escala y lo orienta. */
 export function mkComet() {
-  cometKit();
+  /* en el mundo de fuego son bolas de fuego: mismas piezas, otros colores */
+  const look = worldLook(),
+    cometMats = cometKit(look || 'space', worldComet(look) || SPACE_COMET);
   const g = new THREE.Group();
   g.add(new THREE.Mesh(SPH, ebCoreMat));
   const shell = new THREE.Mesh(SPH, cometMats.shell);

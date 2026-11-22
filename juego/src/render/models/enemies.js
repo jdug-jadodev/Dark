@@ -1,5 +1,7 @@
 /** Modelos de naves enemigas y de los jefes. */
 import { BOX, SPH, bmat, extrude, lmat } from '../kit.js';
+import { mkWorldBoss } from '../bosses.js';
+import { worldEnemy, worldLook } from '../worlds.js';
 /* -- naves enemigas -- */
 const EN_PTS = [
   [0, 1],
@@ -30,6 +32,9 @@ export function bootEnemies() {
   bossRingGeo = new THREE.TorusGeometry(24, 1.6, 8, 48);
 }
 export function mkEnemy(e) {
+  /* cada mundo tiene sus propios enemigos */
+  const look = worldLook();
+  if (look) return worldEnemy(e, look);
   const hex = e.heavy ? '#ffb454' : '#ff6b8a';
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({
@@ -90,7 +95,8 @@ const BOSS_LOOK = {
   },
 };
 export function mkBoss(bs) {
-  const L = BOSS_LOOK[bs.kind] || BOSS_LOOK.final,
+  if (bs.form) return mkWorldBoss(bs); // el jefe de un mundo es una criatura o una nave propia
+  const L = bs.look || BOSS_LOOK[bs.kind] || BOSS_LOOK.final, // el jefe de un mundo trae sus colores
     g = new THREE.Group();
   const body = new THREE.MeshStandardMaterial({
     color: L.body,

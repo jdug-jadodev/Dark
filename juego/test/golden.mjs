@@ -226,10 +226,12 @@ const SCENARIOS = {
   'aventura-demo': [
     { click: '#inv' },
     { click: '#play' },
+    { click: '[data-world="hielo"]' },
     { n: 60000, snap: 60, drag: drag(120, 60, 0.021, 0.013), nitro: 420, auto: { x2: true, end: 'boss' } },
   ],
   'aventura-real': [
     { click: '#play' },
+    { click: '[data-world="espacio"]' }, // el mundo del espacio: la Aventura de siempre
     { n: 7000, drag: drag(90, 30, 0.017, 0.009), nitro: 300, auto: { revive: true, x2: true, end: 'again' } },
     { click: '#pauseBtn' },
     { n: 40 },
@@ -241,6 +243,7 @@ const SCENARIOS = {
   supervivencia: [
     { click: '#ctrl [data-ctrl="btn"]' },
     { click: '#survBtn' },
+    { click: '[data-map="espacio"]' },
     {
       n: 11000,
       auto: { revive: true, x2: true, end: 'endless' },
@@ -253,6 +256,7 @@ const SCENARIOS = {
   'supervivencia-demo': [
     { click: '#inv' },
     { click: '#survBtn' },
+    { click: '[data-map="espacio"]' },
     { n: 36000, snap: 60, drag: drag(140, 40, 0.025, 0.011), auto: {} },
   ],
   /* modo demo arrancando en el nivel 20: giros de 360°, arcoíris y cometas desde el primer segundo */
@@ -260,6 +264,7 @@ const SCENARIOS = {
     { click: '#inv' },
     { click: '#lvlPick [data-lv="20"]' },
     { click: '#survBtn' },
+    { click: '[data-map="fuego"]' }, // en el paisaje de un mundo
     { n: 6000, snap: 60, drag: drag(140, 40, 0.025, 0.011), auto: {} },
     { click: '#pauseBtn' },
     { click: '#quitBtn' },
@@ -280,6 +285,7 @@ const SCENARIOS = {
   'jefe-real': [
     { click: '#inv' },
     { click: '#play' },
+    { click: '[data-world="hielo"]' },
     { n: 37000, snap: 600, drag: drag(120, 60, 0.021, 0.013), nitro: 420, auto: {} },
     { click: '#inv' },
     { click: '[data-a="boss"]' },

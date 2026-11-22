@@ -32,6 +32,12 @@ export const G = {
   bendX: 0,
   bendY: 0,
   bendT: 2,
+  nextWorld: null, // el mundo que se va a jugar (core/worlds.js); null = ninguno
+  nextMap: undefined, // el mapa de la próxima Supervivencia: un mundo, null = el espacio, undefined = al azar
+  nextSeed: null, // semilla de la próxima partida de Supervivencia (null = pista al azar, como siempre)
+  nextKind: null, // qué es esa pista con semilla: 'duel' = un reto entre amigos
+  nextDuel: null, // el reto que se va a jugar: { code, rival: { nick, time } } (null = se está creando uno nuevo)
+  acc: 0, // tiempo pendiente de simular (con semilla la partida avanza a pasos fijos)
   startLv: 1, // modo demo: nivel en el que arranca Supervivencia
   demo: false, // modo demo activo (no morir, y en el taller se puede equipar todo)
   /* escaparate: en el menú la cámara se acerca a la nave */

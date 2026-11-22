@@ -311,6 +311,13 @@ function mkQuasar() {
   };
   return g;
 }
+/* dentro de un mundo no se ven las estrellas, galaxias ni planetas del espacio */
+export function spaceShown(on) {
+  if (!bgSky) return;
+  bgSky.visible = on;
+  for (const p of bgPlanets) p.m.visible = on;
+  for (const p of lowPlanets) p.m.visible = on;
+}
 export function bgTick(dt, spd) {
   const now = performance.now() / 1000;
   bgSky.position.copy(camera.position);

@@ -5,7 +5,9 @@ import { chaos, prog } from '../core/difficulty.js';
 import { rand } from '../core/util.js';
 import { X3, Z3, scene } from './engine.js';
 import { accCol, bgCol } from './environment.js';
+import { NOISE } from './glsl.js';
 import { BOX, DOT } from './kit.js';
+import { worldKind } from './worlds.js';
 /* -- fondo: estrellas, rejilla y rieles laterales (cambian de color por fase) -- */
 export const SN = 520;
 export let sPos;
@@ -110,11 +112,16 @@ export function bootTrack() {
       uAcc: {
         value: new THREE.Color(),
       },
+      uWorld: { value: 0 }, // 0 = vidrio del espacio · 1 hielo · 2 fuego · 3 gases · 4 ciudad · 5 agujero negro
+      uScroll: { value: 0 },
+      uTime: { value: 0 },
     },
     vertexShader:
-      'attribute vec2 aux;varying vec2 vAux;void main(){vAux=aux;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      'attribute vec2 aux;uniform float uScroll;varying vec2 vAux;varying float vZ;void main(){vAux=aux;vZ=position.z-uScroll;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
     fragmentShader: [
       'uniform sampler2D tBg;uniform vec2 uRes;uniform vec2 uPx;uniform vec3 uTint;uniform vec3 uAcc;varying vec2 vAux;',
+      'uniform float uWorld;uniform float uTime;varying float vZ;',
+      NOISE,
       'void main(){',
       '  vec2 uv=gl_FragCoord.xy/uRes;',
       '  vec3 c=texture2D(tBg,uv).rgb*.28;',
@@ -123,6 +130,35 @@ export function bootTrack() {
       '  float far=smoothstep(.62,1.,vAux.y);',
       '  vec3 glass=mix(c*.42,uTint,.34);',
       '  glass+=uAcc*pow(abs(vAux.x),10.)*.11;',
+      /* dentro de un mundo la pista no es de vidrio: es un camino de ese mundo */
+      '  if(uWorld>.5){',
+      '    vec2 P=vec2(vAux.x*186.,vZ);vec3 r;',
+      '    if(uWorld<1.5){', // hielo pulido, con vetas a lo largo
+      '      r=mix(vec3(.07,.24,.46),vec3(.17,.42,.68),noise(vec2(P.x*.05,P.y*.004)));',
+      '      r+=vec3(.6,.85,1.)*smoothstep(.62,.66,noise(vec2(P.x*.25,P.y*.015)))*.07;',
+      '    }else if(uWorld<2.5){', // losas de piedra oscura, juntas encendidas y grietas de lava
+      '      r=mix(vec3(.09,.055,.05),vec3(.19,.11,.09),noise(P*.05));',
+      '      float j=smoothstep(5.,0.,abs(mod(P.y,160.)-80.));',
+      '      r=mix(r,vec3(1.,.42,.06),j*(.6+.25*sin(uTime*2.5+P.y*.02)));',
+      '      float cr=smoothstep(.045,0.,abs(noise(P*.016+11.)-.5));',
+      '      r=mix(r,vec3(1.,.33,.04),cr*.42*(.7+.3*sin(uTime*3.+P.y*.01)));',
+      '    }else if(uWorld<3.5){', // gases: losas café con musgo, juntas de gas y gas que se arrastra
+      '      r=mix(vec3(.15,.10,.055),vec3(.30,.21,.12),noise(P*.05));',
+      '      r=mix(r,vec3(.16,.27,.08),smoothstep(.55,.72,noise(P*.02+3.))*.6);',
+      '      float j=smoothstep(5.,0.,abs(mod(P.y,160.)-80.));',
+      '      r=mix(r,vec3(.6,1.,.25),j*(.45+.25*sin(uTime*2.+P.y*.02)));',
+      '      r+=vec3(.32,.55,.10)*smoothstep(.5,.85,noise(vec2(P.x*.012+uTime*.25,P.y*.006)))*.2;',
+      '    }else if(uWorld<4.5){', // ciudad: asfalto con las rayas de los carriles
+      '      r=mix(vec3(.05,.055,.085),vec3(.085,.09,.13),noise(P*.08));',
+      '      float dash=step(.45,fract(P.y/130.));',
+      '      r+=vec3(.95,.92,.75)*dash*smoothstep(3.5,1.5,abs(abs(P.x)-62.))*.85;',
+      '    }else{', // agujero negro: vidrio oscuro con vetas de luz
+      '      r=vec3(.025,.01,.05)+vec3(.6,.25,1.)*smoothstep(.66,.72,noise(vec2(P.x*.22,P.y*.012)))*.16;',
+      '      r+=vec3(1.,.5,.15)*smoothstep(4.,0.,abs(mod(P.y,240.)-120.))*.45;',
+      '    }',
+      '    r+=uAcc*pow(abs(vAux.x),10.)*.4;',
+      '    gl_FragColor=vec4(mix(r,uTint,far),1.);return;',
+      '  }',
       '  gl_FragColor=vec4(mix(glass,c,far),1.);',
       '}',
     ].join('\n'),
@@ -170,8 +206,8 @@ export function bendTick(dt) {
   G.bendY += (bendTY - G.bendY) * k;
 }
 /* rieles, travesaños y postes: piezas cortas que siguen la curva */
-const TSEG = 36;
-const TLEN = 50;
+export const TSEG = 36;
+export const TLEN = 50;
 /* -- PISTA DE VIDRIO ESMERILADO --
    El fondo (planetas, galaxias, estrellas) se dibuja primero en pequeño a una
    textura; el piso de la pista muestra esa textura desenfocada y apagada.
@@ -197,6 +233,9 @@ export function trackTick() {
   floorGeo.attributes.position.needsUpdate = true;
   floorMat.uniforms.uTint.value.copy(bgCol);
   floorMat.uniforms.uAcc.value.copy(accCol);
+  floorMat.uniforms.uWorld.value = worldKind();
+  floorMat.uniforms.uScroll.value = G.scroll;
+  floorMat.uniforms.uTime.value = performance.now() / 1000;
   for (let i = 0; i < TSEG; i++) {
     const z = 240 - i * TLEN + off,
       b = bd(z),

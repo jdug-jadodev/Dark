@@ -29,4 +29,12 @@ export function bootProfile() {
     }
   }
 }
-export const save = () => Platform.save(S);
+/* Guardar el perfil. Quien necesite enterarse de cada guardado (la cuenta, para subirlo a la
+   nube) se apunta con onSave. saveQuiet guarda sin avisar: lo usa la cuenta para sus propias notas. */
+const savers = [];
+export const onSave = (fn) => savers.push(fn);
+export const saveQuiet = () => Platform.save(S);
+export const save = () => {
+  for (const fn of savers) fn();
+  Platform.save(S);
+};

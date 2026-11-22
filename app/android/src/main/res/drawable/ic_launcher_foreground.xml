@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de la app: la nave del juego rodeada por su órbita (el "giro"). Va sobre ic_launcher_background. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54" android:rotation="32" android:scaleX="0.86" android:scaleY="0.86">
+        <!-- la órbita, por detrás -->
+        <group android:pivotX="54" android:pivotY="56" android:rotation="-58">
+            <path android:strokeColor="#FFFFD24A" android:strokeWidth="3.4" android:pathData="M19,56a35,12 0 1,0 70,0a35,12 0 1,0 -70,0z"/>
+        </group>
+        <!-- alas -->
+        <path android:fillColor="#FF3D7BFF" android:pathData="M46,50L26,69L26,76L46,69Z"/>
+        <path android:fillColor="#FF3D7BFF" android:pathData="M62,50L82,69L82,76L62,69Z"/>
+        <!-- fuego de los motores -->
+        <path android:fillColor="#FFFF8A3C" android:pathData="M46.5,70L50,87L53.5,70Z"/>
+        <path android:fillColor="#FFFF8A3C" android:pathData="M54.5,70L58,87L61.5,70Z"/>
+        <path android:fillColor="#FFFFE9A8" android:pathData="M48.3,70L50,79L51.7,70Z"/>
+        <path android:fillColor="#FFFFE9A8" android:pathData="M56.3,70L58,79L59.7,70Z"/>
+        <!-- motores -->
+        <path android:fillColor="#FFC9D2E4" android:pathData="M46,65H54V71H46Z"/>
+        <path android:fillColor="#FFC9D2E4" android:pathData="M54,65H62V71H54Z"/>
+        <!-- cuerpo -->
+        <path android:fillColor="#FF5EE0FF" android:pathData="M54,20C60.5,29 64,41 64,53L64,67L44,67L44,53C44,41 47.5,29 54,20Z"/>
+        <path android:fillColor="#FF9EEEFF" android:pathData="M54,20C57,24.2 59.4,29 61,34L47,34C48.6,29 51,24.2 54,20Z"/>
+        <!-- cabina -->
+        <path android:fillColor="#FF0A0F24" android:pathData="M49.4,44a4.6,7.4 0 1,0 9.2,0a4.6,7.4 0 1,0 -9.2,0z"/>
+        <path android:fillColor="#FFF4F7FF" android:pathData="M50.6,41.4a1.5,2.6 0 1,0 3,0a1.5,2.6 0 1,0 -3,0z"/>
+        <!-- el tramo de la órbita que pasa por delante de la nave -->
+        <group android:pivotX="54" android:pivotY="56" android:rotation="-58">
+            <path android:strokeColor="#FFFFD24A" android:strokeWidth="3.4" android:strokeLineCap="round" android:pathData="M19,56a35,12 0 0,0 35,12"/>
+        </group>
+    </group>
+</vector>

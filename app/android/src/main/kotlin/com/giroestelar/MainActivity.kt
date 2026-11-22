@@ -2,6 +2,7 @@ package com.giroestelar
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.app.Activity
 import android.content.pm.ApplicationInfo
 import android.graphics.Color
@@ -21,7 +22,10 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
+import com.giroestelar.adapters.AccountControl
 import com.giroestelar.adapters.AndroidThermal
+import com.giroestelar.adapters.GoogleSignIn
+import com.giroestelar.adapters.SessionVault
 import com.giroestelar.adapters.GameBridge
 import com.giroestelar.adapters.ReminderControl
 import com.giroestelar.adapters.canNotify
@@ -29,6 +33,7 @@ import com.giroestelar.adapters.reminders
 import com.giroestelar.adapters.testApiOf
 import com.giroestelar.adapters.SharedPrefsGameStateStore
 import com.giroestelar.adapters.VibratorHaptics
+import com.giroestelar.application.Account
 import com.giroestelar.application.GameHost
 import java.time.LocalDateTime
 
@@ -80,7 +85,10 @@ class MainActivity : Activity() {
                     return true
                 }
             }
-            addJavascriptInterface(GameBridge(host, debuggable, reminderControl(), testApi), "GiroNative")
+            addJavascriptInterface(
+                GameBridge(host, debuggable, reminderControl(), testApi, ::shareText, accountControl()),
+                "GiroNative",
+            )
         }
 
         // Fondo negro y margen para la cámara frontal / barras, así el marcador no queda tapado
@@ -110,6 +118,26 @@ class MainActivity : Activity() {
         web.loadUrl("https://appassets.androidplatform.net/assets/game/index.html")
     }
 
+    /* ---- cuenta: entrar con Google y guardar la llave de sesión ---- */
+    private fun accountControl() = object : AccountControl {
+        private val google = GoogleSignIn(this@MainActivity, BuildConfig.GOOGLE_CLIENT_ID)
+        private val vault = SessionVault(this@MainActivity)
+        override fun ready(): Boolean = google.ready()
+
+        /* el juego llama desde otro hilo: la ventana de Google se abre en el principal, y el
+           comprobante (ya revisado: solo letras, números, puntos y guiones) vuelve al juego */
+        override fun signIn(nonce: String) = runOnUiThread {
+            google.start(nonce) { token ->
+                val safe = Account.safeToken(token)
+                web.evaluateJavascript("window.__giroGoogle && window.__giroGoogle('$safe')", null)
+            }
+        }
+
+        override fun secret(): String = vault.get()
+
+        override fun setSecret(value: String) = vault.set(value)
+    }
+
     /* ---- recordatorio diario ---- */
     private fun reminderControl() = object : ReminderControl {
         /* el juego llama desde otro hilo: lo que toca la pantalla o pide permiso va al hilo principal */
@@ -123,6 +151,13 @@ class MainActivity : Activity() {
         }
         override fun isOn(): Boolean = reminders.enabled && canNotify(this@MainActivity)
         override fun noteStreak(days: Int) = reminders.noteStreak(days)
+        override fun noteCup(rank: Int) = reminders.noteCup(rank)
+    }
+
+    /** Abre el menú de compartir de Android con el reto (WhatsApp, etc.). */
+    private fun shareText(text: String) = runOnUiThread {
+        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+        startActivity(Intent.createChooser(send, "Retar a mis amigos"))
     }
 
     /** El jugador respondió si deja mostrar avisos: solo si dijo que sí queda encendido. */
