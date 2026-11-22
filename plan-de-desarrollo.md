@@ -361,7 +361,7 @@ Pedido del usuario: que el jugador no pierda su progreso, entrando con Google o 
 
 **Hecho:** el servidor (`back-nave/src/cuentas.js`, 13 pruebas), el juego (`core/account.js`, `ui/account.js`: aviso en el lobby una sola vez, renglón en Configuración, pantalla de la cuenta) y Android (`adapters/AccountAdapters.kt`). Probado de punta a punta en el navegador con un Google de mentira: guardar, recuperar en otro teléfono, elegir entre dos progresos, cerrar sesión y borrar la cuenta.
 
-**Falta para encenderlo** (pasos en `back-nave/LEEME.md`): que el usuario cree en Google Cloud los identificadores de OAuth; con eso se publican las tablas y el servidor, y se pone el identificador en `app/cuenta.properties`. Mientras tanto la app no muestra nada de cuentas.
+**Encendido el 2026-11-22:** el usuario creó el proyecto "Nave" en Google Cloud y sus credenciales; se crearon las tablas en la base publicada (los datos de la copa y las visitas quedaron intactos), se puso el secreto y se publicó el servidor. Comprobado en vivo: la copa sigue respondiendo, las cuentas entregan el número de un solo uso y rechazan comprobantes falsos y llaves inventadas. La pantalla de consentimiento de Google está "En pruebas": solo entran los correos agregados como usuarios de prueba; para abrirlo a todos hay que publicarla.
 
 **Pendiente después:** probar el inicio con Google en un teléfono de verdad (no se puede hasta tener el identificador); una firma de publicación propia (hoy solo existe la de pruebas de este computador); una página de política de privacidad (la tienda la exige cuando hay cuentas); y recordar que el progreso lo manda el teléfono (alguien con conocimientos podría inventarse monedas): cuando haya compras de verdad, esas se validan en el servidor, aparte.
 

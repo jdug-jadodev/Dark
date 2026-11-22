@@ -6,6 +6,7 @@ import android.os.CancellationSignal
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.CredentialManagerCallback
 import androidx.credentials.CustomCredential
@@ -119,13 +120,20 @@ class GoogleSignIn(private val activity: Activity, private val clientId: String)
                 object : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
                     override fun onResult(result: GetCredentialResponse) = reply(tokenOf(result))
 
-                    override fun onError(e: GetCredentialException) = reply("")
+                    override fun onError(e: GetCredentialException) {
+                        /* por qué no se pudo (canceló, la app no está registrada en Google…): al registro, para diagnosticar */
+                        Log.w(TAG, "Inicio con Google: ${e.type} · ${e.message}")
+                        reply("")
+                    }
                 },
             )
         } catch (e: Exception) {
+            Log.w(TAG, "Inicio con Google: ${e.javaClass.simpleName} · ${e.message}")
             reply("")
         }
     }
+
+    private companion object { const val TAG = "GiroEstelar" }
 
     private fun tokenOf(result: GetCredentialResponse): String = try {
         val c = result.credential
