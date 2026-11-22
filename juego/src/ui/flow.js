@@ -2,8 +2,8 @@
 import { maybeAskReminder } from './reminder.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
-import { COUNT_STEP, FLIP_AT, GOAL, HULL_REVIVE, MINI_AT } from '../core/config.js';
-import { goal, level } from '../core/difficulty.js';
+import { COUNT_STEP, FLIP_AT, GOAL, HULL_REVIVE, HULL_SECOND, MINI_AT } from '../core/config.js';
+import { goal, hullOn, level } from '../core/difficulty.js';
 import { look } from '../core/garage.js';
 import { S, save } from '../core/profile.js';
 import { fmt } from '../core/util.js';
@@ -30,7 +30,7 @@ export function showPad(on) {
   $('nitroBtn').classList.toggle('show', nit);
   $('pauseBtn').classList.toggle('show', !!on);
   $('nitro').style.display = nit ? 'block' : 'none';
-  $('hull').style.display = !!on && G.run && G.run.mode === 'endless' ? 'block' : 'none';
+  $('hull').style.display = !!on && hullOn() ? 'block' : 'none';
   $('pad').classList.toggle('show', !!on && S.ctrl === 'btn');
   for (const k in K) K[k] = 0;
   document.querySelectorAll('#pad button').forEach((b) => b.classList.remove('on'));
@@ -186,6 +186,8 @@ function revive() {
   G.ship.shield = false;
   if (G.run.mode === 'space') spaceRevive();
   if (G.run.mode === 'endless') G.run.hull = Math.max(G.run.hull, HULL_REVIVE);
+  /* en los mundos, la segunda oportunidad empieza con una parte del casco, pagando o con anuncio */
+  else if (hullOn()) G.run.hull = HULL_SECOND;
   G.run.suck = null;
   G.run.eaten = null;
   if (G.run.blasts) G.run.blasts.length = 0;

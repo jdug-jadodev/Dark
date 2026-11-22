@@ -17,7 +17,7 @@
  *   G.run.blasts = [{ kind, x, y, r | (col, w, len), t (segundos para golpear), t0 (los que tenía),
  *                     still, linger (cuánto se queda a la vista después de golpear), hit, after }]
  */
-import { H, SPAWN, SY, W } from '../core/config.js';
+import { H, HULL_BLAST, SPAWN, SY, W } from '../core/config.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { clamp, roll, rollIn } from '../core/util.js';
@@ -96,7 +96,7 @@ export function updateBlasts(dt) {
     }
     G.shake = Math.max(G.shake, z.still ? 0.3 : 0.45);
     emit('enemyDown');
-    if (inside(z) && takeHit(z.x, z.col ? G.ship.y : z.y) === 'crash') return true;
+    if (inside(z) && takeHit(z.x, z.col ? G.ship.y : z.y, z.dmg || HULL_BLAST) === 'crash') return true;
   }
   return false;
 }

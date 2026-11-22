@@ -4,6 +4,7 @@ import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import {
   H,
+  HULL_BITE,
   SPAWN,
   SURV_BOSS_COINS,
   SURV_BOSS_HP,
@@ -301,7 +302,7 @@ function tickAtk(b, dt) {
         G.ship.tx += (b.x - G.ship.tx) * 0.7 * dt;
         /* llegó hasta arriba: la muerde y la escupe hacia atrás */
         if (G.ship.y < H * 0.42 + 16 && G.ship.inv <= 0) {
-          zone({ kind: 'bite', x: G.ship.x, y: G.ship.y, r: 44, t: 0.01 });
+          zone({ kind: 'bite', x: G.ship.x, y: G.ship.y, r: 44, t: 0.01, dmg: HULL_BITE });
           G.ship.ty += 190;
         }
       }

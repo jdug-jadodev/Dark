@@ -8,6 +8,7 @@ import { S, bootProfile, save } from './core/profile.js';
 import { noteVisit } from './core/visits.js';
 import { bootPerf } from './core/perf.js';
 import { G } from './core/state.js';
+import { takeHit } from './game/adventure.js';
 import { spawnCrater, spawnMeteor } from './game/blasts.js';
 import { spawnArch, spawnPeak, spawnPools } from './game/run.js';
 import { WORLDS, survivalMap, worldOf } from './core/worlds.js';
@@ -113,12 +114,19 @@ if (!window.THREE) {
   window.__giroPush = () => push();
   window.__giroMapIds = () => WORLDS.filter((w) => w.ready).map((w) => w.id);
   window.__giroMaps = (n) => Array.from({ length: n }, () => (survivalMap() || { id: 'espacio' }).id);
+  /* para probar el casco: un golpe directo a la nave */
+  window.__giroHit = (dmg) => {
+    G.ship.inv = 0;
+    return takeHit(G.ship.x, G.ship.y, dmg);
+  };
   window.__giroState = () => ({
     t: G.t,
     pts: G.run.pts,
     mode: G.run.mode,
     state: G.state,
     map: G.run.map ? G.run.map.id : 'espacio',
+    hull: G.run.hull,
+    revived: !!G.run.revived,
   });
   window.__giroBoss = (atk) => {
     if (atk === 'die') crash();

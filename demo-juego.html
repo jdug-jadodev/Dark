@@ -391,6 +391,14 @@ button.lchip{cursor:pointer}
 .arow{font-size:13px;padding:2px 0}
 .arow .ic{width:1.05em;height:1.05em;vertical-align:-.15em}
 .acard .btn{padding:10px;font-size:14px}
+/* Configuración: el apartado de la cuenta, separado de lo demás */
+#acctRow{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.sect{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);text-align:left;margin-bottom:8px}
+#acctOpen{margin-top:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;padding:12px}
+#acctOpen .ic{width:20px;height:20px}
+#acctOpen.ok{border-color:var(--ok);color:var(--ok)}
+.hint2{font-size:11.5px;color:var(--mute);line-height:1.4;margin-top:7px;text-align:left}
+#settingsClose{margin-top:18px}
 </style>
 </head>
 <body>
@@ -562,7 +570,9 @@ button.lchip{cursor:pointer}
           <div class="note">Un aviso al día a las 7 de la noche, solo si ese día no has jugado.</div>
         </div>
         <div id="acctRow" style="display:none">
-          <div class="ctrl"><span>Cuenta:</span><button class="opt" id="acctOpen"></button></div>
+          <div class="sect">Tu progreso</div>
+          <button class="btn alt" id="acctOpen"></button>
+          <div class="hint2" id="acctNote"></div>
         </div>
         <button class="btn" id="settingsClose">Listo</button>
       </div>
@@ -3269,7 +3279,10 @@ button.lchip{cursor:pointer}
   var HULL_KIT = 20;
   var KIT_FROM = 7;
   var KIT_EVERY = 3;
+  var HULL_BLAST = 20;
+  var HULL_BITE = 25;
   var HULL_REVIVE = 50;
+  var HULL_SECOND = 40;
   var UNCAP_LVL = 30;
   var SURV_BOSS_EVERY = 10;
   var SURV_BOSS_TIME = { mini: 45, final: 60 };
@@ -3305,43 +3318,6 @@ button.lchip{cursor:pointer}
   }
   function emit(name, data) {
     for (const fn of listeners) fn(name, data);
-  }
-
-  // src/core/difficulty.js
-  var phaseOf = (i) => G.run.world && G.run.world.phases ? { name: G.run.world.phases[i], tip: "" } : PH[i];
-  var goal = () => Math.round(GOAL * (G.run && G.run.world ? G.run.world.len : 1));
-  var prog = () => G.run.mode === "endless" ? G.t * SURV_RATE + (G.run.head || 0) : G.run.pts / goal() * 100;
-  var level = () => 1 + Math.floor(prog() / LVL);
-  var pace = () => {
-    const x = prog();
-    if (G.run.mode !== "endless" || x <= 48) return x;
-    return x <= 228 ? 48 + (x - 48) * 0.5 : 138 + (x - 228) * 0.9;
-  };
-  var ap = (y) => 1 + 1.4 * clamp(-y / SPAWN, 0, 1);
-  var speedAt = (x) => Math.min(680, 235 + Math.min(100, x) * 2.45 + Math.max(0, x - 100) * 1);
-  var intervalAt = (x) => Math.max(0.2, 0.72 - 0.42 * Math.min(1, x / 85) - clamp(x - 100, 0, 68) * 6e-4 - Math.max(0, x - 168) * 14e-4);
-  var mult = () => 1 + Math.min(3, Math.floor(G.run.combo / 3));
-  var flipping = () => G.run.rot.st >= 1 && G.run.rot.st <= 4 || G.run.mode === "boss" && G.run.flipStart !== null;
-  function enemyCap() {
-    let cap;
-    if (G.run.mode === "endless") {
-      const lv = level();
-      cap = lv >= UNCAP_LVL ? Infinity : lv < 4 ? 2 : 3;
-    } else cap = 6;
-    return flipping() ? Math.min(cap, lv30() ? 4 : 2) : cap;
-  }
-  var lv30 = () => G.run.mode === "endless" && level() >= UNCAP_LVL;
-  var survLv = () => G.run && G.run.mode === "endless" ? level() : 0;
-  var shotRest = () => 1 + clamp((survLv() - 4) * 0.12, 0, 1);
-  var heavyMax = () => survLv() ? 0.35 : 0.7;
-  var extraRock = () => 0.3 + clamp((survLv() - 12) * 0.02, 0, 0.25);
-  var thirdRock = () => {
-    const lv = survLv();
-    return lv >= 28 ? 0.3 : lv >= 22 ? 0.2 : lv >= 18 ? 0.12 : 0;
-  };
-  function chaos() {
-    const lv = survLv();
-    return lv < CHAOS_LVL ? 0 : lv < 10 ? 1 : lv < RAINBOW_LVL ? 2 : lv < FRENZY_LVL ? 3 : 4;
   }
 
   // src/core/worlds.js
@@ -3622,6 +3598,539 @@ button.lchip{cursor:pointer}
       m = maps2[pickMap(maps2.length)];
     } while (m === lastMap && maps2.length > 1);
     return lastMap = m;
+  }
+
+  // src/core/difficulty.js
+  var phaseOf = (i) => G.run.world && G.run.world.phases ? { name: G.run.world.phases[i], tip: "" } : PH[i];
+  var hullOn = () => !!G.run && G.run.mode !== "space";
+  var goal = () => Math.round(GOAL * (G.run && G.run.world ? G.run.world.len : 1));
+  var prog = () => G.run.mode === "endless" ? G.t * SURV_RATE + (G.run.head || 0) : G.run.pts / goal() * 100;
+  var level = () => 1 + Math.floor(prog() / LVL);
+  var pace = () => {
+    const x = prog();
+    if (G.run.mode !== "endless" || x <= 48) return x;
+    return x <= 228 ? 48 + (x - 48) * 0.5 : 138 + (x - 228) * 0.9;
+  };
+  var ap = (y) => 1 + 1.4 * clamp(-y / SPAWN, 0, 1);
+  var speedAt = (x) => Math.min(680, 235 + Math.min(100, x) * 2.45 + Math.max(0, x - 100) * 1);
+  var intervalAt = (x) => Math.max(0.2, 0.72 - 0.42 * Math.min(1, x / 85) - clamp(x - 100, 0, 68) * 6e-4 - Math.max(0, x - 168) * 14e-4);
+  var mult = () => 1 + Math.min(3, Math.floor(G.run.combo / 3));
+  var flipping = () => G.run.rot.st >= 1 && G.run.rot.st <= 4 || G.run.mode === "boss" && G.run.flipStart !== null;
+  function enemyCap() {
+    let cap;
+    if (G.run.mode === "endless") {
+      const lv = level();
+      cap = lv >= UNCAP_LVL ? Infinity : lv < 4 ? 2 : 3;
+    } else cap = 6;
+    return flipping() ? Math.min(cap, lv30() ? 4 : 2) : cap;
+  }
+  var lv30 = () => G.run.mode === "endless" && level() >= UNCAP_LVL;
+  var survLv = () => G.run && G.run.mode === "endless" ? level() : 0;
+  var shotRest = () => 1 + clamp((survLv() - 4) * 0.12, 0, 1);
+  var heavyMax = () => survLv() ? 0.35 : 0.7;
+  var extraRock = () => 0.3 + clamp((survLv() - 12) * 0.02, 0, 0.25);
+  var thirdRock = () => {
+    const lv = survLv();
+    return lv >= 28 ? 0.3 : lv >= 22 ? 0.2 : lv >= 18 ? 0.12 : 0;
+  };
+  function chaos() {
+    const lv = survLv();
+    return lv < CHAOS_LVL ? 0 : lv < 10 ? 1 : lv < RAINBOW_LVL ? 2 : lv < FRENZY_LVL ? 3 : 4;
+  }
+
+  // src/game/powers.js
+  var rndWeapon = () => rollPick("drop", ["twin", "twin", "twin", "heavy", "heavy", "laser", "laser", "spread"]);
+  function rndCap() {
+    return rollPick("cap", ["twin", "twin", "heavy", "laser", "spread", "shield", "shield", "orbit", "magnet", "nova"]);
+  }
+  function applyCap(type) {
+    const d2 = CAPDEF[type], s = G.ship;
+    if (type === "shield") s.shield = true;
+    else if (type === "twin" || type === "spread" || type === "heavy") {
+      s.gun = {
+        type,
+        t: GUN_T
+      };
+      s.fire = 0;
+      G.run.wpnPicks++;
+    } else if (type === "laser") {
+      s.laser = LASER_T;
+      G.run.wpnPicks++;
+    } else if (type === "orbit") s.orbit = 11;
+    else if (type === "magnet") s.mag = 9;
+    else if (type === "nova") nova();
+    let text = d2.t;
+    if (type === "repair") {
+      const g = Math.min(HULL_KIT, 100 - G.run.hull);
+      G.run.hull += g;
+      text = g > 0 ? "{wrench} +" + g + "% casco" : "{wrench} Casco al máximo";
+    }
+    emit(type === "nova" ? "nova" : "power", type);
+    G.pops.push({
+      x: s.x,
+      y: s.y - 30,
+      text,
+      life: 1.2,
+      col: d2.c
+    });
+  }
+  function nova() {
+    G.rings.push({
+      x: G.ship.x,
+      y: G.ship.y,
+      r: 10,
+      life: 0.7
+    });
+    G.shake = 0.45;
+    for (const o of G.obs) explode(o.x, o.y, "#ffb454", 6);
+    G.run.pts += Math.floor(G.obs.length * 0.5);
+    G.obs.length = 0;
+    for (const e of G.eb) explode(e.x, e.y, "#ffffff", 2);
+    G.eb.length = 0;
+    for (const e of G.en) hitEnemy(e, 6);
+    const b = liveBoss();
+    if (b) {
+      b.hp -= 25;
+      b.flash = 0.2;
+    }
+  }
+  function killRock(j) {
+    const o = G.obs[j];
+    if (o.peak) return;
+    explode(o.x, o.y, "#ffb454", 9);
+    emit("rockBreak");
+    G.obs.splice(j, 1);
+    G.run.pts += 1;
+    G.run.coins += 1;
+  }
+  function fireGun(s, g) {
+    let wait3;
+    if (g === "twin") {
+      wait3 = 0.13;
+      for (const dx of [-9, 9])
+        G.bullets.push({
+          x: s.x + dx,
+          y: s.y - 12,
+          vy: -760,
+          dmg: 1,
+          w: 3.2,
+          h: 12,
+          col: "#ffb454",
+          k: "twin"
+        });
+    } else if (g === "spread") {
+      wait3 = 0.26;
+      for (let k = -1; k <= 1; k++) {
+        const a = -Math.PI / 2 + k * 0.17;
+        G.bullets.push({
+          x: s.x,
+          y: s.y - 12,
+          vx: Math.cos(a) * 700,
+          vy: Math.sin(a) * 700,
+          dmg: 0.8,
+          w: 3.6,
+          h: 10,
+          col: "#b4ff5e",
+          k: "spread"
+        });
+      }
+    } else {
+      wait3 = 0.45;
+      G.bullets.push({
+        x: s.x,
+        y: s.y - 14,
+        vy: -600,
+        dmg: 5,
+        w: 9,
+        h: 22,
+        col: "#ff8a3c",
+        k: "heavy",
+        pierce: true
+      });
+    }
+    return wait3;
+  }
+  function updatePowers(dt) {
+    const s = G.ship;
+    for (const k of ["orbit", "laser", "mag"]) if (s[k] > 0) s[k] = Math.max(0, s[k] - dt);
+    G.run.oa += dt * 5.5;
+    G.run.obCd = Math.max(0, (G.run.obCd || 0) - dt);
+    if (s.gun) {
+      s.gun.t -= dt;
+      if (s.gun.t <= 0) {
+        s.gun = null;
+        emit("gunEmpty");
+        G.pops.push({
+          x: s.x,
+          y: s.y - 30,
+          text: "Arma agotada",
+          life: 1,
+          col: "#8fa0cc"
+        });
+      }
+    }
+    if (s.gun) {
+      s.fire -= dt;
+      if (s.fire <= 0) {
+        const g = s.gun.type;
+        emit("shot", g);
+        s.fire = fireGun(s, g);
+      }
+    }
+    const b = liveBoss();
+    if (s.laser > 0) {
+      emit("laser", 1 - s.laser / LASER_T);
+      for (let j = G.obs.length - 1; j >= 0; j--) {
+        const o = G.obs[j];
+        if (o.y < s.y && Math.abs(o.x - s.x) < o.r + 6) killRock(j);
+      }
+      for (const e of G.en) if (!e.dead && e.y < s.y && Math.abs(e.x - s.x) < e.r + 6) hitEnemy(e, dt * 9);
+      for (let j = G.eb.length - 1; j >= 0; j--) {
+        const e = G.eb[j];
+        if (e.y < s.y && Math.abs(e.x - s.x) < e.r + 6) {
+          explode(e.x, e.y, "#ff8aa6", 3);
+          G.eb.splice(j, 1);
+        }
+      }
+      if (b && Math.abs(b.x - s.x) < b.w / 2 + 6) {
+        b.hp -= dt * 10;
+        b.flash = 0.05;
+      }
+    }
+    if (s.orbit > 0) {
+      for (let k = 0; k < 3; k++) {
+        const a = G.run.oa + k * 2.0944, ox = s.x + Math.cos(a) * 34, oy = s.y + Math.sin(a) * 34;
+        for (let j = G.obs.length - 1; j >= 0; j--)
+          if (Math.hypot(G.obs[j].x - ox, G.obs[j].y - oy) < G.obs[j].r + 7) killRock(j);
+        for (let j = G.eb.length - 1; j >= 0; j--)
+          if (Math.hypot(G.eb[j].x - ox, G.eb[j].y - oy) < G.eb[j].r + 8) {
+            explode(G.eb[j].x, G.eb[j].y, "#c792ff", 4);
+            G.eb.splice(j, 1);
+          }
+        for (const e of G.en)
+          if (!e.dead && e.hitCd <= 0 && Math.hypot(e.x - ox, e.y - oy) < e.r + 7) {
+            hitEnemy(e, 2);
+            e.hitCd = 0.4;
+          }
+        if (b && G.run.obCd <= 0 && Math.abs(ox - b.x) < b.w / 2 + 7 && Math.abs(oy - b.y) < b.h / 2 + 7) {
+          b.hp -= 3;
+          b.flash = 0.08;
+          emit("bossHit");
+          G.run.obCd = 0.3;
+        }
+      }
+    }
+  }
+  function moveBullets(dt) {
+    const b = liveBoss();
+    for (let i = G.bullets.length - 1; i >= 0; i--) {
+      const q = G.bullets[i];
+      q.x += (q.vx || 0) * dt;
+      q.y += q.vy * dt;
+      let gone = q.y < -SPAWN - 30 || q.x < -20 || q.x > W + 20;
+      if (!gone && b && Math.abs(q.x - b.x) < b.w / 2 + q.w / 2 && q.y < b.y + b.h / 2 && q.y > b.y - b.h / 2) {
+        b.hp -= q.dmg;
+        b.flash = 0.08;
+        emit("bossHit");
+        if (Math.random() < 0.4) explode(q.x, q.y, "#ffb454", 3);
+        gone = true;
+      }
+      if (!gone) {
+        for (const e of G.en)
+          if (!e.dead && Math.hypot(e.x - q.x, e.y - q.y) < e.r + 4) {
+            hitEnemy(e, q.dmg || 1);
+            gone = true;
+            break;
+          }
+      }
+      if (!gone) {
+        for (let j = G.obs.length - 1; j >= 0; j--) {
+          if (Math.hypot(G.obs[j].x - q.x, G.obs[j].y - q.y) < G.obs[j].r + 4) {
+            killRock(j);
+            if (!q.pierce) gone = true;
+            break;
+          }
+        }
+      }
+      if (gone) G.bullets.splice(i, 1);
+    }
+  }
+  function updateCaps(dt) {
+    for (let i = G.caps.length - 1; i >= 0; i--) {
+      const c = G.caps[i];
+      c.y += c.vy * dt * ap(c.y);
+      if (Math.hypot(c.x - G.ship.x, c.y - G.ship.y) < 26) {
+        applyCap(c.type);
+        explode(c.x, c.y, "#ffffff", 10);
+        G.caps.splice(i, 1);
+      } else if (c.y > H + 30) G.caps.splice(i, 1);
+    }
+  }
+  function powTxt() {
+    let p = G.ship.shield ? "{shield} " : "";
+    if (G.ship.gun) p += CAPDEF[G.ship.gun.type].i + Math.ceil(G.ship.gun.t) + " ";
+    for (const [k, i] of [
+      ["laser", "{laser}"],
+      ["orbit", "{orbit}"],
+      ["mag", "{magnet}"]
+    ])
+      if (G.ship[k] > 0) p += i + Math.ceil(G.ship[k]) + " ";
+    return p;
+  }
+
+  // src/game/enemies.js
+  var inFight = () => G.run.mode === "boss" || G.run.stage === "mini";
+  function hitEnemy(e, d2) {
+    if (e.dead) return;
+    e.hp -= d2;
+    e.flash = 0.08;
+    emit(e.hp <= 0 ? "enemyDown" : "enemyHit");
+    if (e.hp <= 0) {
+      e.dead = true;
+      G.run.kills++;
+      explode(e.x, e.y, "#ff6b8a", 24);
+      explode(e.x, e.y, "#ffd54a", 10);
+      G.shake = Math.max(G.shake, 0.2);
+      const p = e.heavy ? 9 : 6;
+      G.run.pts += p;
+      G.run.coins += e.heavy ? 6 : 4;
+      G.pops.push({
+        x: e.x,
+        y: e.y,
+        text: "¡DESTRUIDA! +" + p,
+        life: 1.1,
+        col: "#ffd54a"
+      });
+      if (roll("drop") < (inFight() ? 0.5 : 0.22)) spawnCap(rndWeapon(), e.x, Math.max(e.y, 120), 110);
+    }
+  }
+  function spawnEnemy(inBoss, ex) {
+    const x = pace(), bp = G.run.boss ? G.run.boss.ph || 0 : 0;
+    const heavy2 = inBoss ? roll("enemy") < 0.3 + 0.15 * bp : x >= 35 && roll("enemy") < Math.min(heavyMax(), 0.2 + x / 250);
+    if (!G.en.length)
+      G.pops.push({
+        x: W / 2,
+        y: 60,
+        text: "¡Naves enemigas!",
+        life: 1.2,
+        col: "#ff6b8a"
+      });
+    G.en.push({
+      x: ex == null ? rollIn("enemy", 50, W - 50) : ex,
+      y: -SPAWN,
+      ty: inBoss ? rollIn("enemy", 190, 270) : rollIn("enemy", 70, 210),
+      r: heavy2 ? 17 : 13,
+      hp: heavy2 ? 6 : 3,
+      max: heavy2 ? 6 : 3,
+      heavy: heavy2,
+      t: 0,
+      life: rollIn("enemy", 7, 9),
+      fire: rollIn("enemy", 0.6, 1.2),
+      flash: 0,
+      ph: rollIn("enemy", 0, 6.28),
+      hitCd: 0,
+      dead: false
+    });
+  }
+  function spawnSquad(n) {
+    const c = rollIn("enemy", 90, W - 90);
+    for (let i = 0; i < n; i++) spawnEnemy(false, clamp(c + (i - (n - 1) / 2) * 80, 40, W - 40));
+  }
+  function enemyShoot(e) {
+    const a0 = Math.atan2(G.ship.y - e.y, G.ship.x - e.x), sp = 200 + Math.min(60, pace() * 0.6);
+    emit("enemyShot", e.heavy);
+    for (const k of e.heavy ? [-0.28, 0, 0.28] : [0])
+      G.eb.push({
+        x: e.x,
+        y: e.y + e.r,
+        vx: Math.cos(a0 + k) * sp,
+        vy: Math.sin(a0 + k) * sp,
+        r: 6,
+        col: G.run.world ? e.heavy ? G.run.world.shotHeavy : G.run.world.shot : e.heavy ? "#ffb454" : "#ff6b8a"
+      });
+  }
+  function updateEnemies(dt) {
+    G.en = G.en.filter((e) => !e.dead);
+    for (let i = G.en.length - 1; i >= 0; i--) {
+      const e = G.en[i];
+      e.t += dt;
+      e.life -= dt;
+      e.flash = Math.max(0, e.flash - dt);
+      e.hitCd -= dt;
+      if (e.life > 0) {
+        e.y += (e.ty - e.y) * Math.min(1, dt * 1.6);
+        e.x = clamp(e.x + Math.cos(e.t * 1.5 + e.ph) * (e.heavy ? 65 : 100) * dt, 28, W - 28);
+        e.fire -= dt;
+        if (e.fire <= 0 && e.y > 25) {
+          e.fire = (e.heavy ? 1.8 : 1.25) * rollIn("shot", 0.85, 1.15) * (flipping() ? 1.6 : 1) * shotRest();
+          enemyShoot(e);
+        }
+      } else {
+        e.y -= 190 * dt * ap(e.y);
+        if (e.y < -SPAWN - 40) {
+          G.en.splice(i, 1);
+          continue;
+        }
+      }
+      if (Math.hypot(e.x - G.ship.x, e.y - G.ship.y) < e.r + G.ship.r * 0.8) {
+        const res = takeHit(e.x, e.y, HULL_SHIP);
+        if (res === "crash") return true;
+        if (res === "absorbed") hitEnemy(e, 3);
+      }
+    }
+    return false;
+  }
+  function updateEB(dt) {
+    for (let i = G.eb.length - 1; i >= 0; i--) {
+      const e = G.eb[i];
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      if (e.y > H + 20 || e.y < -SPAWN - 60 || e.x < -30 || e.x > W + 30) {
+        G.eb.splice(i, 1);
+        continue;
+      }
+      if (Math.hypot(e.x - G.ship.x, e.y - G.ship.y) - e.r - G.ship.r * 0.7 <= 0) {
+        const res = takeHit(e.x, e.y);
+        if (res === "crash") return true;
+        if (res === "absorbed") G.eb.splice(i, 1);
+      }
+    }
+    return false;
+  }
+
+  // src/game/screenfx.js
+  var REST = [null, [8, 11], [6, 8.5], [4, 5.5], [2.5, 3.5]];
+  var TURB_EVERY = [null, [10, 15], [8, 12], [5, 8], [3, 5.5]];
+  var SPIN_EVERY = [null, [22, 32], [15, 22], [10, 14], [6, 9]];
+  var SPIN_DUR = [0, 2.6, 2.2, 1.8, 1.5];
+  var FLIP_EVERY = [40, 75, 60, 45, 40];
+  var pickIn = (r) => rollIn("fx", r[0], r[1]);
+  var spinning = () => G.run.spin.t >= 0;
+  var free = (c) => !c || G.run.calm <= 0 && !G.run.bossDue && !spinning() && G.run.wb.t < 0 && G.run.rot.st === 0;
+  var rest = (c) => {
+    if (c) G.run.calm = pickIn(REST[c]);
+  };
+  function runAngle(dt, x) {
+    const c = chaos();
+    if (c && G.run.calm > 0) G.run.calm -= dt;
+    const r = baseAngle(dt, x, c);
+    r.a += spinAngle(dt, c);
+    return r;
+  }
+  function baseAngle(dt, x, c) {
+    const R2 = G.run.rot, B = G.run.wb;
+    let a = 0, w = false, txt = "¡GIRA EL CELU!";
+    if (R2.st === 0 && x >= R2.at && B.t < 0 && free(c)) {
+      R2.st = 1;
+      R2.t = 0;
+    }
+    if (R2.st >= 1 && R2.st <= 4) {
+      R2.t += dt;
+      if (R2.st === 1) {
+        w = true;
+        if (R2.t >= 2.2) {
+          R2.st = 2;
+          R2.t = 0;
+        }
+      } else if (R2.st === 2) {
+        a = Math.PI * ease(Math.min(1, R2.t / 1.6));
+        if (R2.t >= 1.6) {
+          R2.st = 3;
+          R2.t = 0;
+        }
+      } else if (R2.st === 3) {
+        a = Math.PI;
+        if (R2.t > 8) {
+          w = true;
+          txt = "¡VUELVE A LA NORMALIDAD!";
+        }
+        if (R2.t >= 10) {
+          R2.st = 4;
+          R2.t = 0;
+        }
+      } else if (R2.st === 4) {
+        a = Math.PI * (1 - ease(Math.min(1, R2.t / 1.6)));
+        if (R2.t >= 1.6) {
+          R2.st = G.run.mode === "endless" ? 0 : 5;
+          R2.at = x + FLIP_EVERY[c];
+          R2.t = 0;
+          B.next = Math.max(B.next, 4);
+          rest(c);
+        }
+      }
+      return {
+        a,
+        w,
+        txt
+      };
+    }
+    if (x >= WOB_AT) {
+      const late = x >= 75;
+      if (B.t < 0) {
+        B.next -= dt;
+        if (B.next <= 0 && free(c)) {
+          B.t = 0;
+          B.dur = c ? rollIn("fx", 4, 6) : late ? rollIn("fx", 6, 8) : rollIn("fx", 5, 7);
+          B.n++;
+          emit("turbulence");
+          G.pops.push({
+            x: W / 2,
+            y: 140,
+            text: G.run.world && G.run.world.shake || "¡TURBULENCIA!",
+            life: 1.4,
+            col: "#c792ff"
+          });
+        }
+      } else {
+        B.t += dt;
+        const env = Math.sin(Math.PI * Math.min(1, B.t / B.dur));
+        const sway2 = c ? Math.min(0.6, 0.22 + (survLv() - 5) * 0.015) : late ? Math.min(0.62, 0.5 + Math.max(0, x - 100) * 2e-3) : 0.36;
+        a = Math.sin(B.t * 1.7) * sway2 * env;
+        if (B.t >= B.dur) {
+          B.t = -1;
+          B.next = c ? pickIn(TURB_EVERY[c]) : late ? Math.max(3, rollIn("fx", 5, 8) - Math.max(0, x - 100) * 0.01) : rollIn("fx", 9, 13);
+          rest(c);
+        }
+      }
+    }
+    return {
+      a,
+      w,
+      txt
+    };
+  }
+  function spinAngle(dt, c) {
+    if (!c) return 0;
+    const P = G.run.spin;
+    if (P.t < 0) {
+      P.next -= dt;
+      if (P.next > 0 || !free(c)) return 0;
+      if (G.obs.some((o) => o.wall)) {
+        P.next = 0.5;
+        return 0;
+      }
+      P.t = 0;
+      P.dir = roll("fx") < 0.5 ? -1 : 1;
+      P.turns = c >= 4 && roll("fx") < 0.25 ? 2 : 1;
+      P.dur = SPIN_DUR[c] * (P.turns === 2 ? 1.6 : 1);
+      emit("spin");
+      G.pops.push({
+        x: W / 2,
+        y: 140,
+        text: P.turns === 2 ? "¡DOBLE GIRO!" : "¡GIRO 360°!",
+        life: 1.2,
+        col: "#ffd54a"
+      });
+    }
+    P.t += dt;
+    const k = P.t / P.dur;
+    if (k >= 1) {
+      P.t = -1;
+      P.next = pickIn(SPIN_EVERY[c]);
+      rest(c);
+      return 0;
+    }
+    return P.dir * P.turns * 2 * Math.PI * ease(k);
   }
 
   // src/ui/icons.js
@@ -12226,9 +12735,11 @@ void main() {`;
   }
   var accountOffer = () => accountAvailable() && !signedIn() && !S.acctSeen && (S.runs || 0) >= 3;
   function renderAccountRow() {
-    const row = $("acctRow");
-    row.style.display = accountAvailable() ? "" : "none";
-    $("acctOpen").innerHTML = T(signedIn() ? "{check} Guardado en tu cuenta" : "{cloud} Guardar mi progreso");
+    const on3 = signedIn();
+    $("acctRow").style.display = accountAvailable() ? "" : "none";
+    $("acctOpen").innerHTML = T(on3 ? "{check} Guardado en tu cuenta" : "{cloud} Guardar mi progreso");
+    $("acctOpen").classList.toggle("ok", on3);
+    $("acctNote").textContent = on3 ? "Se sube solo cada vez que juegas. Toca para ver cuándo se guardó o cerrar sesión." : "Entra con Google para no perderlo si cambias de teléfono o reinstalas el juego.";
   }
   var WHY = {
     net: "No se pudo conectar. Revisa tu internet e intenta de nuevo.",
@@ -13149,12 +13660,8 @@ void main() {`;
     put2("hCoins", "{coin} " + G.run.coins);
     put2("hCombo", G.run.combo > 0 ? "{fire} x" + mult() + " · " + G.run.combo : "");
     put2("hPow", powTxt() || (prog() >= 5 ? "sin arma" : ""));
+    hullBar();
     if (G.run.mode === "endless") {
-      const hp = Math.ceil(G.run.hull), hf = $("hullFill");
-      hf.style.width = hp + "%";
-      hf.style.background = hp > 60 ? "#6ef2a5" : hp > 30 ? "#ffb454" : "#ff6b8a";
-      put2("hullTxt", "{shield} CASCO " + hp + "%");
-      $("hull").classList.toggle("low", hp <= 30);
       const best = (S.topTimes || [])[0];
       put2("hTime", "{timer} " + fmt(G.t));
       const rival = G.run.duel && G.run.duel.rival;
@@ -13183,8 +13690,16 @@ void main() {`;
       );
     }
   }
+  function hullBar() {
+    const hp = Math.ceil(G.run.hull), hf = $("hullFill");
+    hf.style.width = hp + "%";
+    hf.style.background = hp > 60 ? "#6ef2a5" : hp > 30 ? "#ffb454" : "#ff6b8a";
+    put2("hullTxt", "{shield} CASCO " + hp + "%");
+    $("hull").classList.toggle("low", hp <= 30);
+  }
   function hudBoss() {
     const b = G.run.boss;
+    hullBar();
     put2("hCoins", "{coin} " + G.run.coins);
     put2("hCombo", "");
     put2("hPow", powTxt() || "sin arma");
@@ -13398,35 +13913,6 @@ void main() {`;
       life: 1,
       col: "#4fc3ff"
     });
-  }
-
-  // src/game/ship.js
-  function dragBy(dx, dy) {
-    if (!G.ship) return;
-    if (G.run && G.run.mode === "space") {
-      spaceDrag(dx, dy);
-      return;
-    }
-    const c = Math.cos(G.angle), s = Math.sin(G.angle), u = W / G.cw * SENS;
-    const ux = (dx * c + dy * s) * u, uy = (-dx * s + dy * c) * u;
-    G.ship.tx = clamp(G.ship.tx + ux, 14, W - 14);
-    G.ship.ty = clamp(G.ship.ty + uy, H * 0.42, SY + 15);
-  }
-  function followPointer(dt) {
-    if (G.run.mode === "space") {
-      spaceFollow(dt);
-      return;
-    }
-    const kx = K.right - K.left, ky = K.down - K.up;
-    if (kx || ky) {
-      const pps = BTN_SPEED / (W / G.cw * SENS);
-      dragBy(kx * pps * dt, ky * pps * dt);
-    }
-    G.ship.tx = clamp(G.ship.tx, 14, W - 14);
-    G.ship.ty = clamp(G.ship.ty, H * 0.42, SY + 15);
-    const k = Math.min(1, dt * G.ship.follow);
-    G.ship.x += (G.ship.tx - G.ship.x) * k;
-    G.ship.y += (G.ship.ty - G.ship.y) * k;
   }
 
   // src/ui/mapThumbs.js
@@ -14956,7 +15442,7 @@ void main() {`;
     $("nitroBtn").classList.toggle("show", nit);
     $("pauseBtn").classList.toggle("show", !!on3);
     $("nitro").style.display = nit ? "block" : "none";
-    $("hull").style.display = !!on3 && G.run && G.run.mode === "endless" ? "block" : "none";
+    $("hull").style.display = !!on3 && hullOn() ? "block" : "none";
     $("pad").classList.toggle("show", !!on3 && S.ctrl === "btn");
     for (const k in K) K[k] = 0;
     document.querySelectorAll("#pad button").forEach((b) => b.classList.remove("on"));
@@ -15084,6 +15570,7 @@ void main() {`;
     G.ship.shield = false;
     if (G.run.mode === "space") spaceRevive();
     if (G.run.mode === "endless") G.run.hull = Math.max(G.run.hull, HULL_REVIVE);
+    else if (hullOn()) G.run.hull = HULL_SECOND;
     G.run.suck = null;
     G.run.eaten = null;
     if (G.run.blasts) G.run.blasts.length = 0;
@@ -15429,6 +15916,547 @@ void main() {`;
       }
   }
 
+  // src/game/ship.js
+  function dragBy(dx, dy) {
+    if (!G.ship) return;
+    if (G.run && G.run.mode === "space") {
+      spaceDrag(dx, dy);
+      return;
+    }
+    const c = Math.cos(G.angle), s = Math.sin(G.angle), u = W / G.cw * SENS;
+    const ux = (dx * c + dy * s) * u, uy = (-dx * s + dy * c) * u;
+    G.ship.tx = clamp(G.ship.tx + ux, 14, W - 14);
+    G.ship.ty = clamp(G.ship.ty + uy, H * 0.42, SY + 15);
+  }
+  function followPointer(dt) {
+    if (G.run.mode === "space") {
+      spaceFollow(dt);
+      return;
+    }
+    const kx = K.right - K.left, ky = K.down - K.up;
+    if (kx || ky) {
+      const pps = BTN_SPEED / (W / G.cw * SENS);
+      dragBy(kx * pps * dt, ky * pps * dt);
+    }
+    G.ship.tx = clamp(G.ship.tx, 14, W - 14);
+    G.ship.ty = clamp(G.ship.ty, H * 0.42, SY + 15);
+    const k = Math.min(1, dt * G.ship.follow);
+    G.ship.x += (G.ship.tx - G.ship.x) * k;
+    G.ship.y += (G.ship.ty - G.ship.y) * k;
+  }
+
+  // src/game/boss.js
+  var liveBoss = () => G.run.boss && !G.run.boss.dead && G.run.boss.intro <= 0 ? G.run.boss : null;
+  function newBoss(kind) {
+    const mini = kind === "mini";
+    return {
+      kind,
+      x: W / 2,
+      tx: W / 2,
+      y: -SPAWN,
+      hp: mini ? 140 : 300,
+      max: mini ? 140 : 300,
+      flash: 0,
+      w: mini ? 84 : 104,
+      h: mini ? 50 : 62,
+      dead: false,
+      intro: 2.4,
+      t: 0,
+      ph: 0,
+      atk: null,
+      rest: 1,
+      last: "",
+      moveT: 1,
+      wpT: 1.2,
+      enT: 6
+    };
+  }
+  function initBoss() {
+    const b = G.run.boss = newBoss("final"), w = G.run.world;
+    if (w) {
+      b.name = w.boss.name;
+      b.look = w.boss.look;
+      b.form = w.boss.form;
+      if (b.form) {
+        b.w = 150;
+        b.h = 80;
+      }
+      b.sig = w.boss.sig;
+      b.hp = b.max = Math.round(b.max * w.boss.hp);
+    }
+    G.run.bt = 0;
+    G.run.flipStart = null;
+    G.run.flipped = false;
+  }
+  var ATK_POOL = {
+    mini: [
+      ["fan", "aimed", "rain"],
+      ["fan", "aimed", "rain", "ring"]
+    ],
+    final: [
+      ["fan", "aimed", "rain", "ring"],
+      ["fan", "aimed", "rain", "ring", "wall", "spiral"],
+      ["aimed", "rain", "ring", "wall", "spiral", "cross", "burst"]
+    ]
+  };
+  function shoot(x, y, a, sp, r, col) {
+    G.eb.push({
+      x,
+      y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp,
+      r,
+      col
+    });
+  }
+  function startAtk(b) {
+    const own = b.sig && !b.sig.includes(b.last) ? b.sig : null, pool = own || ATK_POOL[b.kind][Math.min(b.ph, ATK_POOL[b.kind].length - 1)];
+    let k;
+    do {
+      k = rollPick("boss", pool);
+    } while (k === b.last && pool.length > 1);
+    b.last = k;
+    b.atk = {
+      k,
+      t: 0,
+      acc: 0,
+      a: rollIn("boss", 0, 6.28),
+      dir: roll("boss") < 0.5 ? 1 : -1,
+      done: false,
+      n: 0
+    };
+    if (own) emit("bossCharge");
+    if (k === "burst") {
+      emit("bossCharge");
+      G.pops.push({
+        x: b.x,
+        y: b.y + 60,
+        text: "¡CUIDADO!",
+        life: 1,
+        col: "#ffffff"
+      });
+    }
+  }
+  function tickAtk(b, dt) {
+    const A = b.atk, ph = b.ph, sm = (b.kind === "mini" ? 0.85 : 1) * (1 + ph * 0.12), bx = b.x, by = b.y + 30;
+    A.t += dt;
+    A.acc -= dt;
+    let dur = 1.5;
+    const shotsBefore = G.eb.length;
+    switch (A.k) {
+      case "fan":
+        dur = 1.4;
+        if (A.acc <= 0) {
+          A.acc = 0.65;
+          const n = 5 + ph * 2;
+          for (let i = 0; i < n; i++)
+            shoot(
+              bx,
+              by,
+              Math.PI / 2 + (i - (n - 1) / 2) * (1.2 / (n - 1)) + rollIn("boss", -0.06, 0.06),
+              190 * sm,
+              7,
+              "#ff6b8a"
+            );
+        }
+        break;
+      case "aimed":
+        dur = 1.8;
+        if (A.acc <= 0) {
+          A.acc = 0.45;
+          const a0 = Math.atan2(G.ship.y - by, G.ship.x - bx);
+          for (let k = -1; k <= 1; k++) shoot(bx, by, a0 + k * 0.14, 240 * sm, 6, "#ffd54a");
+        }
+        break;
+      case "rain":
+        dur = 2.4;
+        if (A.acc <= 0) {
+          A.acc = 0.1 - 0.02 * ph;
+          shoot(
+            rollIn("boss", 15, W - 15),
+            b.y + 10,
+            Math.PI / 2 + rollIn("boss", -0.1, 0.1),
+            rollIn("boss", 150, 220) * sm,
+            6,
+            "#6ef2a5"
+          );
+        }
+        break;
+      case "ring":
+        dur = 1.7;
+        if (A.acc <= 0) {
+          A.acc = 0.8;
+          const n = 14 + ph * 2;
+          A.a += 0.2;
+          for (let i = 0; i < n; i++) shoot(bx, b.y, A.a + i / n * 6.283, 150 * sm, 6, "#78e6ff");
+        }
+        break;
+      case "wall":
+        dur = 2.2;
+        if (A.acc <= 0) {
+          A.acc = 1.1;
+          const gx = rollIn("boss", 70, W - 70);
+          for (let x = 15; x < W; x += 30) {
+            if (Math.abs(x - gx) < 62) continue;
+            G.eb.push({
+              x,
+              y: b.y + 40,
+              vx: 0,
+              vy: 150 * sm,
+              r: 9,
+              col: "#ffb454"
+            });
+          }
+          G.pops.push({
+            x: W / 2,
+            y: 220,
+            text: "¡Sigue el camino!",
+            life: 1.2,
+            col: "#ffb454"
+          });
+        }
+        break;
+      case "spiral":
+        dur = 2.6;
+        if (A.acc <= 0) {
+          A.acc = 0.07;
+          A.a += 0.45 * A.dir;
+          for (const arm of [0, Math.PI]) shoot(bx, b.y, A.a + arm, 160 * sm, 6, "#c792ff");
+        }
+        break;
+      case "cross":
+        dur = 2.2;
+        if (A.acc <= 0) {
+          A.acc = 0.22;
+          A.a += 0.25 * A.dir;
+          for (let k = 0; k < 4; k++) shoot(bx, b.y, A.a + k * Math.PI / 2, 180 * sm, 7, "#ff8a3c");
+        }
+        break;
+      /* ---- los ataques propios de cada jefe de mundo: avisan en el suelo y luego golpean ---- */
+      case "spikes":
+        dur = 3;
+        if (A.acc <= 0 && A.n < 2 + ph) {
+          A.acc = 0.85;
+          A.n++;
+          const gap2 = rollIn("boss", 60, W - 60), y = clamp(G.ship.y + rollIn("boss", -45, 45), H * 0.46, SY);
+          for (let x = 24; x < W; x += 48)
+            if (Math.abs(x - gap2) > 56) zone({ kind: "spike", x, y, r: 26, t: 1.15, linger: 0.5 });
+        }
+        break;
+      case "meteors":
+        dur = 3;
+        if (A.acc <= 0 && A.t < 2.2) {
+          A.acc = 0.5 - 0.08 * ph;
+          zone({
+            kind: "meteor",
+            x: clamp(G.ship.x + rollIn("boss", -75, 75), 36, W - 36),
+            y: clamp(G.ship.y + rollIn("boss", -70, 40), H * 0.44, SY + 10),
+            r: 36,
+            t: 1.25,
+            side: roll("boss") < 0.5 ? -1 : 1
+          });
+        }
+        break;
+      case "craters":
+        dur = 3.4;
+        if (!A.done) {
+          A.done = true;
+          const n = 5 + ph * 2;
+          for (let i = 0; i < n; i++)
+            zone({
+              kind: "crater",
+              x: i ? rollIn("boss", 40, W - 40) : G.ship.x,
+              y: i ? rollIn("boss", H * 0.44, SY + 10) : G.ship.y,
+              r: rollIn("boss", 38, 50),
+              t: 1.3 + i * 0.26
+            });
+        }
+        break;
+      case "strike":
+        dur = 3;
+        if (A.acc <= 0 && A.n < 2 + (ph ? 1 : 0)) {
+          A.acc = 0.95;
+          A.n++;
+          const lanes = 5, lw = W / lanes, free2 = Math.floor(roll("boss") * lanes), free22 = ph < 2 ? (free2 + 1 + Math.floor(roll("boss") * (lanes - 1))) % lanes : -1;
+          for (let l = 0; l < lanes; l++)
+            if (l !== free2 && l !== free22)
+              zone({ kind: "beam", col: true, x: (l + 0.5) * lw, w: lw / 2 - 4, t: 1.1, linger: 0.3 });
+        }
+        break;
+      case "tentacle":
+        dur = 3.2;
+        if (A.acc <= 0 && A.n < 3 + ph) {
+          A.acc = 0.72 - 0.08 * ph;
+          A.n++;
+          zone({
+            kind: "tentacle",
+            col: true,
+            x: clamp(G.ship.x + rollIn("boss", -22, 22), 30, W - 30),
+            w: 24,
+            t: 1.05,
+            linger: 0.45
+          });
+        }
+        break;
+      case "pull":
+        dur = 3.8;
+        if (!A.done) {
+          A.done = true;
+          G.pops.push({ x: W / 2, y: 230, text: "¡TE TRAGA! Tira hacia atrás", life: 1.6, col: "#ff8a3c" });
+        }
+        b.pull = A.t < 3.3 ? Math.min(1, A.t / 0.4) : 0;
+        if (b.pull) {
+          G.ship.ty -= (150 + 35 * ph) * b.pull * dt;
+          G.ship.tx += (b.x - G.ship.tx) * 0.7 * dt;
+          if (G.ship.y < H * 0.42 + 16 && G.ship.inv <= 0) {
+            zone({ kind: "bite", x: G.ship.x, y: G.ship.y, r: 44, t: 0.01, dmg: HULL_BITE });
+            G.ship.ty += 190;
+          }
+        }
+        break;
+      case "burst":
+        dur = 1.3;
+        if (A.t >= 0.6 && !A.done) {
+          A.done = true;
+          b.flash = 0.15;
+          const n = 26;
+          for (let i = 0; i < n; i++) shoot(bx, b.y, i / n * 6.283, rollIn("boss", 120, 230) * sm, 6, "#ffffff");
+        }
+        break;
+    }
+    if (G.eb.length > shotsBefore) emit("bossShot");
+    if (A.t >= dur) {
+      b.atk = null;
+      b.pull = 0;
+      b.rest = rollIn("boss", 0.3, 0.9) / (1 + 0.25 * ph) * (b.kind === "mini" ? 1.15 : 1);
+    }
+  }
+  function bossTick(dt) {
+    const b = G.run.boss;
+    b.flash = Math.max(0, b.flash - dt);
+    if (b.intro > 0) {
+      b.intro -= dt;
+      b.y += (92 - b.y) * Math.min(1, dt * 2.2);
+      b.x += (W / 2 - b.x) * Math.min(1, dt * 2);
+      return;
+    }
+    b.t += dt;
+    const r = b.hp / b.max;
+    b.ph = b.kind === "mini" ? r > 0.5 ? 0 : 1 : r > 0.66 ? 0 : r > 0.33 ? 1 : 2;
+    b.moveT -= dt;
+    if (b.moveT <= 0) {
+      b.moveT = rollIn("boss", 1.6, 3) / (1 + 0.25 * b.ph);
+      b.tx = rollIn("boss", 70, W - 70);
+    }
+    b.x += (b.tx - b.x) * Math.min(1, dt * (1.1 + b.ph * 0.5));
+    b.y = 92 + Math.sin(b.t * 1.3) * 8;
+    if (b.atk) tickAtk(b, dt);
+    else {
+      b.rest -= dt;
+      if (b.rest <= 0) startAtk(b);
+    }
+    const armed = !!G.ship.gun || G.ship.laser > 0;
+    if (!armed && b.wpT > 4 && !G.caps.some((c) => WEAPONS.includes(c.type))) b.wpT = 4;
+    b.wpT -= dt;
+    if (b.wpT <= 0) {
+      b.wpT = armed ? rollIn("boss", 8, 11) : 4;
+      const tp = roll("boss") < 0.75 ? rndWeapon() : rollPick("boss", ["shield", "orbit", "nova"]);
+      spawnCap(tp, clamp(G.ship.x + rollIn("boss", -80, 80), 40, W - 40), 170, 105);
+    }
+    if (b.kind === "final") {
+      b.enT -= dt;
+      if (b.enT <= 0) {
+        b.enT = rollIn("boss", 4.5, 6.5) / (1 + 0.3 * b.ph);
+        if (G.en.length < 3 + b.ph) spawnEnemy(true);
+      }
+    }
+  }
+  function startMini() {
+    G.run.stage = "mini";
+    G.run.boss = newBoss("mini");
+    G.run.wb.t = -1;
+    for (const e of G.en) e.life = Math.min(e.life, 0);
+    $("hud").classList.add("boss");
+    showToast("¡JEFE INTERMEDIO!", "Vigía Ámbar · recoge armas y derríbalo");
+    emit("bossIntro");
+  }
+  function endMini() {
+    const b = G.run.boss;
+    explode(b.x, b.y, "#ffb454", 50);
+    explode(b.x, b.y, "#ffffff", 20);
+    G.shake = 0.7;
+    emit("bossDown");
+    G.eb.length = 0;
+    G.run.boss = null;
+    G.run.stage = "run";
+    G.run.miniDone = true;
+    G.run.pts += 30;
+    G.run.coins += 20;
+    G.run.spawnT = 1.5;
+    G.run.enT = 5;
+    $("hud").classList.remove("boss");
+    G.pops.push({
+      x: W / 2,
+      y: 240,
+      text: "¡JEFE DERROTADO! +30 · +20 {coin}",
+      life: 1.8,
+      col: "#ffd54a"
+    });
+    spawnCap("shield", W / 2, 200, 110);
+  }
+  var NAME = { mini: "Vigía Ámbar", final: "Centinela del Vacío" };
+  var bossName = (b) => NAME[b.kind];
+  var survBossFree = () => G.run.rot.st === 0 && G.run.wb.t < 0 && !spinning() && !G.run.comets.length && !G.obs.some((o) => o.wall);
+  function startSurvBoss() {
+    const R2 = G.run, n = ++R2.bossNo, kind = n % 2 ? "mini" : "final", round = Math.floor((n - 1) / 2), b = newBoss(kind);
+    b.hp = b.max = Math.round(b.max * (SURV_BOSS_HP + 0.25 * round));
+    b.prize = Math.round(SURV_BOSS_COINS[kind] * (1 + 0.5 * round));
+    b.lv = R2.bossDue;
+    R2.boss = b;
+    R2.bossLeft = SURV_BOSS_TIME[kind];
+    R2.bossDue = 0;
+    R2.stage = "mini";
+    for (const e of G.en) e.life = Math.min(e.life, 0);
+    $("hud").classList.add("boss");
+    showToast("¡JEFE DEL NIVEL " + b.lv + "!", NAME[kind] + " · derríbalo antes de que se vaya");
+    emit("bossIntro");
+  }
+  function survBossTick(dt) {
+    const R2 = G.run, b = R2.boss;
+    R2.head -= dt * SURV_RATE;
+    bossTick(dt);
+    if (b.intro > 0) return;
+    R2.bossLeft -= dt;
+    if (b.hp <= 0) endSurvBoss(true);
+    else if (R2.bossLeft <= 0) endSurvBoss(false);
+  }
+  function endSurvBoss(win) {
+    const R2 = G.run, b = R2.boss;
+    if (win) {
+      explode(b.x, b.y, "#ffb454", 50);
+      explode(b.x, b.y, "#ffffff", 20);
+      G.shake = 0.7;
+      emit("bossDown");
+      R2.bossKills++;
+      R2.coins += b.prize;
+      R2.pts += 30;
+      const fix = Math.min(SURV_BOSS_REPAIR, 100 - R2.hull);
+      R2.hull += fix;
+      G.pops.push({
+        x: W / 2,
+        y: 240,
+        text: "¡JEFE DERROTADO! +" + b.prize + " {coin}" + (fix ? " · {wrench} +" + fix + "%" : ""),
+        life: 1.8,
+        col: "#ffd54a"
+      });
+      spawnCap("shield", W / 2, 200, 110);
+    } else {
+      explode(b.x, b.y, "#9fb0e0", 18);
+      emit("phase");
+      G.pops.push({ x: W / 2, y: 240, text: "El jefe se retiró", life: 1.6, col: "#9aa8cc" });
+    }
+    G.eb.length = 0;
+    R2.boss = null;
+    R2.stage = "run";
+    R2.spawnT = 1.5;
+    R2.enT = 5;
+    R2.calm = Math.max(R2.calm, 4);
+    R2.cometT = Math.max(R2.cometT, 4);
+    $("hud").classList.remove("boss");
+  }
+  function beginBoss() {
+    $("warn").classList.remove("show");
+    G.obs.length = 0;
+    G.en.length = 0;
+    G.eb.length = 0;
+    G.coins.length = 0;
+    G.caps.length = 0;
+    G.bullets.length = 0;
+    G.run.portals.length = 0;
+    G.run.holes.length = 0;
+    G.run.blasts.length = 0;
+    G.run.suck = null;
+    G.run.mode = "boss";
+    initBoss();
+    G.run.phase = -1;
+    G.angle = 0;
+    $("hud").classList.add("boss");
+    showToast(G.run.world ? "¡EL JEFE DE ESTE MUNDO!" : "¡JEFE FINAL!", G.run.boss.name || "Centinela del Vacío");
+    emit("bossIntro");
+  }
+  function updateBoss(dt) {
+    const b = G.run.boss;
+    if (b.intro > 0) {
+      bossTick(dt);
+      G.angle *= 0.85;
+      followPointer(dt);
+      updatePowers(dt);
+      moveBullets(dt);
+      updateCaps(dt);
+      return;
+    }
+    G.run.bt += dt;
+    const bt = G.run.bt;
+    G.t = bt;
+    const r = b.hp / b.max, ph = r > 0.66 ? 0 : r > 0.33 ? 1 : 2;
+    if (ph !== G.run.phase) {
+      if (G.run.phase !== -1)
+        showToast(
+          "Fase " + (ph + 1) + " de 3",
+          ["", "Ataques nuevos y naves de apoyo", "¡Todo vale! No te detengas"][ph]
+        );
+      if (G.run.phase !== -1) emit("phase");
+      G.run.phase = ph;
+    }
+    if (r < 0.5 && G.run.flipStart === null && !G.run.flipped) {
+      G.run.flipped = true;
+      G.run.flipStart = bt + 1.5;
+    }
+    let ang = 0, warn = false, wtxt = "¡GIRA EL CELU!";
+    if (G.run.flipStart !== null) {
+      const x = bt - G.run.flipStart;
+      if (x < 0) warn = true;
+      else if (x < 1.6) ang = Math.PI * ease(x / 1.6);
+      else if (x < 8.6) {
+        ang = Math.PI;
+        if (x > 7.1) {
+          warn = true;
+          wtxt = "¡VUELVE A LA NORMALIDAD!";
+        }
+      } else if (x < 10.2) ang = Math.PI * (1 - ease((x - 8.6) / 1.6));
+      else G.run.flipStart = null;
+    }
+    if (ang === 0 && r < 0.25) ang = Math.sin(bt * 0.9) * 0.32 * Math.min(1, (0.25 - r) / 0.1);
+    G.angle = ang;
+    $("warnTxt").textContent = wtxt;
+    $("warn").classList.toggle("show", warn);
+    if (warn) emit("alarm");
+    followPointer(dt);
+    updatePowers(dt);
+    G.ship.inv = Math.max(0, G.ship.inv - dt);
+    bossTick(dt);
+    if (G.run.blasts.length && updateBlasts(dt)) return;
+    moveBullets(dt);
+    if (updateEnemies(dt)) return;
+    if (updateEB(dt)) return;
+    updateCaps(dt);
+    if (b.hp <= 0 && !b.dead) {
+      b.hp = 0;
+      b.dead = true;
+      G.state = "victory";
+      G.shake = 0.9;
+      emit("bossDown");
+      G.eb.length = 0;
+      G.run.blasts.length = 0;
+      b.pull = 0;
+      for (const e of G.en) hitEnemy(e, 99);
+      explode(b.x, b.y, "#ff6b8a", 60);
+      explode(b.x, b.y, "#ffd54a", 40);
+      $("warn").classList.remove("show");
+      after(1.3, () => finishBoss(true));
+    }
+  }
+
   // src/game/run.js
   function newRun(mode) {
     const seed = mode === "endless" && G.nextSeed != null ? G.nextSeed >>> 0 : null;
@@ -15748,1011 +16776,70 @@ void main() {`;
     if (G.state !== "play" && G.state !== "paused") G.angle *= 0.9;
   }
 
-  // src/game/powers.js
-  var rndWeapon = () => rollPick("drop", ["twin", "twin", "twin", "heavy", "heavy", "laser", "laser", "spread"]);
-  function rndCap() {
-    return rollPick("cap", ["twin", "twin", "heavy", "laser", "spread", "shield", "shield", "orbit", "magnet", "nova"]);
-  }
-  function applyCap(type) {
-    const d2 = CAPDEF[type], s = G.ship;
-    if (type === "shield") s.shield = true;
-    else if (type === "twin" || type === "spread" || type === "heavy") {
-      s.gun = {
-        type,
-        t: GUN_T
-      };
-      s.fire = 0;
-      G.run.wpnPicks++;
-    } else if (type === "laser") {
-      s.laser = LASER_T;
-      G.run.wpnPicks++;
-    } else if (type === "orbit") s.orbit = 11;
-    else if (type === "magnet") s.mag = 9;
-    else if (type === "nova") nova();
-    let text = d2.t;
-    if (type === "repair") {
-      const g = Math.min(HULL_KIT, 100 - G.run.hull);
-      G.run.hull += g;
-      text = g > 0 ? "{wrench} +" + g + "% casco" : "{wrench} Casco al máximo";
-    }
-    emit(type === "nova" ? "nova" : "power", type);
-    G.pops.push({
-      x: s.x,
-      y: s.y - 30,
-      text,
-      life: 1.2,
-      col: d2.c
+  // src/game/blasts.js
+  function spawnMeteor(M) {
+    const x = clamp(G.ship.x + rollIn("blast", -55, 55), M.r, W - M.r), land2 = clamp(G.ship.y + rollIn("blast", -50, 30), H * 0.45, SY + 10);
+    G.run.blasts.push({
+      kind: "meteor",
+      x,
+      y: land2 - G.run.sp * M.fuse,
+      // el punto marcado viaja con la pista y llega justo cuando cae
+      r: M.r,
+      t: M.fuse,
+      t0: M.fuse,
+      side: roll("blast") < 0.5 ? -1 : 1
+      // de qué lado del cielo viene
     });
+    mark2("blast", x, land2);
+    emit("cometWarn");
   }
-  function nova() {
-    G.rings.push({
-      x: G.ship.x,
-      y: G.ship.y,
-      r: 10,
-      life: 0.7
-    });
-    G.shake = 0.45;
-    for (const o of G.obs) explode(o.x, o.y, "#ffb454", 6);
-    G.run.pts += Math.floor(G.obs.length * 0.5);
-    G.obs.length = 0;
-    for (const e of G.eb) explode(e.x, e.y, "#ffffff", 2);
-    G.eb.length = 0;
-    for (const e of G.en) hitEnemy(e, 6);
-    const b = liveBoss();
-    if (b) {
-      b.hp -= 25;
-      b.flash = 0.2;
+  function spawnCrater(C2) {
+    const r = rollIn("blast", C2.r[0], C2.r[1]), x = rollIn("blast", r, W - r), boomY = rollIn("blast", H * 0.46, SY + 10);
+    G.run.blasts.push({ kind: "crater", x, y: -SPAWN - 220, r, boomY, t: 9, t0: 9 });
+    mark2("blast", x, boomY, r);
+  }
+  var COL_FROM = 120;
+  var COL_TO = SY + 90;
+  function zone(o) {
+    const z = { still: true, t0: o.t, side: 1, ...o };
+    if (z.col) {
+      z.y = (COL_FROM + COL_TO) / 2;
+      z.len = COL_TO - COL_FROM;
     }
+    G.run.blasts.push(z);
+    return z;
   }
-  function killRock(j) {
-    const o = G.obs[j];
-    if (o.peak) return;
-    explode(o.x, o.y, "#ffb454", 9);
-    emit("rockBreak");
-    G.obs.splice(j, 1);
-    G.run.pts += 1;
-    G.run.coins += 1;
-  }
-  function fireGun(s, g) {
-    let wait3;
-    if (g === "twin") {
-      wait3 = 0.13;
-      for (const dx of [-9, 9])
-        G.bullets.push({
-          x: s.x + dx,
-          y: s.y - 12,
-          vy: -760,
-          dmg: 1,
-          w: 3.2,
-          h: 12,
-          col: "#ffb454",
-          k: "twin"
-        });
-    } else if (g === "spread") {
-      wait3 = 0.26;
-      for (let k = -1; k <= 1; k++) {
-        const a = -Math.PI / 2 + k * 0.17;
-        G.bullets.push({
-          x: s.x,
-          y: s.y - 12,
-          vx: Math.cos(a) * 700,
-          vy: Math.sin(a) * 700,
-          dmg: 0.8,
-          w: 3.6,
-          h: 10,
-          col: "#b4ff5e",
-          k: "spread"
-        });
-      }
-    } else {
-      wait3 = 0.45;
-      G.bullets.push({
-        x: s.x,
-        y: s.y - 14,
-        vy: -600,
-        dmg: 5,
-        w: 9,
-        h: 22,
-        col: "#ff8a3c",
-        k: "heavy",
-        pierce: true
-      });
-    }
-    return wait3;
-  }
-  function updatePowers(dt) {
-    const s = G.ship;
-    for (const k of ["orbit", "laser", "mag"]) if (s[k] > 0) s[k] = Math.max(0, s[k] - dt);
-    G.run.oa += dt * 5.5;
-    G.run.obCd = Math.max(0, (G.run.obCd || 0) - dt);
-    if (s.gun) {
-      s.gun.t -= dt;
-      if (s.gun.t <= 0) {
-        s.gun = null;
-        emit("gunEmpty");
-        G.pops.push({
-          x: s.x,
-          y: s.y - 30,
-          text: "Arma agotada",
-          life: 1,
-          col: "#8fa0cc"
-        });
-      }
-    }
-    if (s.gun) {
-      s.fire -= dt;
-      if (s.fire <= 0) {
-        const g = s.gun.type;
-        emit("shot", g);
-        s.fire = fireGun(s, g);
-      }
-    }
-    const b = liveBoss();
-    if (s.laser > 0) {
-      emit("laser", 1 - s.laser / LASER_T);
-      for (let j = G.obs.length - 1; j >= 0; j--) {
-        const o = G.obs[j];
-        if (o.y < s.y && Math.abs(o.x - s.x) < o.r + 6) killRock(j);
-      }
-      for (const e of G.en) if (!e.dead && e.y < s.y && Math.abs(e.x - s.x) < e.r + 6) hitEnemy(e, dt * 9);
-      for (let j = G.eb.length - 1; j >= 0; j--) {
-        const e = G.eb[j];
-        if (e.y < s.y && Math.abs(e.x - s.x) < e.r + 6) {
-          explode(e.x, e.y, "#ff8aa6", 3);
-          G.eb.splice(j, 1);
-        }
-      }
-      if (b && Math.abs(b.x - s.x) < b.w / 2 + 6) {
-        b.hp -= dt * 10;
-        b.flash = 0.05;
-      }
-    }
-    if (s.orbit > 0) {
-      for (let k = 0; k < 3; k++) {
-        const a = G.run.oa + k * 2.0944, ox = s.x + Math.cos(a) * 34, oy = s.y + Math.sin(a) * 34;
-        for (let j = G.obs.length - 1; j >= 0; j--)
-          if (Math.hypot(G.obs[j].x - ox, G.obs[j].y - oy) < G.obs[j].r + 7) killRock(j);
-        for (let j = G.eb.length - 1; j >= 0; j--)
-          if (Math.hypot(G.eb[j].x - ox, G.eb[j].y - oy) < G.eb[j].r + 8) {
-            explode(G.eb[j].x, G.eb[j].y, "#c792ff", 4);
-            G.eb.splice(j, 1);
-          }
-        for (const e of G.en)
-          if (!e.dead && e.hitCd <= 0 && Math.hypot(e.x - ox, e.y - oy) < e.r + 7) {
-            hitEnemy(e, 2);
-            e.hitCd = 0.4;
-          }
-        if (b && G.run.obCd <= 0 && Math.abs(ox - b.x) < b.w / 2 + 7 && Math.abs(oy - b.y) < b.h / 2 + 7) {
-          b.hp -= 3;
-          b.flash = 0.08;
-          emit("bossHit");
-          G.run.obCd = 0.3;
-        }
-      }
-    }
-  }
-  function moveBullets(dt) {
-    const b = liveBoss();
-    for (let i = G.bullets.length - 1; i >= 0; i--) {
-      const q = G.bullets[i];
-      q.x += (q.vx || 0) * dt;
-      q.y += q.vy * dt;
-      let gone = q.y < -SPAWN - 30 || q.x < -20 || q.x > W + 20;
-      if (!gone && b && Math.abs(q.x - b.x) < b.w / 2 + q.w / 2 && q.y < b.y + b.h / 2 && q.y > b.y - b.h / 2) {
-        b.hp -= q.dmg;
-        b.flash = 0.08;
-        emit("bossHit");
-        if (Math.random() < 0.4) explode(q.x, q.y, "#ffb454", 3);
-        gone = true;
-      }
-      if (!gone) {
-        for (const e of G.en)
-          if (!e.dead && Math.hypot(e.x - q.x, e.y - q.y) < e.r + 4) {
-            hitEnemy(e, q.dmg || 1);
-            gone = true;
-            break;
-          }
-      }
-      if (!gone) {
-        for (let j = G.obs.length - 1; j >= 0; j--) {
-          if (Math.hypot(G.obs[j].x - q.x, G.obs[j].y - q.y) < G.obs[j].r + 4) {
-            killRock(j);
-            if (!q.pierce) gone = true;
-            break;
-          }
-        }
-      }
-      if (gone) G.bullets.splice(i, 1);
-    }
-  }
-  function updateCaps(dt) {
-    for (let i = G.caps.length - 1; i >= 0; i--) {
-      const c = G.caps[i];
-      c.y += c.vy * dt * ap(c.y);
-      if (Math.hypot(c.x - G.ship.x, c.y - G.ship.y) < 26) {
-        applyCap(c.type);
-        explode(c.x, c.y, "#ffffff", 10);
-        G.caps.splice(i, 1);
-      } else if (c.y > H + 30) G.caps.splice(i, 1);
-    }
-  }
-  function powTxt() {
-    let p = G.ship.shield ? "{shield} " : "";
-    if (G.ship.gun) p += CAPDEF[G.ship.gun.type].i + Math.ceil(G.ship.gun.t) + " ";
-    for (const [k, i] of [
-      ["laser", "{laser}"],
-      ["orbit", "{orbit}"],
-      ["mag", "{magnet}"]
-    ])
-      if (G.ship[k] > 0) p += i + Math.ceil(G.ship[k]) + " ";
-    return p;
-  }
-
-  // src/game/enemies.js
-  var inFight = () => G.run.mode === "boss" || G.run.stage === "mini";
-  function hitEnemy(e, d2) {
-    if (e.dead) return;
-    e.hp -= d2;
-    e.flash = 0.08;
-    emit(e.hp <= 0 ? "enemyDown" : "enemyHit");
-    if (e.hp <= 0) {
-      e.dead = true;
-      G.run.kills++;
-      explode(e.x, e.y, "#ff6b8a", 24);
-      explode(e.x, e.y, "#ffd54a", 10);
-      G.shake = Math.max(G.shake, 0.2);
-      const p = e.heavy ? 9 : 6;
-      G.run.pts += p;
-      G.run.coins += e.heavy ? 6 : 4;
-      G.pops.push({
-        x: e.x,
-        y: e.y,
-        text: "¡DESTRUIDA! +" + p,
-        life: 1.1,
-        col: "#ffd54a"
-      });
-      if (roll("drop") < (inFight() ? 0.5 : 0.22)) spawnCap(rndWeapon(), e.x, Math.max(e.y, 120), 110);
-    }
-  }
-  function spawnEnemy(inBoss, ex) {
-    const x = pace(), bp = G.run.boss ? G.run.boss.ph || 0 : 0;
-    const heavy2 = inBoss ? roll("enemy") < 0.3 + 0.15 * bp : x >= 35 && roll("enemy") < Math.min(heavyMax(), 0.2 + x / 250);
-    if (!G.en.length)
-      G.pops.push({
-        x: W / 2,
-        y: 60,
-        text: "¡Naves enemigas!",
-        life: 1.2,
-        col: "#ff6b8a"
-      });
-    G.en.push({
-      x: ex == null ? rollIn("enemy", 50, W - 50) : ex,
-      y: -SPAWN,
-      ty: inBoss ? rollIn("enemy", 190, 270) : rollIn("enemy", 70, 210),
-      r: heavy2 ? 17 : 13,
-      hp: heavy2 ? 6 : 3,
-      max: heavy2 ? 6 : 3,
-      heavy: heavy2,
-      t: 0,
-      life: rollIn("enemy", 7, 9),
-      fire: rollIn("enemy", 0.6, 1.2),
-      flash: 0,
-      ph: rollIn("enemy", 0, 6.28),
-      hitCd: 0,
-      dead: false
-    });
-  }
-  function spawnSquad(n) {
-    const c = rollIn("enemy", 90, W - 90);
-    for (let i = 0; i < n; i++) spawnEnemy(false, clamp(c + (i - (n - 1) / 2) * 80, 40, W - 40));
-  }
-  function enemyShoot(e) {
-    const a0 = Math.atan2(G.ship.y - e.y, G.ship.x - e.x), sp = 200 + Math.min(60, pace() * 0.6);
-    emit("enemyShot", e.heavy);
-    for (const k of e.heavy ? [-0.28, 0, 0.28] : [0])
-      G.eb.push({
-        x: e.x,
-        y: e.y + e.r,
-        vx: Math.cos(a0 + k) * sp,
-        vy: Math.sin(a0 + k) * sp,
-        r: 6,
-        col: G.run.world ? e.heavy ? G.run.world.shotHeavy : G.run.world.shot : e.heavy ? "#ffb454" : "#ff6b8a"
-      });
-  }
-  function updateEnemies(dt) {
-    G.en = G.en.filter((e) => !e.dead);
-    for (let i = G.en.length - 1; i >= 0; i--) {
-      const e = G.en[i];
-      e.t += dt;
-      e.life -= dt;
-      e.flash = Math.max(0, e.flash - dt);
-      e.hitCd -= dt;
-      if (e.life > 0) {
-        e.y += (e.ty - e.y) * Math.min(1, dt * 1.6);
-        e.x = clamp(e.x + Math.cos(e.t * 1.5 + e.ph) * (e.heavy ? 65 : 100) * dt, 28, W - 28);
-        e.fire -= dt;
-        if (e.fire <= 0 && e.y > 25) {
-          e.fire = (e.heavy ? 1.8 : 1.25) * rollIn("shot", 0.85, 1.15) * (flipping() ? 1.6 : 1) * shotRest();
-          enemyShoot(e);
-        }
-      } else {
-        e.y -= 190 * dt * ap(e.y);
-        if (e.y < -SPAWN - 40) {
-          G.en.splice(i, 1);
-          continue;
-        }
-      }
-      if (Math.hypot(e.x - G.ship.x, e.y - G.ship.y) < e.r + G.ship.r * 0.8) {
-        const res = takeHit(e.x, e.y, HULL_SHIP);
-        if (res === "crash") return true;
-        if (res === "absorbed") hitEnemy(e, 3);
-      }
-    }
-    return false;
-  }
-  function updateEB(dt) {
-    for (let i = G.eb.length - 1; i >= 0; i--) {
-      const e = G.eb[i];
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
-      if (e.y > H + 20 || e.y < -SPAWN - 60 || e.x < -30 || e.x > W + 30) {
-        G.eb.splice(i, 1);
+  var inside = (z) => z.col ? Math.abs(G.ship.x - z.x) < z.w + G.ship.r * 0.4 : Math.hypot(G.ship.x - z.x, G.ship.y - z.y) < z.r + G.ship.r * 0.5;
+  function updateBlasts(dt) {
+    const R2 = G.run, col = R2.world && R2.world.blast || ["#ff8a2a", "#ffd24a"];
+    for (let i = R2.blasts.length - 1; i >= 0; i--) {
+      const z = R2.blasts[i];
+      if (z.hit) {
+        z.after -= dt;
+        if (z.after <= 0) R2.blasts.splice(i, 1);
         continue;
       }
-      if (Math.hypot(e.x - G.ship.x, e.y - G.ship.y) - e.r - G.ship.r * 0.7 <= 0) {
-        const res = takeHit(e.x, e.y);
-        if (res === "crash") return true;
-        if (res === "absorbed") G.eb.splice(i, 1);
+      if (!z.still) z.y += R2.sp * dt;
+      if (z.kind === "crater" && !z.still) {
+        z.t = Math.max(0, (z.boomY - z.y) / Math.max(60, R2.sp));
+        if (z.t0 === 9) z.t0 = Math.max(z.t, 0.1);
+      } else z.t -= dt;
+      if (z.t > 0) continue;
+      if (z.linger) {
+        z.hit = true;
+        z.after = z.linger;
+      } else R2.blasts.splice(i, 1);
+      if (z.col) for (let y = H * 0.44; y < SY + 40; y += 70) explode(z.x, y, col[0], 7);
+      else {
+        explode(z.x, z.y, col[0], z.still ? 14 : 30);
+        explode(z.x, z.y, col[1], z.still ? 8 : 16);
+        G.rings.push({ x: z.x, y: z.y, r: z.r * 0.6, life: 0.4, col: col[0] });
       }
+      G.shake = Math.max(G.shake, z.still ? 0.3 : 0.45);
+      emit("enemyDown");
+      if (inside(z) && takeHit(z.x, z.col ? G.ship.y : z.y, z.dmg || HULL_BLAST) === "crash") return true;
     }
     return false;
-  }
-
-  // src/game/screenfx.js
-  var REST = [null, [8, 11], [6, 8.5], [4, 5.5], [2.5, 3.5]];
-  var TURB_EVERY = [null, [10, 15], [8, 12], [5, 8], [3, 5.5]];
-  var SPIN_EVERY = [null, [22, 32], [15, 22], [10, 14], [6, 9]];
-  var SPIN_DUR = [0, 2.6, 2.2, 1.8, 1.5];
-  var FLIP_EVERY = [40, 75, 60, 45, 40];
-  var pickIn = (r) => rollIn("fx", r[0], r[1]);
-  var spinning = () => G.run.spin.t >= 0;
-  var free = (c) => !c || G.run.calm <= 0 && !G.run.bossDue && !spinning() && G.run.wb.t < 0 && G.run.rot.st === 0;
-  var rest = (c) => {
-    if (c) G.run.calm = pickIn(REST[c]);
-  };
-  function runAngle(dt, x) {
-    const c = chaos();
-    if (c && G.run.calm > 0) G.run.calm -= dt;
-    const r = baseAngle(dt, x, c);
-    r.a += spinAngle(dt, c);
-    return r;
-  }
-  function baseAngle(dt, x, c) {
-    const R2 = G.run.rot, B = G.run.wb;
-    let a = 0, w = false, txt = "¡GIRA EL CELU!";
-    if (R2.st === 0 && x >= R2.at && B.t < 0 && free(c)) {
-      R2.st = 1;
-      R2.t = 0;
-    }
-    if (R2.st >= 1 && R2.st <= 4) {
-      R2.t += dt;
-      if (R2.st === 1) {
-        w = true;
-        if (R2.t >= 2.2) {
-          R2.st = 2;
-          R2.t = 0;
-        }
-      } else if (R2.st === 2) {
-        a = Math.PI * ease(Math.min(1, R2.t / 1.6));
-        if (R2.t >= 1.6) {
-          R2.st = 3;
-          R2.t = 0;
-        }
-      } else if (R2.st === 3) {
-        a = Math.PI;
-        if (R2.t > 8) {
-          w = true;
-          txt = "¡VUELVE A LA NORMALIDAD!";
-        }
-        if (R2.t >= 10) {
-          R2.st = 4;
-          R2.t = 0;
-        }
-      } else if (R2.st === 4) {
-        a = Math.PI * (1 - ease(Math.min(1, R2.t / 1.6)));
-        if (R2.t >= 1.6) {
-          R2.st = G.run.mode === "endless" ? 0 : 5;
-          R2.at = x + FLIP_EVERY[c];
-          R2.t = 0;
-          B.next = Math.max(B.next, 4);
-          rest(c);
-        }
-      }
-      return {
-        a,
-        w,
-        txt
-      };
-    }
-    if (x >= WOB_AT) {
-      const late = x >= 75;
-      if (B.t < 0) {
-        B.next -= dt;
-        if (B.next <= 0 && free(c)) {
-          B.t = 0;
-          B.dur = c ? rollIn("fx", 4, 6) : late ? rollIn("fx", 6, 8) : rollIn("fx", 5, 7);
-          B.n++;
-          emit("turbulence");
-          G.pops.push({
-            x: W / 2,
-            y: 140,
-            text: G.run.world && G.run.world.shake || "¡TURBULENCIA!",
-            life: 1.4,
-            col: "#c792ff"
-          });
-        }
-      } else {
-        B.t += dt;
-        const env = Math.sin(Math.PI * Math.min(1, B.t / B.dur));
-        const sway2 = c ? Math.min(0.6, 0.22 + (survLv() - 5) * 0.015) : late ? Math.min(0.62, 0.5 + Math.max(0, x - 100) * 2e-3) : 0.36;
-        a = Math.sin(B.t * 1.7) * sway2 * env;
-        if (B.t >= B.dur) {
-          B.t = -1;
-          B.next = c ? pickIn(TURB_EVERY[c]) : late ? Math.max(3, rollIn("fx", 5, 8) - Math.max(0, x - 100) * 0.01) : rollIn("fx", 9, 13);
-          rest(c);
-        }
-      }
-    }
-    return {
-      a,
-      w,
-      txt
-    };
-  }
-  function spinAngle(dt, c) {
-    if (!c) return 0;
-    const P = G.run.spin;
-    if (P.t < 0) {
-      P.next -= dt;
-      if (P.next > 0 || !free(c)) return 0;
-      if (G.obs.some((o) => o.wall)) {
-        P.next = 0.5;
-        return 0;
-      }
-      P.t = 0;
-      P.dir = roll("fx") < 0.5 ? -1 : 1;
-      P.turns = c >= 4 && roll("fx") < 0.25 ? 2 : 1;
-      P.dur = SPIN_DUR[c] * (P.turns === 2 ? 1.6 : 1);
-      emit("spin");
-      G.pops.push({
-        x: W / 2,
-        y: 140,
-        text: P.turns === 2 ? "¡DOBLE GIRO!" : "¡GIRO 360°!",
-        life: 1.2,
-        col: "#ffd54a"
-      });
-    }
-    P.t += dt;
-    const k = P.t / P.dur;
-    if (k >= 1) {
-      P.t = -1;
-      P.next = pickIn(SPIN_EVERY[c]);
-      rest(c);
-      return 0;
-    }
-    return P.dir * P.turns * 2 * Math.PI * ease(k);
-  }
-
-  // src/game/boss.js
-  var liveBoss = () => G.run.boss && !G.run.boss.dead && G.run.boss.intro <= 0 ? G.run.boss : null;
-  function newBoss(kind) {
-    const mini = kind === "mini";
-    return {
-      kind,
-      x: W / 2,
-      tx: W / 2,
-      y: -SPAWN,
-      hp: mini ? 140 : 300,
-      max: mini ? 140 : 300,
-      flash: 0,
-      w: mini ? 84 : 104,
-      h: mini ? 50 : 62,
-      dead: false,
-      intro: 2.4,
-      t: 0,
-      ph: 0,
-      atk: null,
-      rest: 1,
-      last: "",
-      moveT: 1,
-      wpT: 1.2,
-      enT: 6
-    };
-  }
-  function initBoss() {
-    const b = G.run.boss = newBoss("final"), w = G.run.world;
-    if (w) {
-      b.name = w.boss.name;
-      b.look = w.boss.look;
-      b.form = w.boss.form;
-      if (b.form) {
-        b.w = 150;
-        b.h = 80;
-      }
-      b.sig = w.boss.sig;
-      b.hp = b.max = Math.round(b.max * w.boss.hp);
-    }
-    G.run.bt = 0;
-    G.run.flipStart = null;
-    G.run.flipped = false;
-  }
-  var ATK_POOL = {
-    mini: [
-      ["fan", "aimed", "rain"],
-      ["fan", "aimed", "rain", "ring"]
-    ],
-    final: [
-      ["fan", "aimed", "rain", "ring"],
-      ["fan", "aimed", "rain", "ring", "wall", "spiral"],
-      ["aimed", "rain", "ring", "wall", "spiral", "cross", "burst"]
-    ]
-  };
-  function shoot(x, y, a, sp, r, col) {
-    G.eb.push({
-      x,
-      y,
-      vx: Math.cos(a) * sp,
-      vy: Math.sin(a) * sp,
-      r,
-      col
-    });
-  }
-  function startAtk(b) {
-    const own = b.sig && !b.sig.includes(b.last) ? b.sig : null, pool = own || ATK_POOL[b.kind][Math.min(b.ph, ATK_POOL[b.kind].length - 1)];
-    let k;
-    do {
-      k = rollPick("boss", pool);
-    } while (k === b.last && pool.length > 1);
-    b.last = k;
-    b.atk = {
-      k,
-      t: 0,
-      acc: 0,
-      a: rollIn("boss", 0, 6.28),
-      dir: roll("boss") < 0.5 ? 1 : -1,
-      done: false,
-      n: 0
-    };
-    if (own) emit("bossCharge");
-    if (k === "burst") {
-      emit("bossCharge");
-      G.pops.push({
-        x: b.x,
-        y: b.y + 60,
-        text: "¡CUIDADO!",
-        life: 1,
-        col: "#ffffff"
-      });
-    }
-  }
-  function tickAtk(b, dt) {
-    const A = b.atk, ph = b.ph, sm = (b.kind === "mini" ? 0.85 : 1) * (1 + ph * 0.12), bx = b.x, by = b.y + 30;
-    A.t += dt;
-    A.acc -= dt;
-    let dur = 1.5;
-    const shotsBefore = G.eb.length;
-    switch (A.k) {
-      case "fan":
-        dur = 1.4;
-        if (A.acc <= 0) {
-          A.acc = 0.65;
-          const n = 5 + ph * 2;
-          for (let i = 0; i < n; i++)
-            shoot(
-              bx,
-              by,
-              Math.PI / 2 + (i - (n - 1) / 2) * (1.2 / (n - 1)) + rollIn("boss", -0.06, 0.06),
-              190 * sm,
-              7,
-              "#ff6b8a"
-            );
-        }
-        break;
-      case "aimed":
-        dur = 1.8;
-        if (A.acc <= 0) {
-          A.acc = 0.45;
-          const a0 = Math.atan2(G.ship.y - by, G.ship.x - bx);
-          for (let k = -1; k <= 1; k++) shoot(bx, by, a0 + k * 0.14, 240 * sm, 6, "#ffd54a");
-        }
-        break;
-      case "rain":
-        dur = 2.4;
-        if (A.acc <= 0) {
-          A.acc = 0.1 - 0.02 * ph;
-          shoot(
-            rollIn("boss", 15, W - 15),
-            b.y + 10,
-            Math.PI / 2 + rollIn("boss", -0.1, 0.1),
-            rollIn("boss", 150, 220) * sm,
-            6,
-            "#6ef2a5"
-          );
-        }
-        break;
-      case "ring":
-        dur = 1.7;
-        if (A.acc <= 0) {
-          A.acc = 0.8;
-          const n = 14 + ph * 2;
-          A.a += 0.2;
-          for (let i = 0; i < n; i++) shoot(bx, b.y, A.a + i / n * 6.283, 150 * sm, 6, "#78e6ff");
-        }
-        break;
-      case "wall":
-        dur = 2.2;
-        if (A.acc <= 0) {
-          A.acc = 1.1;
-          const gx = rollIn("boss", 70, W - 70);
-          for (let x = 15; x < W; x += 30) {
-            if (Math.abs(x - gx) < 62) continue;
-            G.eb.push({
-              x,
-              y: b.y + 40,
-              vx: 0,
-              vy: 150 * sm,
-              r: 9,
-              col: "#ffb454"
-            });
-          }
-          G.pops.push({
-            x: W / 2,
-            y: 220,
-            text: "¡Sigue el camino!",
-            life: 1.2,
-            col: "#ffb454"
-          });
-        }
-        break;
-      case "spiral":
-        dur = 2.6;
-        if (A.acc <= 0) {
-          A.acc = 0.07;
-          A.a += 0.45 * A.dir;
-          for (const arm of [0, Math.PI]) shoot(bx, b.y, A.a + arm, 160 * sm, 6, "#c792ff");
-        }
-        break;
-      case "cross":
-        dur = 2.2;
-        if (A.acc <= 0) {
-          A.acc = 0.22;
-          A.a += 0.25 * A.dir;
-          for (let k = 0; k < 4; k++) shoot(bx, b.y, A.a + k * Math.PI / 2, 180 * sm, 7, "#ff8a3c");
-        }
-        break;
-      /* ---- los ataques propios de cada jefe de mundo: avisan en el suelo y luego golpean ---- */
-      case "spikes":
-        dur = 3;
-        if (A.acc <= 0 && A.n < 2 + ph) {
-          A.acc = 0.85;
-          A.n++;
-          const gap2 = rollIn("boss", 60, W - 60), y = clamp(G.ship.y + rollIn("boss", -45, 45), H * 0.46, SY);
-          for (let x = 24; x < W; x += 48)
-            if (Math.abs(x - gap2) > 56) zone({ kind: "spike", x, y, r: 26, t: 1.15, linger: 0.5 });
-        }
-        break;
-      case "meteors":
-        dur = 3;
-        if (A.acc <= 0 && A.t < 2.2) {
-          A.acc = 0.5 - 0.08 * ph;
-          zone({
-            kind: "meteor",
-            x: clamp(G.ship.x + rollIn("boss", -75, 75), 36, W - 36),
-            y: clamp(G.ship.y + rollIn("boss", -70, 40), H * 0.44, SY + 10),
-            r: 36,
-            t: 1.25,
-            side: roll("boss") < 0.5 ? -1 : 1
-          });
-        }
-        break;
-      case "craters":
-        dur = 3.4;
-        if (!A.done) {
-          A.done = true;
-          const n = 5 + ph * 2;
-          for (let i = 0; i < n; i++)
-            zone({
-              kind: "crater",
-              x: i ? rollIn("boss", 40, W - 40) : G.ship.x,
-              y: i ? rollIn("boss", H * 0.44, SY + 10) : G.ship.y,
-              r: rollIn("boss", 38, 50),
-              t: 1.3 + i * 0.26
-            });
-        }
-        break;
-      case "strike":
-        dur = 3;
-        if (A.acc <= 0 && A.n < 2 + (ph ? 1 : 0)) {
-          A.acc = 0.95;
-          A.n++;
-          const lanes = 5, lw = W / lanes, free2 = Math.floor(roll("boss") * lanes), free22 = ph < 2 ? (free2 + 1 + Math.floor(roll("boss") * (lanes - 1))) % lanes : -1;
-          for (let l = 0; l < lanes; l++)
-            if (l !== free2 && l !== free22)
-              zone({ kind: "beam", col: true, x: (l + 0.5) * lw, w: lw / 2 - 4, t: 1.1, linger: 0.3 });
-        }
-        break;
-      case "tentacle":
-        dur = 3.2;
-        if (A.acc <= 0 && A.n < 3 + ph) {
-          A.acc = 0.72 - 0.08 * ph;
-          A.n++;
-          zone({
-            kind: "tentacle",
-            col: true,
-            x: clamp(G.ship.x + rollIn("boss", -22, 22), 30, W - 30),
-            w: 24,
-            t: 1.05,
-            linger: 0.45
-          });
-        }
-        break;
-      case "pull":
-        dur = 3.8;
-        if (!A.done) {
-          A.done = true;
-          G.pops.push({ x: W / 2, y: 230, text: "¡TE TRAGA! Tira hacia atrás", life: 1.6, col: "#ff8a3c" });
-        }
-        b.pull = A.t < 3.3 ? Math.min(1, A.t / 0.4) : 0;
-        if (b.pull) {
-          G.ship.ty -= (150 + 35 * ph) * b.pull * dt;
-          G.ship.tx += (b.x - G.ship.tx) * 0.7 * dt;
-          if (G.ship.y < H * 0.42 + 16 && G.ship.inv <= 0) {
-            zone({ kind: "bite", x: G.ship.x, y: G.ship.y, r: 44, t: 0.01 });
-            G.ship.ty += 190;
-          }
-        }
-        break;
-      case "burst":
-        dur = 1.3;
-        if (A.t >= 0.6 && !A.done) {
-          A.done = true;
-          b.flash = 0.15;
-          const n = 26;
-          for (let i = 0; i < n; i++) shoot(bx, b.y, i / n * 6.283, rollIn("boss", 120, 230) * sm, 6, "#ffffff");
-        }
-        break;
-    }
-    if (G.eb.length > shotsBefore) emit("bossShot");
-    if (A.t >= dur) {
-      b.atk = null;
-      b.pull = 0;
-      b.rest = rollIn("boss", 0.3, 0.9) / (1 + 0.25 * ph) * (b.kind === "mini" ? 1.15 : 1);
-    }
-  }
-  function bossTick(dt) {
-    const b = G.run.boss;
-    b.flash = Math.max(0, b.flash - dt);
-    if (b.intro > 0) {
-      b.intro -= dt;
-      b.y += (92 - b.y) * Math.min(1, dt * 2.2);
-      b.x += (W / 2 - b.x) * Math.min(1, dt * 2);
-      return;
-    }
-    b.t += dt;
-    const r = b.hp / b.max;
-    b.ph = b.kind === "mini" ? r > 0.5 ? 0 : 1 : r > 0.66 ? 0 : r > 0.33 ? 1 : 2;
-    b.moveT -= dt;
-    if (b.moveT <= 0) {
-      b.moveT = rollIn("boss", 1.6, 3) / (1 + 0.25 * b.ph);
-      b.tx = rollIn("boss", 70, W - 70);
-    }
-    b.x += (b.tx - b.x) * Math.min(1, dt * (1.1 + b.ph * 0.5));
-    b.y = 92 + Math.sin(b.t * 1.3) * 8;
-    if (b.atk) tickAtk(b, dt);
-    else {
-      b.rest -= dt;
-      if (b.rest <= 0) startAtk(b);
-    }
-    const armed = !!G.ship.gun || G.ship.laser > 0;
-    if (!armed && b.wpT > 4 && !G.caps.some((c) => WEAPONS.includes(c.type))) b.wpT = 4;
-    b.wpT -= dt;
-    if (b.wpT <= 0) {
-      b.wpT = armed ? rollIn("boss", 8, 11) : 4;
-      const tp = roll("boss") < 0.75 ? rndWeapon() : rollPick("boss", ["shield", "orbit", "nova"]);
-      spawnCap(tp, clamp(G.ship.x + rollIn("boss", -80, 80), 40, W - 40), 170, 105);
-    }
-    if (b.kind === "final") {
-      b.enT -= dt;
-      if (b.enT <= 0) {
-        b.enT = rollIn("boss", 4.5, 6.5) / (1 + 0.3 * b.ph);
-        if (G.en.length < 3 + b.ph) spawnEnemy(true);
-      }
-    }
-  }
-  function startMini() {
-    G.run.stage = "mini";
-    G.run.boss = newBoss("mini");
-    G.run.wb.t = -1;
-    for (const e of G.en) e.life = Math.min(e.life, 0);
-    $("hud").classList.add("boss");
-    showToast("¡JEFE INTERMEDIO!", "Vigía Ámbar · recoge armas y derríbalo");
-    emit("bossIntro");
-  }
-  function endMini() {
-    const b = G.run.boss;
-    explode(b.x, b.y, "#ffb454", 50);
-    explode(b.x, b.y, "#ffffff", 20);
-    G.shake = 0.7;
-    emit("bossDown");
-    G.eb.length = 0;
-    G.run.boss = null;
-    G.run.stage = "run";
-    G.run.miniDone = true;
-    G.run.pts += 30;
-    G.run.coins += 20;
-    G.run.spawnT = 1.5;
-    G.run.enT = 5;
-    $("hud").classList.remove("boss");
-    G.pops.push({
-      x: W / 2,
-      y: 240,
-      text: "¡JEFE DERROTADO! +30 · +20 {coin}",
-      life: 1.8,
-      col: "#ffd54a"
-    });
-    spawnCap("shield", W / 2, 200, 110);
-  }
-  var NAME = { mini: "Vigía Ámbar", final: "Centinela del Vacío" };
-  var bossName = (b) => NAME[b.kind];
-  var survBossFree = () => G.run.rot.st === 0 && G.run.wb.t < 0 && !spinning() && !G.run.comets.length && !G.obs.some((o) => o.wall);
-  function startSurvBoss() {
-    const R2 = G.run, n = ++R2.bossNo, kind = n % 2 ? "mini" : "final", round = Math.floor((n - 1) / 2), b = newBoss(kind);
-    b.hp = b.max = Math.round(b.max * (SURV_BOSS_HP + 0.25 * round));
-    b.prize = Math.round(SURV_BOSS_COINS[kind] * (1 + 0.5 * round));
-    b.lv = R2.bossDue;
-    R2.boss = b;
-    R2.bossLeft = SURV_BOSS_TIME[kind];
-    R2.bossDue = 0;
-    R2.stage = "mini";
-    for (const e of G.en) e.life = Math.min(e.life, 0);
-    $("hud").classList.add("boss");
-    showToast("¡JEFE DEL NIVEL " + b.lv + "!", NAME[kind] + " · derríbalo antes de que se vaya");
-    emit("bossIntro");
-  }
-  function survBossTick(dt) {
-    const R2 = G.run, b = R2.boss;
-    R2.head -= dt * SURV_RATE;
-    bossTick(dt);
-    if (b.intro > 0) return;
-    R2.bossLeft -= dt;
-    if (b.hp <= 0) endSurvBoss(true);
-    else if (R2.bossLeft <= 0) endSurvBoss(false);
-  }
-  function endSurvBoss(win) {
-    const R2 = G.run, b = R2.boss;
-    if (win) {
-      explode(b.x, b.y, "#ffb454", 50);
-      explode(b.x, b.y, "#ffffff", 20);
-      G.shake = 0.7;
-      emit("bossDown");
-      R2.bossKills++;
-      R2.coins += b.prize;
-      R2.pts += 30;
-      const fix = Math.min(SURV_BOSS_REPAIR, 100 - R2.hull);
-      R2.hull += fix;
-      G.pops.push({
-        x: W / 2,
-        y: 240,
-        text: "¡JEFE DERROTADO! +" + b.prize + " {coin}" + (fix ? " · {wrench} +" + fix + "%" : ""),
-        life: 1.8,
-        col: "#ffd54a"
-      });
-      spawnCap("shield", W / 2, 200, 110);
-    } else {
-      explode(b.x, b.y, "#9fb0e0", 18);
-      emit("phase");
-      G.pops.push({ x: W / 2, y: 240, text: "El jefe se retiró", life: 1.6, col: "#9aa8cc" });
-    }
-    G.eb.length = 0;
-    R2.boss = null;
-    R2.stage = "run";
-    R2.spawnT = 1.5;
-    R2.enT = 5;
-    R2.calm = Math.max(R2.calm, 4);
-    R2.cometT = Math.max(R2.cometT, 4);
-    $("hud").classList.remove("boss");
-  }
-  function beginBoss() {
-    $("warn").classList.remove("show");
-    G.obs.length = 0;
-    G.en.length = 0;
-    G.eb.length = 0;
-    G.coins.length = 0;
-    G.caps.length = 0;
-    G.bullets.length = 0;
-    G.run.portals.length = 0;
-    G.run.holes.length = 0;
-    G.run.blasts.length = 0;
-    G.run.suck = null;
-    G.run.mode = "boss";
-    initBoss();
-    G.run.phase = -1;
-    G.angle = 0;
-    $("hud").classList.add("boss");
-    showToast(G.run.world ? "¡EL JEFE DE ESTE MUNDO!" : "¡JEFE FINAL!", G.run.boss.name || "Centinela del Vacío");
-    emit("bossIntro");
-  }
-  function updateBoss(dt) {
-    const b = G.run.boss;
-    if (b.intro > 0) {
-      bossTick(dt);
-      G.angle *= 0.85;
-      followPointer(dt);
-      updatePowers(dt);
-      moveBullets(dt);
-      updateCaps(dt);
-      return;
-    }
-    G.run.bt += dt;
-    const bt = G.run.bt;
-    G.t = bt;
-    const r = b.hp / b.max, ph = r > 0.66 ? 0 : r > 0.33 ? 1 : 2;
-    if (ph !== G.run.phase) {
-      if (G.run.phase !== -1)
-        showToast(
-          "Fase " + (ph + 1) + " de 3",
-          ["", "Ataques nuevos y naves de apoyo", "¡Todo vale! No te detengas"][ph]
-        );
-      if (G.run.phase !== -1) emit("phase");
-      G.run.phase = ph;
-    }
-    if (r < 0.5 && G.run.flipStart === null && !G.run.flipped) {
-      G.run.flipped = true;
-      G.run.flipStart = bt + 1.5;
-    }
-    let ang = 0, warn = false, wtxt = "¡GIRA EL CELU!";
-    if (G.run.flipStart !== null) {
-      const x = bt - G.run.flipStart;
-      if (x < 0) warn = true;
-      else if (x < 1.6) ang = Math.PI * ease(x / 1.6);
-      else if (x < 8.6) {
-        ang = Math.PI;
-        if (x > 7.1) {
-          warn = true;
-          wtxt = "¡VUELVE A LA NORMALIDAD!";
-        }
-      } else if (x < 10.2) ang = Math.PI * (1 - ease((x - 8.6) / 1.6));
-      else G.run.flipStart = null;
-    }
-    if (ang === 0 && r < 0.25) ang = Math.sin(bt * 0.9) * 0.32 * Math.min(1, (0.25 - r) / 0.1);
-    G.angle = ang;
-    $("warnTxt").textContent = wtxt;
-    $("warn").classList.toggle("show", warn);
-    if (warn) emit("alarm");
-    followPointer(dt);
-    updatePowers(dt);
-    G.ship.inv = Math.max(0, G.ship.inv - dt);
-    bossTick(dt);
-    if (G.run.blasts.length && updateBlasts(dt)) return;
-    moveBullets(dt);
-    if (updateEnemies(dt)) return;
-    if (updateEB(dt)) return;
-    updateCaps(dt);
-    if (b.hp <= 0 && !b.dead) {
-      b.hp = 0;
-      b.dead = true;
-      G.state = "victory";
-      G.shake = 0.9;
-      emit("bossDown");
-      G.eb.length = 0;
-      G.run.blasts.length = 0;
-      b.pull = 0;
-      for (const e of G.en) hitEnemy(e, 99);
-      explode(b.x, b.y, "#ff6b8a", 60);
-      explode(b.x, b.y, "#ffd54a", 40);
-      $("warn").classList.remove("show");
-      after(1.3, () => finishBoss(true));
-    }
   }
 
   // src/game/comets.js
@@ -17162,7 +17249,7 @@ void main() {`;
     updateCaps(dt);
   }
   function hullHit(dmg, x, y) {
-    if (G.run.mode !== "endless") return false;
+    if (!hullOn()) return false;
     G.run.hull = Math.max(0, G.run.hull - dmg);
     if (G.run.hull <= 0) return false;
     G.run.hits++;
@@ -17205,72 +17292,6 @@ void main() {`;
     if (hullHit(dmg || HULL_SHOT, x, y)) return "absorbed";
     crash();
     return "crash";
-  }
-
-  // src/game/blasts.js
-  function spawnMeteor(M) {
-    const x = clamp(G.ship.x + rollIn("blast", -55, 55), M.r, W - M.r), land2 = clamp(G.ship.y + rollIn("blast", -50, 30), H * 0.45, SY + 10);
-    G.run.blasts.push({
-      kind: "meteor",
-      x,
-      y: land2 - G.run.sp * M.fuse,
-      // el punto marcado viaja con la pista y llega justo cuando cae
-      r: M.r,
-      t: M.fuse,
-      t0: M.fuse,
-      side: roll("blast") < 0.5 ? -1 : 1
-      // de qué lado del cielo viene
-    });
-    mark2("blast", x, land2);
-    emit("cometWarn");
-  }
-  function spawnCrater(C2) {
-    const r = rollIn("blast", C2.r[0], C2.r[1]), x = rollIn("blast", r, W - r), boomY = rollIn("blast", H * 0.46, SY + 10);
-    G.run.blasts.push({ kind: "crater", x, y: -SPAWN - 220, r, boomY, t: 9, t0: 9 });
-    mark2("blast", x, boomY, r);
-  }
-  var COL_FROM = 120;
-  var COL_TO = SY + 90;
-  function zone(o) {
-    const z = { still: true, t0: o.t, side: 1, ...o };
-    if (z.col) {
-      z.y = (COL_FROM + COL_TO) / 2;
-      z.len = COL_TO - COL_FROM;
-    }
-    G.run.blasts.push(z);
-    return z;
-  }
-  var inside = (z) => z.col ? Math.abs(G.ship.x - z.x) < z.w + G.ship.r * 0.4 : Math.hypot(G.ship.x - z.x, G.ship.y - z.y) < z.r + G.ship.r * 0.5;
-  function updateBlasts(dt) {
-    const R2 = G.run, col = R2.world && R2.world.blast || ["#ff8a2a", "#ffd24a"];
-    for (let i = R2.blasts.length - 1; i >= 0; i--) {
-      const z = R2.blasts[i];
-      if (z.hit) {
-        z.after -= dt;
-        if (z.after <= 0) R2.blasts.splice(i, 1);
-        continue;
-      }
-      if (!z.still) z.y += R2.sp * dt;
-      if (z.kind === "crater" && !z.still) {
-        z.t = Math.max(0, (z.boomY - z.y) / Math.max(60, R2.sp));
-        if (z.t0 === 9) z.t0 = Math.max(z.t, 0.1);
-      } else z.t -= dt;
-      if (z.t > 0) continue;
-      if (z.linger) {
-        z.hit = true;
-        z.after = z.linger;
-      } else R2.blasts.splice(i, 1);
-      if (z.col) for (let y = H * 0.44; y < SY + 40; y += 70) explode(z.x, y, col[0], 7);
-      else {
-        explode(z.x, z.y, col[0], z.still ? 14 : 30);
-        explode(z.x, z.y, col[1], z.still ? 8 : 16);
-        G.rings.push({ x: z.x, y: z.y, r: z.r * 0.6, life: 0.4, col: col[0] });
-      }
-      G.shake = Math.max(G.shake, z.still ? 0.3 : 0.45);
-      emit("enemyDown");
-      if (inside(z) && takeHit(z.x, z.col ? G.ship.y : z.y) === "crash") return true;
-    }
-    return false;
   }
 
   // src/loop.js
@@ -17408,12 +17429,18 @@ void main() {`;
     window.__giroPush = () => push();
     window.__giroMapIds = () => WORLDS.filter((w) => w.ready).map((w) => w.id);
     window.__giroMaps = (n) => Array.from({ length: n }, () => (survivalMap() || { id: "espacio" }).id);
+    window.__giroHit = (dmg) => {
+      G.ship.inv = 0;
+      return takeHit(G.ship.x, G.ship.y, dmg);
+    };
     window.__giroState = () => ({
       t: G.t,
       pts: G.run.pts,
       mode: G.run.mode,
       state: G.state,
-      map: G.run.map ? G.run.map.id : "espacio"
+      map: G.run.map ? G.run.map.id : "espacio",
+      hull: G.run.hull,
+      revived: !!G.run.revived
     });
     window.__giroBoss = (atk) => {
       if (atk === "die") crash();

@@ -132,9 +132,13 @@ export function closeAccount() {
 export const accountOffer = () => accountAvailable() && !signedIn() && !S.acctSeen && (S.runs || 0) >= 3;
 /* el renglón de Configuración */
 export function renderAccountRow() {
-  const row = $('acctRow');
-  row.style.display = accountAvailable() ? '' : 'none';
-  $('acctOpen').innerHTML = T(signedIn() ? '{check} Guardado en tu cuenta' : '{cloud} Guardar mi progreso');
+  const on = signedIn();
+  $('acctRow').style.display = accountAvailable() ? '' : 'none';
+  $('acctOpen').innerHTML = T(on ? '{check} Guardado en tu cuenta' : '{cloud} Guardar mi progreso');
+  $('acctOpen').classList.toggle('ok', on);
+  $('acctNote').textContent = on
+    ? 'Se sube solo cada vez que juegas. Toca para ver cuándo se guardó o cerrar sesión.'
+    : 'Entra con Google para no perderlo si cambias de teléfono o reinstalas el juego.';
 }
 
 const WHY = {

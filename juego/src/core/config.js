@@ -150,7 +150,9 @@ export const SURV_PAL = [
   [0x041e34, 0x4fc3ff],
   [0x1a0630, 0xff8a3c],
 ];
-/* Casco (solo Supervivencia): cada golpe baja un % en vez de matar de una */
+/* Casco: cada golpe baja un % en vez de matar de una. En Supervivencia se repara (al pasar de
+   nivel, con cápsulas, al vencer un jefe). En los mundos no se repara nunca: lo que se pierde
+   en el recorrido falta contra el jefe. */
 export const HULL_SHOT = 10;
 export const HULL_ROCK = 15;
 export const HULL_SHIP = 18;
@@ -160,7 +162,10 @@ export const HULL_REPAIR = 15; // lo que se repara solo al cruzar el portal de c
 export const HULL_KIT = 20;
 export const KIT_FROM = 7;
 export const KIT_EVERY = 3;
-export const HULL_REVIVE = 50;
+export const HULL_BLAST = 20; // meteoritos, cráteres, púas, rayos y tentáculos: avisan, y pegan más
+export const HULL_BITE = 25; // el mordisco del Devorador
+export const HULL_REVIVE = 50; // Supervivencia: al revivir, el casco vuelve por lo menos a esto
+export const HULL_SECOND = 40; // mundos: la segunda oportunidad empieza con esto, ni más ni menos
 /* Máximo de naves enemigas a la vez según el nivel; desde el 30 ya no hay límite */
 export const UNCAP_LVL = 30;
 /* Jefes de Supervivencia: uno cada SURV_BOSS_EVERY niveles. Si no se le derriba en su tiempo

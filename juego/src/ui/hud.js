@@ -37,13 +37,8 @@ export function hud() {
   put('hCoins', '{coin} ' + G.run.coins);
   put('hCombo', G.run.combo > 0 ? '{fire} x' + mult() + ' · ' + G.run.combo : '');
   put('hPow', powTxt() || (prog() >= 5 ? 'sin arma' : ''));
+  hullBar();
   if (G.run.mode === 'endless') {
-    const hp = Math.ceil(G.run.hull),
-      hf = $('hullFill');
-    hf.style.width = hp + '%';
-    hf.style.background = hp > 60 ? '#6ef2a5' : hp > 30 ? '#ffb454' : '#ff6b8a';
-    put('hullTxt', '{shield} CASCO ' + hp + '%');
-    $('hull').classList.toggle('low', hp <= 30);
     const best = (S.topTimes || [])[0];
     put('hTime', '{timer} ' + fmt(G.t));
     /* en un reto: el momento en que se pasa el tiempo del rival se celebra, una vez */
@@ -87,8 +82,18 @@ export function hud() {
     );
   }
 }
+/* la barra del casco */
+function hullBar() {
+  const hp = Math.ceil(G.run.hull),
+    hf = $('hullFill');
+  hf.style.width = hp + '%';
+  hf.style.background = hp > 60 ? '#6ef2a5' : hp > 30 ? '#ffb454' : '#ff6b8a';
+  put('hullTxt', '{shield} CASCO ' + hp + '%');
+  $('hull').classList.toggle('low', hp <= 30);
+}
 function hudBoss() {
   const b = G.run.boss;
+  hullBar();
   put('hCoins', '{coin} ' + G.run.coins);
   put('hCombo', '');
   put('hPow', powTxt() || 'sin arma');

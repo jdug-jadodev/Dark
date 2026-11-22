@@ -365,3 +365,14 @@ Pedido del usuario: que el jugador no pierda su progreso, entrando con Google o 
 
 **Pendiente después:** probar el inicio con Google en un teléfono de verdad (no se puede hasta tener el identificador); una firma de publicación propia (hoy solo existe la de pruebas de este computador); una página de política de privacidad (la tienda la exige cuando hay cuentas); y recordar que el progreso lo manda el teléfono (alguien con conocimientos podría inventarse monedas): cuando haya compras de verdad, esas se validan en el servidor, aparte.
 
+## Casco en los mundos (pedido del usuario, 2026-11-22)
+
+Antes, en los mundos un golpe era un choque y solo había una segunda oportunidad: se perdía justo cuando el recorrido ya iba difícil. Ahora los mundos (y su jefe) tienen **integridad de casco**, como Supervivencia, con dos diferencias pedidas por el usuario:
+
+- **No se repara nunca**: lo que se pierde en el recorrido falta contra el jefe.
+- **La segunda oportunidad empieza con 40 % de casco**, ni más ni menos, sea viendo el anuncio o pagando. Sigue siendo una sola.
+
+Cuánto quita cada cosa: disparo 10, roca o charco 15, nave 18, lo que avisa en el suelo (meteorito, cráter, púa, rayo, tentáculo) 20, mordisco del Devorador 25. Que un agujero negro se trague la nave sigue siendo perder el intento completo, tenga el casco que tenga. En Supervivencia no cambió nada (revive con 50 % como mínimo y se repara como siempre).
+
+Son primeros números: con 100 de casco se aguantan unos seis o siete golpes, más dos o tres tras revivir. Si queda muy fácil, se sube el daño en los mundos.
+

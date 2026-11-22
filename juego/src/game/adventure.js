@@ -27,6 +27,7 @@ import {
   extraRock,
   flipping,
   goal,
+  hullOn,
   intervalAt,
   level,
   mult,
@@ -380,9 +381,9 @@ export function update(dt) {
   updateCaps(dt);
 }
 /* ---------- Jefe final ---------- */
-/* En Supervivencia el casco absorbe el golpe; devuelve false si ya no aguanta */
+/* El casco absorbe el golpe; devuelve false si ya no aguanta */
 function hullHit(dmg, x, y) {
-  if (G.run.mode !== 'endless') return false;
+  if (!hullOn()) return false;
   G.run.hull = Math.max(0, G.run.hull - dmg);
   if (G.run.hull <= 0) return false;
   G.run.hits++;

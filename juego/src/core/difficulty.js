@@ -7,6 +7,8 @@ import { clamp } from './util.js';
 /* puntos para llegar al jefe: cada mundo tiene su largo */
 /* el tramo del recorrido (nombre y consejo): en un mundo, con los nombres de ese mundo */
 export const phaseOf = (i) => (G.run.world && G.run.world.phases ? { name: G.run.world.phases[i], tip: '' } : PH[i]);
+/* ¿la nave tiene casco en esta partida? (todo menos el Viaje espacial) */
+export const hullOn = () => !!G.run && G.run.mode !== 'space';
 export const goal = () => Math.round(GOAL * (G.run && G.run.world ? G.run.world.len : 1));
 export const prog = () => (G.run.mode === 'endless' ? G.t * SURV_RATE + (G.run.head || 0) : (G.run.pts / goal()) * 100);
 export const level = () => 1 + Math.floor(prog() / LVL);
