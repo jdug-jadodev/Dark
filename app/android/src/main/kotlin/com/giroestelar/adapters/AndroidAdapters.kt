@@ -55,6 +55,8 @@ class GameBridge(
     private val share: (String) -> Unit = {},
     private val account: AccountControl? = null,
     private val store: StoreControl? = null,
+    private val ads: AdsControl? = null,
+    private val policy: (String) -> Unit = {},
 ) {
     @JavascriptInterface fun loadState(): String = host.loadState() ?: ""
     @JavascriptInterface fun saveState(json: String) { host.saveState(json) }
@@ -87,6 +89,16 @@ class GameBridge(
     @JavascriptInterface fun storeProducts(ids: String) { store?.products(ids) }
     @JavascriptInterface fun storeBuy(id: String, uid: String) { store?.buy(id, uid) }
     @JavascriptInterface fun storePending() { store?.pending() }
+
+    /* anuncios: el video con premio contesta por window.__giroAd. Ver AdsAdapters.kt */
+    @JavascriptInterface fun adsReady(): Boolean = ads?.ready() ?: false
+    @JavascriptInterface fun adShow() { ads?.show() }
+    @JavascriptInterface fun adBanner(on: Boolean) { ads?.banner(on) }
+    @JavascriptInterface fun adsPrivacy(): Boolean = ads?.privacyNeeded() ?: false
+    @JavascriptInterface fun adsPrivacyOpen() { ads?.openPrivacy() }
+
+    /** Abrir la política de privacidad en el navegador; de la página solo llega el idioma. */
+    @JavascriptInterface fun openPolicy(lang: String) = policy.invoke(lang.take(8))
 
     private companion object { const val MAX_SHARE_CHARS = 500 }
 }

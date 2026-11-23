@@ -7,6 +7,7 @@ import { $, cv } from './dom.js';
 import { pauseGame, quitGame, resumeGame } from './flow.js';
 import { closeCup } from './cup.js';
 import { closeAccount } from './account.js';
+import { closeAd } from './ads.js';
 import { closeMaps } from './maps.js';
 import { closeWorlds } from './worlds.js';
 import { closeRemAsk } from './reminder.js';
@@ -92,6 +93,7 @@ export function bootInput() {
   });
   /* Atrás: devuelve true si el juego lo usó; false = la app puede cerrarse */
   window.__giroBack = () => {
+    if (closeAd()) return true;
     if (closeRemAsk()) return true;
     if (closeSettings()) return true;
     if (closeShop()) return true;

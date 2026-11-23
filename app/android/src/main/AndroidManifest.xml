@@ -20,6 +20,9 @@
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
         android:enableOnBackInvokedCallback="true">
 
+        <!-- anuncios (AdMob): el identificador de la app; sale de anuncios.properties -->
+        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${adsAppId}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

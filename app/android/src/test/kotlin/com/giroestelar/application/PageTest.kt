@@ -40,4 +40,16 @@ class PageTest {
         )
         assertEquals(html, Page.allowServer(html, "http://x; script-src *"))
     }
+
+    @Test
+    fun `la politica de privacidad sale del servidor del juego, en espanol o en ingles`() {
+        val server = "https://giro-estelar.giro-estelar-servidor.workers.dev"
+        assertEquals("$server/privacidad", Page.policyUrl(server, "es"))
+        assertEquals("$server/privacy", Page.policyUrl(server, "en"))
+        assertEquals("$server/privacy", Page.policyUrl(server, "pt"))
+        assertEquals("$server/privacy", Page.policyUrl("$server/v1/algo", "../../otra"))
+        assertEquals(null, Page.policyUrl("http://192.168.1.5:8787", "es")) // sin candado no se abre
+        assertEquals(null, Page.policyUrl("javascript:alert(1)", "es"))
+        assertEquals(null, Page.policyUrl("", "es"))
+    }
 }

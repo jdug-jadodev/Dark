@@ -190,11 +190,16 @@
           <div class="ctrl" id="rem"><span>{bell} Aviso diario:</span><button class="opt" data-rem="1">Sí</button><button class="opt" data-rem="0">No</button></div>
           <div class="note">Un aviso al día a las 7 de la noche, solo si ese día no has jugado.</div>
         </div>
+        <div id="adsRow" style="display:none">
+          <div class="sect">Anuncios</div>
+          <button class="btn alt" id="adsPrivacy">Cambiar mi elección de privacidad</button>
+        </div>
         <div id="acctRow" style="display:none">
           <div class="sect">Tu progreso</div>
           <button class="btn alt" id="acctOpen"></button>
           <div class="hint2" id="acctNote"></div>
         </div>
+        <button class="linkbtn" id="policyOpen">Política de privacidad</button>
         <button class="btn" id="settingsClose">Listo</button>
       </div>
     </div>
@@ -219,9 +224,9 @@
     <!-- Anuncio (siempre al final para quedar encima) -->
     <div class="screen" id="ad">
       <div class="card">
-        <h2>Anuncio (simulado)</h2>
+        <h2 id="adTitle">Anuncio (simulado)</h2>
         <div class="sub" id="adLabel"></div>
-        <div class="adbox"><b id="adCount">3</b>aquí iría un video de 15-30 s</div>
+        <div class="adbox"><b id="adCount">3</b><span id="adNote">aquí iría un video de 15-30 s</span></div>
         <div class="pbar"><i id="adFill" style="width:0"></i></div>
         <button class="btn ad" id="adBtn" disabled>Espera…</button>
       </div>

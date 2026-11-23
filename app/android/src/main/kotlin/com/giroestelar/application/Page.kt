@@ -22,6 +22,16 @@ object Page {
     fun origin(server: String): String? = SERVER.find(server.trim())?.groupValues?.get(1)
 
     /**
+     * La dirección de la política de privacidad, que vive en el servidor del juego: en español
+     * (/privacidad) o, para cualquier otro idioma, en inglés (/privacy). Lo único que llega desde
+     * la página es el idioma; la dirección sale de la app. null si el servidor no es https.
+     */
+    fun policyUrl(server: String, lang: String): String? {
+        val base = origin(server)?.takeIf { it.startsWith("https://") } ?: return null
+        return base + if (lang == "es") "/privacidad" else "/privacy"
+    }
+
+    /**
      * Solo para la app de pruebas con un servidor de pruebas configurado: la página trae una
      * política de contenido que únicamente deja conectar con el servidor del juego; aquí se le
      * agrega ese servidor de pruebas. Si la dirección no sirve, la página queda como estaba.

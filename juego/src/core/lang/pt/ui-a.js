@@ -242,4 +242,10 @@ export default {
     'Sua sessão já estava encerrada e nada foi apagado. Entre de novo para apagar a conta.',
   'Para confirmar te pediremos entrar con Google otra vez.':
     'Para confirmar, vamos pedir que você entre com o Google de novo.',
+  Anuncio: 'Anúncio',
+  'Cargando el anuncio…': 'Carregando o anúncio…',
+  'Cerraste el anuncio antes de terminar: esta vez no hay recompensa.':
+    'Você fechou o anúncio antes do fim: desta vez não há recompensa.',
+  'No hay anuncio disponible ahora. Intenta de nuevo en un momento.':
+    'Nenhum anúncio disponível agora. Tente de novo em instantes.',
 };

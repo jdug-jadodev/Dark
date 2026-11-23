@@ -6,6 +6,7 @@ import android.content.Intent
 import android.app.Activity
 import android.content.pm.ApplicationInfo
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -20,9 +21,12 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
 import com.giroestelar.adapters.AccountControl
+import com.giroestelar.adapters.AdMobAds
+import com.giroestelar.adapters.AdsControl
 import com.giroestelar.adapters.AndroidThermal
 import com.giroestelar.adapters.GoogleSignIn
 import com.giroestelar.adapters.PlayStore
@@ -36,6 +40,7 @@ import com.giroestelar.adapters.testApiOf
 import com.giroestelar.adapters.SharedPrefsGameStateStore
 import com.giroestelar.adapters.VibratorHaptics
 import com.giroestelar.application.Account
+import com.giroestelar.application.Ads
 import com.giroestelar.application.GameHost
 import com.giroestelar.application.Page
 import com.giroestelar.application.Store
@@ -49,6 +54,7 @@ import org.json.JSONObject
 class MainActivity : Activity() {
     private lateinit var web: WebView
     private val reminders by lazy { reminders(this) }
+    private lateinit var ads: AdMobAds
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +66,16 @@ class MainActivity : Activity() {
         val host = GameHost(SharedPrefsGameStateStore(this), VibratorHaptics(this), AndroidThermal(this))
 
         val testApi = testApiOf(this, debuggable)
+
+        /* ---- anuncios: la franja va debajo del juego, en su propio espacio ---- */
+        val strip = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#070b18")) }
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(strip, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0))
+        }
+        ads = AdMobAds(this, strip, debuggable) { result ->
+            web.evaluateJavascript("window.__giroAd && window.__giroAd('${Ads.result(result != "none", result == "earned")}')", null)
+        }
 
         /* ---- WebView del juego ---- */
         // Los archivos de la app se sirven como si fueran una página https local (sin internet)
@@ -105,7 +121,7 @@ class MainActivity : Activity() {
                 }
             }
             addJavascriptInterface(
-                GameBridge(host, debuggable, reminderControl(), testApi, ::shareText, accountControl(), storeControl()),
+                GameBridge(host, debuggable, reminderControl(), testApi, ::shareText, accountControl(), storeControl(), adsControl(), ::openPolicy),
                 "GiroNative",
             )
         }
@@ -113,7 +129,8 @@ class MainActivity : Activity() {
         // Fondo negro y margen para la cámara frontal / barras, así el marcador no queda tapado
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
-            addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+            column.addView(web, 0, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(column, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
             setOnApplyWindowInsetsListener { v, insets ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     val i = insets.getInsets(WindowInsets.Type.displayCutout() or WindowInsets.Type.systemBars())
@@ -135,6 +152,16 @@ class MainActivity : Activity() {
         }
 
         web.loadUrl(Page.GAME)
+        ads.start()
+    }
+
+    /* ---- anuncios: el video con premio y la franja (el juego llama desde otro hilo) ---- */
+    private fun adsControl() = object : AdsControl {
+        override fun ready(): Boolean = true
+        override fun show() = runOnUiThread { ads.show() }
+        override fun banner(on: Boolean) = runOnUiThread { ads.banner(on) }
+        override fun privacyNeeded(): Boolean = ads.privacyNeeded()
+        override fun openPrivacy() = runOnUiThread { ads.openPrivacy() }
     }
 
     /* ---- cuenta: entrar con Google y guardar la llave de sesión ---- */
@@ -200,6 +227,16 @@ class MainActivity : Activity() {
         startActivity(Intent.createChooser(send, reminders.texts.share))
     }
 
+    /** Abre la política de privacidad (una página del servidor del juego) en el navegador del teléfono. */
+    private fun openPolicy(lang: String) = runOnUiThread {
+        val url = Page.policyUrl(BuildConfig.API_URL, lang) ?: return@runOnUiThread
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (e: Exception) {
+            Log.w(TAG, "No se pudo abrir la política de privacidad: ${e.message}")
+        }
+    }
+
     /** El jugador respondió si deja mostrar avisos: solo si dijo que sí queda encendido. */
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -244,16 +281,19 @@ class MainActivity : Activity() {
     override fun onPause() {
         web.evaluateJavascript("window.__giroPause && window.__giroPause()", null)
         web.onPause()
+        ads.pause()
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
         web.onResume()
+        ads.resume()
         reminders.gameOpened(LocalDateTime.now()) // hoy ya jugó: el próximo aviso posible es mañana
     }
 
     override fun onDestroy() {
+        ads.destroy()
         web.destroy()
         super.onDestroy()
     }

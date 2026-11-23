@@ -49,7 +49,8 @@ export default {
   'Empieza en alta y baja sola si el teléfono se queda corto o se calienta.':
     'Starts on high and lowers itself if the phone struggles or heats up.',
   'La mejor imagen. Gasta más batería.': 'The best picture. Uses more battery.',
-  'Un poco menos nítido. Gasta menos batería y calienta menos.': 'Slightly less sharp. Uses less battery and runs cooler.',
+  'Un poco menos nítido. Gasta menos batería y calienta menos.':
+    'Slightly less sharp. Uses less battery and runs cooler.',
   'Para teléfonos modestos o para cuidar la batería.': 'For modest phones or to save battery.',
   'Control:': 'Controls:',
   Deslizar: 'Swipe',
@@ -82,4 +83,7 @@ export default {
   'Combinar al azar': 'Random mix',
   'Marcar como meta': 'Set as goal',
   'Agrandar o achicar la lista': 'Expand or shrink the list',
+  Anuncios: 'Ads',
+  'Cambiar mi elección de privacidad': 'Change my privacy choice',
+  'Política de privacidad': 'Privacy policy',
 };

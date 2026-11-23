@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node build.mjs",
     "musica": "node tools/grabar-musica.mjs && node build.mjs",
-    "test": "node build.mjs && node test/arquitectura.mjs && node test/idiomas.mjs && node test/sonidos.mjs && node test/seguridad.mjs && node test/inicio.mjs && node tools/precios.mjs --check && node test/copa.mjs && node test/golden.mjs --check",
+    "test": "node build.mjs && node test/arquitectura.mjs && node test/idiomas.mjs && node test/sonidos.mjs && node test/seguridad.mjs && node test/inicio.mjs && node test/anuncios.mjs && node tools/precios.mjs --check && node test/copa.mjs && node test/golden.mjs --check",
     "golden:update": "node build.mjs && node test/golden.mjs --update",
     "format": "prettier --write src build.mjs test tools"
   },

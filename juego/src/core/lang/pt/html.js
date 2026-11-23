@@ -49,7 +49,8 @@ export default {
   'Empieza en alta y baja sola si el teléfono se queda corto o se calienta.':
     'Começa em alta e baixa sozinha se o celular não der conta ou esquentar.',
   'La mejor imagen. Gasta más batería.': 'A melhor imagem. Gasta mais bateria.',
-  'Un poco menos nítido. Gasta menos batería y calienta menos.': 'Um pouco menos nítido. Gasta menos bateria e esquenta menos.',
+  'Un poco menos nítido. Gasta menos batería y calienta menos.':
+    'Um pouco menos nítido. Gasta menos bateria e esquenta menos.',
   'Para teléfonos modestos o para cuidar la batería.': 'Para celulares modestos ou para poupar bateria.',
   'Control:': 'Controle:',
   Deslizar: 'Deslizar',
@@ -82,4 +83,7 @@ export default {
   'Combinar al azar': 'Combinar ao acaso',
   'Marcar como meta': 'Marcar como meta',
   'Agrandar o achicar la lista': 'Aumentar ou diminuir a lista',
+  Anuncios: 'Anúncios',
+  'Cambiar mi elección de privacidad': 'Mudar minha escolha de privacidade',
+  'Política de privacidad': 'Política de privacidade',
 };

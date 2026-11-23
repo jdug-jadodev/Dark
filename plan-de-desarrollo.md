@@ -464,3 +464,24 @@ Los dos riesgos que la revisión de seguridad había dejado "por diseño" (la co
 - **Pruebas**: `juego/test/copa.mjs` (el juego de verdad contra el servidor local, dentro de `npm test`; se salta si no está la carpeta `back-nave`), `back-nave/test/trampas.test.mjs` y la paridad de almacenes. Servidor: 72 pruebas. La migración de la base publicada se probó sobre una copia del esquema actual.
 - **Lo que queda abierto**: quien modifique el juego puede pedir el tiquete, esperar y mandar un tiempo inventado, o mandar otro identificador para esquivar el veto del tope. Lo cierra el **sello de app original de Google (Play Integrity)**, que se deja para la fase final: no se puede probar hasta que la app exista en Play Console. Los retos entre amigos no usan tiquete.
 - **Sin publicar**: el servidor nuevo y la app nueva salen juntos (ver `back-nave/LEEME.md`).
+
+## Anuncios de verdad: AdMob (2026-11-23)
+
+Los anuncios de mentira del laboratorio se reemplazan en la app por los de AdMob. En el navegador todo sigue igual (la referencia golden quedó idéntica).
+
+- **Qué se muestra**: lo mismo que ya tenía el juego. Un **video con premio** que el jugador pide (revivir, duplicar las monedas de la partida, duplicar el cofre diario) y la **franja de abajo**. No hay anuncios que interrumpan. Quien compró «Sin anuncios» no ve la franja y recibe los premios directo, como antes.
+- **Del lado del juego** (`ui/ads.js`, `Platform.ads`): si la app trae anuncios de verdad, `showAd` le pide el video a Android y espera la respuesta: `earned` (lo vio entero → premio), `closed` (lo cerró antes → sin premio) o `none` (no había). En las dos últimas se dice qué pasó y el jugador vuelve a donde estaba; por eso `showAd(label, cb, back)` recibe cómo volver (revivir cierra la ventana del choque antes de pedir el anuncio). Cualquier respuesta que no sea una de las tres cuenta como `none`.
+- **Del lado de Android** (`adapters/AdsAdapters.kt`, reglas en `application/Ads.kt`): el video se carga por adelantado; si no estaba listo se espera 8 s; un video cargado hace más de 50 min se descarta. La franja va **debajo** del juego, en su propio espacio (no encima), con el tamaño que Google recomienda para la pantalla; el espacio se reserva desde que abre la app para que la pantalla no salte.
+- **Permiso del jugador** (Europa y lugares con esa ley): antes del primer anuncio se consulta a Google (UMP); si hace falta, Google muestra su ventana. En Configuración aparece «Cambiar mi elección de privacidad» solo para quien le aplica.
+- **Identificadores**: `app/anuncios.properties` (`appId`, `videoId`, `bannerId`; no son secretos). Vacíos = anuncios de prueba de Google. **La app de pruebas usa siempre los de prueba**, aunque haya identificadores: tocar anuncios de verdad en la app propia hace que Google cierre la cuenta.
+- **Versiones**: `play-services-ads` 25.5.0 y `user-messaging-platform` 4.0.0. Para poder leer esa librería, Kotlin subió de 2.1.21 a 2.2.21.
+- **Permisos que agrega la librería** (hay que declararlos en la ficha de Google Play, «Seguridad de los datos»): identificador de publicidad (`AD_ID`), estado de la red, y los de la «Privacy Sandbox» de Android.
+- **Pruebas**: `juego/test/anuncios.mjs` (dentro de `npm test`: navegador, app con cada respuesta, y «Sin anuncios») y `AdsTest.kt`.
+- **Falta**: los identificadores reales de AdMob; configurar en AdMob el mensaje de consentimiento; verlo funcionar en el teléfono; decidir si la franja se ve durante la partida (Google lo desaconseja: toques por accidente) o solo en los menús.
+
+## Para publicar: política de privacidad, versiones y material de la tienda (2026-11-23)
+
+- **Política de privacidad**: vive en el servidor (`back-nave/src/privacidad.js`, `/privacidad` y `/privacy`). En el juego, Configuración → «Política de privacidad» la abre en el navegador del teléfono: de la página solo sale el idioma; la dirección la arma Android con la del servidor (`Page.policyUrl`, que Gradle lee de `juego/src/core/config.js`). No se ve hasta que se publique el servidor.
+- **Anuncios para probadores**: `./gradlew :android:bundleRelease -PanunciosDePrueba` genera el paquete de publicación con los anuncios de prueba de Google aunque `app/anuncios.properties` tenga los identificadores reales. Es el que se le da a los probadores (pueden tocar los anuncios sin riesgo para la cuenta de AdMob). El de producción se genera sin esa opción.
+- **Versión**: `versionCode` 4 (cada paquete que se sube a Google Play necesita un número mayor).
+- **Material de la tienda** (`tienda/`): capturas, capturas con titular, gráfico de cabecera, icono y video, sacados del juego de verdad con `juego/tools/tienda.mjs` (reloj a mano, piloto automático en modo demo, tarjeta gráfica del computador). El video sale sin sonido (el codificador disponible no maneja audio) y no se sube al repositorio: se regenera.

@@ -2,9 +2,11 @@
 import { renderAccountRow } from './account.js';
 import { renderLang } from './lang.js';
 import { play, setVolume, volumes } from '../audio/sound.js';
-import { tr } from '../core/i18n.js';
+import { API_URL } from '../core/config.js';
+import { lang, tr } from '../core/i18n.js';
 import { gfx, setGfx } from '../core/perf.js';
 import { S, save } from '../core/profile.js';
+import { Platform } from '../platform/platform.js';
 import { G } from '../core/state.js';
 import { $ } from './dom.js';
 import { showPad } from './flow.js';
@@ -33,6 +35,7 @@ function render() {
     .querySelectorAll('#ctrl .opt')
     .forEach((b) => b.classList.toggle('sel', b.dataset.ctrl === (S.ctrl || 'swipe')));
   $('remRow').style.display = reminderAvailable() ? '' : 'none';
+  $('adsRow').style.display = Platform.ads.privacy() ? '' : 'none';
   renderAccountRow();
   renderLang();
   if (reminderAvailable()) {
@@ -80,6 +83,11 @@ export function bootSettings() {
     render();
   });
   onReminderChange(render);
+  $('adsPrivacy').addEventListener('click', () => Platform.ads.openPrivacy());
+  /* la política está en español y en inglés (el servidor: /privacidad y /privacy) */
+  $('policyOpen').addEventListener('click', () =>
+    Platform.openPolicy(lang(), API_URL + (lang() === 'es' ? '/privacidad' : '/privacy')),
+  );
   $('ctrl').addEventListener('click', (e) => {
     const b = e.target.closest('[data-ctrl]');
     if (!b) return;

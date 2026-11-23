@@ -223,7 +223,7 @@ export function bootFlow() {
   /* ---------- Choque ---------- */
   $('reviveBtn').addEventListener('click', () => {
     $('crash').classList.remove('show');
-    showAd(tr('Recompensa: revivir y seguir la partida'), revive);
+    showAd(tr('Recompensa: revivir y seguir la partida'), revive, () => $('crash').classList.add('show'));
   });
   $('giveUp').addEventListener('click', () => {
     $('crash').classList.remove('show');

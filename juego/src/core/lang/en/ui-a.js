@@ -239,4 +239,10 @@ export default {
   'Tu sesión ya estaba cerrada y no se borró nada. Entra de nuevo para borrar la cuenta.':
     'You were already signed out and nothing was deleted. Sign in again to delete the account.',
   'Para confirmar te pediremos entrar con Google otra vez.': 'To confirm, we’ll ask you to sign in with Google again.',
+  Anuncio: 'Ad',
+  'Cargando el anuncio…': 'Loading the ad…',
+  'Cerraste el anuncio antes de terminar: esta vez no hay recompensa.':
+    'You closed the ad before it ended: no reward this time.',
+  'No hay anuncio disponible ahora. Intenta de nuevo en un momento.':
+    'No ad available right now. Try again in a moment.',
 };

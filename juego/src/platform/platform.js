@@ -174,6 +174,63 @@ export function bootPlatform() {
         storeNews = fn;
       },
     },
+    /* Anuncios. En la app los pone Android (AdMob): el video con premio a pantalla completa y la
+       franja de abajo. En el navegador no hay, y el juego muestra los suyos de mentira (ui/ads.js). */
+    ads: {
+      real() {
+        try {
+          return !!(NATIVE && NATIVE.adsReady && NATIVE.adsReady());
+        } catch (e) {
+          return false;
+        }
+      },
+      /* Muestra un video con premio. Devuelve 'earned' = lo vio y se ganó el premio ·
+         'closed' = lo cerró antes de tiempo · 'none' = no había anuncio (sin conexión, sin oferta). */
+      video() {
+        return new Promise((done) => {
+          const timer = setTimeout(() => finish('none'), 600000);
+          const finish = (result) => {
+            clearTimeout(timer);
+            window.__giroAd = null;
+            done(result === 'earned' || result === 'closed' ? result : 'none');
+          };
+          window.__giroAd = finish; // Android contesta por aquí
+          try {
+            NATIVE.adShow();
+          } catch (e) {
+            finish('none');
+          }
+        });
+      },
+      /* la franja de abajo: se enciende o se apaga (quien compró "Sin anuncios" no la ve) */
+      banner(on) {
+        try {
+          if (NATIVE && NATIVE.adBanner) NATIVE.adBanner(!!on);
+        } catch (e) {}
+      },
+      /* ¿a este jugador hay que ofrecerle cambiar su elección de privacidad? (Europa y similares) */
+      privacy() {
+        try {
+          return !!(NATIVE && NATIVE.adsPrivacy && NATIVE.adsPrivacy());
+        } catch (e) {
+          return false;
+        }
+      },
+      openPrivacy() {
+        try {
+          NATIVE.adsPrivacyOpen();
+        } catch (e) {}
+      },
+    },
+    /* Abre la política de privacidad en el navegador del teléfono. En la app la dirección la pone
+       Android (fija, la del servidor del juego): desde la página solo se le dice el idioma. */
+    openPolicy(lang, url) {
+      try {
+        if (NATIVE) {
+          if (NATIVE.openPolicy) NATIVE.openPolicy(lang);
+        } else window.open(url, '_blank', 'noopener');
+      } catch (e) {}
+    },
     /* un identificador al azar para esta instalación (no sale del azar del juego) */
     randomId() {
       const b = new Uint8Array(12);

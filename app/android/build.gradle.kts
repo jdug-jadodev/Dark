@@ -13,6 +13,31 @@ val cuenta = Properties().apply {
 }
 val googleClientId: String = cuenta.getProperty("googleClientId", "").trim()
 
+/* la dirección del servidor del juego: una sola, la que está escrita en el juego */
+val apiUrl: String = Regex("""API_URL = '(https://[^']+)'""")
+    .find(rootProject.file("../juego/src/core/config.js").readText())?.groupValues?.get(1)
+    ?: error("No encontré API_URL en juego/src/core/config.js")
+
+/* anuncios.properties: los identificadores de AdMob. Vacíos = los anuncios de prueba de Google.
+   La app de pruebas usa siempre los de prueba (ver application/Ads.kt). */
+val anuncios = Properties().apply {
+    val file = rootProject.file("anuncios.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+/* -PanunciosDePrueba: el paquete de publicación sale con los anuncios de prueba de Google aunque haya
+   identificadores. Es el que se le da a los probadores: pueden tocar los anuncios sin poner en
+   riesgo la cuenta de AdMob. El de producción se genera sin esa opción. */
+val adsTestOnly: Boolean = providers.gradleProperty("anunciosDePrueba").isPresent
+val adsApp: String = if (adsTestOnly) "" else anuncios.getProperty("appId", "").trim()
+val adsVideo: String = if (adsTestOnly) "" else anuncios.getProperty("videoId", "").trim()
+val adsBanner: String = if (adsTestOnly) "" else anuncios.getProperty("bannerId", "").trim()
+val adsTestApp = "ca-app-pub-3940256099942544~3347511713"
+check(
+    listOf(adsApp, adsVideo, adsBanner).all { it.isEmpty() } ||
+        (Regex("""^ca-app-pub-\d{16}~\d{10}$""").matches(adsApp) &&
+            listOf(adsVideo, adsBanner).all { Regex("""^ca-app-pub-\d{16}/\d{10}$""").matches(it) }),
+) { "anuncios.properties: van los tres identificadores de AdMob bien escritos, o ninguno" }
+
 /* firma.properties (no se sube al repositorio): dónde está la llave con la que se firma lo que
    se sube a Google Play, y sus claves. Sin ese archivo, la versión de publicación no se firma. */
 val firma = Properties().apply {
@@ -28,9 +53,13 @@ android {
         applicationId = "com.giroestelar"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = 4
         versionName = "0.2.0"
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"" + googleClientId + "\"")
+        buildConfigField("String", "API_URL", "\"" + apiUrl + "\"")
+        buildConfigField("String", "ADS_VIDEO", "\"" + adsVideo + "\"")
+        buildConfigField("String", "ADS_BANNER", "\"" + adsBanner + "\"")
+        manifestPlaceholders["adsAppId"] = adsTestApp
     }
 
     compileOptions {
@@ -55,6 +84,7 @@ android {
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("publicacion")
+            manifestPlaceholders["adsAppId"] = adsApp.ifEmpty { adsTestApp }
         }
     }
 }
@@ -71,6 +101,9 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     /* cobros con Google Play (la tienda obliga a usar una versión vigente de esta librería) */
     implementation("com.android.billingclient:billing:9.1.0")
+    /* anuncios (AdMob) y la ventana con la que Google pide permiso donde la ley lo exige */
+    implementation("com.google.android.gms:play-services-ads:25.5.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     testImplementation(kotlin("test"))
 }
 

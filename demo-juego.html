@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-JpKZFhtZcOAGYg9o8KoMg1hu164nw/2Ys/shKbfDyUE='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src https://giro-estelar.giro-estelar-servidor.workers.dev http://localhost:* http://127.0.0.1:*; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-iHBmYV5p7tOc5MY2JIkfFGJHszjfT+uawHasQgz0LOg='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src https://giro-estelar.giro-estelar-servidor.workers.dev http://localhost:* http://127.0.0.1:*; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#070b18">
 <title>Astrion Space</title>
@@ -107,6 +107,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;displa
 .pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--ok))}
 .adbox{height:130px;border-radius:12px;background:repeating-linear-gradient(45deg,#1b2350,#1b2350 10px,#222c63 10px,#222c63 20px);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:10px 0;color:var(--mute);font-size:13px}
 .adbox b{font-size:34px;color:var(--ink)}
+/* el anuncio de verdad (en la app): solo el aviso de que está cargando, o de que no hubo premio */
+#ad.real #adCount,#ad.real .pbar,#ad.wait #adBtn{display:none}
+#ad.real .adbox{padding:0 14px;text-align:center}
 .btn.surv{background:linear-gradient(90deg,#c792ff,#ff6bd0);color:#14061e}
 .btn.space{background:linear-gradient(90deg,#4fc3ff,#6ef2a5);color:#04161e}
 /* mundos: el botón del lobby y el mapa */
@@ -398,6 +401,7 @@ button.lchip{cursor:pointer}
 #acctOpen{margin-top:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;padding:12px}
 #acctOpen .ic{width:20px;height:20px}
 #acctOpen.ok{border-color:var(--ok);color:var(--ok)}
+.linkbtn{display:block;margin:12px auto 0;padding:6px 10px;background:none;border:0;color:var(--mute);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
 .hint2{font-size:11.5px;color:var(--mute);line-height:1.4;margin-top:7px;text-align:left}
 #settingsClose{margin-top:18px}
 /* tienda: lo último que pasó con una compra */
@@ -613,11 +617,16 @@ button.lchip{cursor:pointer}
           <div class="ctrl" id="rem"><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.4 18.6a2.6 2.6 0 0 0 5.2 0z" fill="#e09a1a"/><path d="M12 3.4a6.2 6.2 0 0 0-6.2 6.2v3.8l-2 3.4a.9.9 0 0 0 .8 1.4h14.8a.9.9 0 0 0 .8-1.4l-2-3.4V9.6A6.2 6.2 0 0 0 12 3.4z" fill="#ffd24a"/><path d="M10.5 3a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0 -3 0z" fill="#e09a1a"/><path d="M8.4 9.4a3.8 3.8 0 0 1 2.2-3" fill="none" stroke="#f4f7ff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Aviso diario:</span><button class="opt" data-rem="1">Sí</button><button class="opt" data-rem="0">No</button></div>
           <div class="note">Un aviso al día a las 7 de la noche, solo si ese día no has jugado.</div>
         </div>
+        <div id="adsRow" style="display:none">
+          <div class="sect">Anuncios</div>
+          <button class="btn alt" id="adsPrivacy">Cambiar mi elección de privacidad</button>
+        </div>
         <div id="acctRow" style="display:none">
           <div class="sect">Tu progreso</div>
           <button class="btn alt" id="acctOpen"></button>
           <div class="hint2" id="acctNote"></div>
         </div>
+        <button class="linkbtn" id="policyOpen">Política de privacidad</button>
         <button class="btn" id="settingsClose">Listo</button>
       </div>
     </div>
@@ -642,9 +651,9 @@ button.lchip{cursor:pointer}
     <!-- Anuncio (siempre al final para quedar encima) -->
     <div class="screen" id="ad">
       <div class="card">
-        <h2>Anuncio (simulado)</h2>
+        <h2 id="adTitle">Anuncio (simulado)</h2>
         <div class="sub" id="adLabel"></div>
-        <div class="adbox"><b id="adCount">3</b>aquí iría un video de 15-30 s</div>
+        <div class="adbox"><b id="adCount">3</b><span id="adNote">aquí iría un video de 15-30 s</span></div>
         <div class="pbar"><i id="adFill" style="width:0"></i></div>
         <button class="btn ad" id="adBtn" disabled>Espera…</button>
       </div>
@@ -844,6 +853,66 @@ button.lchip{cursor:pointer}
         /* a quién avisar si Google confirma un pago sin que el juego lo haya pedido (un pago lento) */
         onPurchases(fn) {
           storeNews = fn;
+        }
+      },
+      /* Anuncios. En la app los pone Android (AdMob): el video con premio a pantalla completa y la
+         franja de abajo. En el navegador no hay, y el juego muestra los suyos de mentira (ui/ads.js). */
+      ads: {
+        real() {
+          try {
+            return !!(NATIVE && NATIVE.adsReady && NATIVE.adsReady());
+          } catch (e) {
+            return false;
+          }
+        },
+        /* Muestra un video con premio. Devuelve 'earned' = lo vio y se ganó el premio ·
+           'closed' = lo cerró antes de tiempo · 'none' = no había anuncio (sin conexión, sin oferta). */
+        video() {
+          return new Promise((done) => {
+            const timer2 = setTimeout(() => finish2("none"), 6e5);
+            const finish2 = (result) => {
+              clearTimeout(timer2);
+              window.__giroAd = null;
+              done(result === "earned" || result === "closed" ? result : "none");
+            };
+            window.__giroAd = finish2;
+            try {
+              NATIVE.adShow();
+            } catch (e) {
+              finish2("none");
+            }
+          });
+        },
+        /* la franja de abajo: se enciende o se apaga (quien compró "Sin anuncios" no la ve) */
+        banner(on3) {
+          try {
+            if (NATIVE && NATIVE.adBanner) NATIVE.adBanner(!!on3);
+          } catch (e) {
+          }
+        },
+        /* ¿a este jugador hay que ofrecerle cambiar su elección de privacidad? (Europa y similares) */
+        privacy() {
+          try {
+            return !!(NATIVE && NATIVE.adsPrivacy && NATIVE.adsPrivacy());
+          } catch (e) {
+            return false;
+          }
+        },
+        openPrivacy() {
+          try {
+            NATIVE.adsPrivacyOpen();
+          } catch (e) {
+          }
+        }
+      },
+      /* Abre la política de privacidad en el navegador del teléfono. En la app la dirección la pone
+         Android (fija, la del servidor del juego): desde la página solo se le dice el idioma. */
+      openPolicy(lang2, url) {
+        try {
+          if (NATIVE) {
+            if (NATIVE.openPolicy) NATIVE.openPolicy(lang2);
+          } else window.open(url, "_blank", "noopener");
+        } catch (e) {
         }
       },
       /* un identificador al azar para esta instalación (no sale del azar del juego) */
@@ -1050,7 +1119,10 @@ button.lchip{cursor:pointer}
     "Pieza siguiente": "Next part",
     "Combinar al azar": "Random mix",
     "Marcar como meta": "Set as goal",
-    "Agrandar o achicar la lista": "Expand or shrink the list"
+    "Agrandar o achicar la lista": "Expand or shrink the list",
+    Anuncios: "Ads",
+    "Cambiar mi elección de privacidad": "Change my privacy choice",
+    "Política de privacidad": "Privacy policy"
   };
 
   // src/core/lang/en/core.js
@@ -1833,7 +1905,11 @@ button.lchip{cursor:pointer}
     "No se borró nada: faltó confirmar con Google.": "Nothing was deleted: the Google confirmation wasn’t completed.",
     "No se borró nada: Google no confirmó que esta cuenta sea tuya.": "Nothing was deleted: Google didn’t confirm this account is yours.",
     "Tu sesión ya estaba cerrada y no se borró nada. Entra de nuevo para borrar la cuenta.": "You were already signed out and nothing was deleted. Sign in again to delete the account.",
-    "Para confirmar te pediremos entrar con Google otra vez.": "To confirm, we’ll ask you to sign in with Google again."
+    "Para confirmar te pediremos entrar con Google otra vez.": "To confirm, we’ll ask you to sign in with Google again.",
+    Anuncio: "Ad",
+    "Cargando el anuncio…": "Loading the ad…",
+    "Cerraste el anuncio antes de terminar: esta vez no hay recompensa.": "You closed the ad before it ended: no reward this time.",
+    "No hay anuncio disponible ahora. Intenta de nuevo en un momento.": "No ad available right now. Try again in a moment."
   };
 
   // src/core/lang/en/ui-b.js
@@ -2039,7 +2115,10 @@ button.lchip{cursor:pointer}
     "Pieza siguiente": "Próxima peça",
     "Combinar al azar": "Combinar ao acaso",
     "Marcar como meta": "Marcar como meta",
-    "Agrandar o achicar la lista": "Aumentar ou diminuir a lista"
+    "Agrandar o achicar la lista": "Aumentar ou diminuir a lista",
+    Anuncios: "Anúncios",
+    "Cambiar mi elección de privacidad": "Mudar minha escolha de privacidade",
+    "Política de privacidad": "Política de privacidade"
   };
 
   // src/core/lang/pt/core.js
@@ -2822,7 +2901,11 @@ button.lchip{cursor:pointer}
     "No se borró nada: faltó confirmar con Google.": "Nada foi apagado: faltou confirmar com o Google.",
     "No se borró nada: Google no confirmó que esta cuenta sea tuya.": "Nada foi apagado: o Google não confirmou que esta conta é sua.",
     "Tu sesión ya estaba cerrada y no se borró nada. Entra de nuevo para borrar la cuenta.": "Sua sessão já estava encerrada e nada foi apagado. Entre de novo para apagar a conta.",
-    "Para confirmar te pediremos entrar con Google otra vez.": "Para confirmar, vamos pedir que você entre com o Google de novo."
+    "Para confirmar te pediremos entrar con Google otra vez.": "Para confirmar, vamos pedir que você entre com o Google de novo.",
+    Anuncio: "Anúncio",
+    "Cargando el anuncio…": "Carregando o anúncio…",
+    "Cerraste el anuncio antes de terminar: esta vez no hay recompensa.": "Você fechou o anúncio antes do fim: desta vez não há recompensa.",
+    "No hay anuncio disponible ahora. Intenta de nuevo en un momento.": "Nenhum anúncio disponível agora. Tente de novo em instantes."
   };
 
   // src/core/lang/pt/ui-b.js
@@ -14416,16 +14499,20 @@ void main() {`;
   // src/ui/ads.js
   var adCb = null;
   var adTimer = null;
+  var asking = false;
   var adTag = () => noAds() ? "" : " " + tr("(anuncio)");
   function applyNoAds() {
-    $("banner").style.display = noAds() ? "none" : "";
+    const off = noAds();
+    $("banner").style.display = off || Platform.ads.real() ? "none" : "";
+    Platform.ads.banner(!off);
   }
-  function showAd(label, cb) {
+  function showAd(label, cb, back) {
     if (noAds()) {
       cb();
       return;
     }
     $("adLabel").innerHTML = T(label);
+    if (Platform.ads.real()) return realAd(cb, back);
     $("adBtn").disabled = true;
     $("adBtn").textContent = tr("Espera…");
     let n = 3;
@@ -14445,9 +14532,35 @@ void main() {`;
       }
     }, 1e3);
   }
+  async function realAd(cb, back) {
+    if (asking) return;
+    asking = true;
+    adCb = null;
+    $("adTitle").textContent = tr("Anuncio");
+    $("adNote").textContent = tr("Cargando el anuncio…");
+    $("ad").classList.add("show", "real", "wait");
+    const result = await Platform.ads.video();
+    asking = false;
+    if (result === "earned") {
+      $("ad").classList.remove("show", "real", "wait");
+      cb();
+      return;
+    }
+    $("adNote").textContent = result === "closed" ? tr("Cerraste el anuncio antes de terminar: esta vez no hay recompensa.") : tr("No hay anuncio disponible ahora. Intenta de nuevo en un momento.");
+    $("adBtn").disabled = false;
+    $("adBtn").textContent = tr("Cerrar");
+    $("ad").classList.remove("wait");
+    adCb = back || null;
+  }
+  function closeAd() {
+    const el = $("ad");
+    if (!el.classList.contains("show") || !el.classList.contains("real")) return false;
+    if (!el.classList.contains("wait")) $("adBtn").click();
+    return true;
+  }
   function bootAds() {
     $("adBtn").addEventListener("click", () => {
-      $("ad").classList.remove("show");
+      $("ad").classList.remove("show", "real", "wait");
       const f = adCb;
       adCb = null;
       if (f) f();
@@ -17932,6 +18045,7 @@ void main() {`;
     $("gfxNote").textContent = GFX_NOTE[gfx()];
     document.querySelectorAll("#ctrl .opt").forEach((b) => b.classList.toggle("sel", b.dataset.ctrl === (S.ctrl || "swipe")));
     $("remRow").style.display = reminderAvailable() ? "" : "none";
+    $("adsRow").style.display = Platform.ads.privacy() ? "" : "none";
     renderAccountRow();
     renderLang();
     if (reminderAvailable()) {
@@ -17977,6 +18091,11 @@ void main() {`;
       render7();
     });
     onReminderChange(render7);
+    $("adsPrivacy").addEventListener("click", () => Platform.ads.openPrivacy());
+    $("policyOpen").addEventListener(
+      "click",
+      () => Platform.openPolicy(lang(), API_URL + (lang() === "es" ? "/privacidad" : "/privacy"))
+    );
     $("ctrl").addEventListener("click", (e) => {
       const b = e.target.closest("[data-ctrl]");
       if (!b) return;
@@ -18083,6 +18202,7 @@ void main() {`;
       if (document.hidden) pauseGame();
     });
     window.__giroBack = () => {
+      if (closeAd()) return true;
       if (closeRemAsk()) return true;
       if (closeSettings()) return true;
       if (closeShop()) return true;
@@ -18299,7 +18419,7 @@ void main() {`;
   function bootFlow() {
     $("reviveBtn").addEventListener("click", () => {
       $("crash").classList.remove("show");
-      showAd(tr("Recompensa: revivir y seguir la partida"), revive);
+      showAd(tr("Recompensa: revivir y seguir la partida"), revive, () => $("crash").classList.add("show"));
     });
     $("giveUp").addEventListener("click", () => {
       $("crash").classList.remove("show");

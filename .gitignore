@@ -1,0 +1,3 @@
+# Material de la tienda: el video pesa mucho y se regenera con juego/tools/tienda.mjs
+tienda/*.webm
+tienda/_*.html
