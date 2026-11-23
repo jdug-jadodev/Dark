@@ -28,6 +28,8 @@ interface ReminderStore {
     var streak: Int
     /** Puesto del jugador en la copa de la semana (0 = no está en la tabla). */
     var cupRank: Int
+    /** Idioma que el jugador eligió en el juego ("" = el juego todavía no lo ha contado). */
+    var lang: String
 }
 
 /** Puerto: poner o quitar la alarma que despierta a la app para avisar. */
@@ -36,9 +38,17 @@ interface ReminderAlarm {
     fun cancel()
 }
 
-class Reminders(private val store: ReminderStore, private val alarm: ReminderAlarm) {
+class Reminders(
+    private val store: ReminderStore,
+    private val alarm: ReminderAlarm,
+    /** Idioma del teléfono: vale mientras el juego no haya contado el suyo. */
+    private val deviceLang: String = "es",
+) {
 
     val enabled: Boolean get() = store.enabled
+
+    /** Los textos de la app en el idioma del juego. */
+    val texts: AppTexts get() = Texts.of(Texts.code(store.lang, deviceLang))
 
     /** El jugador lo enciende o lo apaga. */
     fun setEnabled(on: Boolean, now: LocalDateTime) {
@@ -57,6 +67,11 @@ class Reminders(private val store: ReminderStore, private val alarm: ReminderAla
     /** El juego cuenta la racha, para que el aviso la nombre. */
     fun noteStreak(days: Int) {
         store.streak = days.coerceIn(0, MAX_STREAK)
+    }
+
+    /** El juego cuenta en qué idioma está, para escribir el aviso en el mismo. Lo desconocido se ignora. */
+    fun noteLang(code: String) {
+        if (Texts.known(code)) store.lang = code
     }
 
     /** El juego cuenta el puesto en la copa, para el aviso del domingo. */
@@ -87,13 +102,12 @@ class Reminders(private val store: ReminderStore, private val alarm: ReminderAla
 
     private fun message(now: LocalDateTime): String {
         val day = now.dayOfWeek
+        val t = texts
         return when {
-            day == DayOfWeek.SUNDAY && store.cupRank > 0 ->
-                "La copa termina esta noche y vas ${store.cupRank}.º. Una partida más para defender tu puesto."
-            day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY ->
-                "Hoy las monedas valen el doble. Y tu cofre te está esperando."
-            store.streak >= 2 -> "Tu racha de ${store.streak} días te espera: abre el cofre de hoy."
-            else -> "Tu cofre de hoy está listo y hay 3 misiones nuevas."
+            day == DayOfWeek.SUNDAY && store.cupRank > 0 -> t.cupEnds(store.cupRank)
+            day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY -> t.weekend
+            store.streak >= 2 -> t.streak(store.streak)
+            else -> t.chest
         }
     }
 

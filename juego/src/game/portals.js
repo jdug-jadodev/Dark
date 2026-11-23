@@ -1,5 +1,6 @@
 /** Portales: aparecen al cambiar de fase o nivel y disparan el salto. */
 import { emit } from '../core/events.js';
+import { tr } from '../core/i18n.js';
 import { G } from '../core/state.js';
 import { H, SPAWN, WARP_T } from '../core/config.js';
 import { ap } from '../core/difficulty.js';
@@ -22,7 +23,7 @@ export function updatePortals(dt) {
       G.pops.push({
         x: G.ship.x,
         y: G.ship.y - 40,
-        text: '{nova} ¡PORTAL!',
+        text: tr('{nova} ¡PORTAL!'),
         life: 1.2,
         col: '#ffffff',
       });

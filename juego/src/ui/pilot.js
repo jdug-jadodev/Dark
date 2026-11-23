@@ -3,6 +3,7 @@
  * experiencia al terminar una partida (la barra se llena a la vista, y cada nivel o ascenso se celebra).
  */
 import { emit } from '../core/events.js';
+import { tr } from '../core/i18n.js';
 import { RARITY } from '../core/parts.js';
 import { MEDALS, addXp, medalOf, nextMedalLevel, pilot, rewardOf, runXp } from '../core/pilot.js';
 import { G } from '../core/state.js';
@@ -16,10 +17,8 @@ export function renderPilot() {
   const p = pilot();
   $('pLvl').innerHTML = T(
     p.medal.icon +
-      '<span><b>' +
-      p.medal.label +
-      '</b> nivel ' +
-      p.lv +
+      '<span>' +
+      tr('<b>{name}</b> nivel {n}', { name: p.medal.label, n: p.lv }) +
       '<i class="bar"><i style="width:' +
       pct(p) +
       '%"></i></i></span>',
@@ -36,13 +35,9 @@ export function pilotStats() {
     p.medal.icon +
     '</div><b>' +
     p.medal.label +
-    '</b><small>Nivel ' +
-    p.lv +
-    ' · ' +
-    p.have +
-    ' / ' +
-    p.need +
-    ' de experiencia</small><div class="pbar"><i style="width:' +
+    '</b><small>' +
+    tr('Nivel {n} · {x} / {total} de experiencia', { n: p.lv, x: p.have, total: p.need }) +
+    '</small><div class="pbar"><i style="width:' +
     pct(p) +
     '%"></i></div></div><div class="ladder">' +
     MEDALS.map(
@@ -53,19 +48,21 @@ export function pilotStats() {
         i +
         '}<span>' +
         m.name +
-        '</span><small>nivel ' +
-        m.from +
+        '</span><small>' +
+        tr('nivel {n}', { n: m.from }) +
         '</small></div>',
     ).join('') +
-    '</div><div class="top"><div><span>Al subir de nivel</span><b>+' +
+    '</div><div class="top"><div><span>' +
+    tr('Al subir de nivel') +
+    '</span><b>+' +
     rewardOf(p.lv + 1).coins +
     ' {coin}</b></div><div><span>' +
     /* en la última medalla ya no hay ascenso, pero cada cinco niveles sigue llegando una pieza */
     (medalOf(next).tier !== p.medal.tier
-      ? 'Ascenso a ' + medalOf(next).name + ' (nivel ' + next + ')'
-      : 'Al llegar al nivel ' + next) +
-    '</span><b>una pieza ' +
-    r.rarity +
+      ? tr('Ascenso a {name} (nivel {n})', { name: medalOf(next).name, n: next })
+      : tr('Al llegar al nivel {n}', { n: next })) +
+    '</span><b>' +
+    tr('una pieza {rarity}', { rarity: r.rarity }) +
     '</b></div></div>'
   );
 }
@@ -89,9 +86,11 @@ export function xpBlock(won) {
     b.medal.icon +
     '</span><span><b id="xpName">' +
     b.medal.label +
-    '</b><small id="xpLv">Nivel ' +
-    b.lv +
-    '</small></span><em>+<span id="xpNum">0</span> de experiencia</em></div><div class="pbar"><i id="xpBar" style="width:' +
+    '</b><small id="xpLv">' +
+    tr('Nivel {n}', { n: b.lv }) +
+    '</small></span><em>' +
+    tr('+{x} de experiencia', { x: '<span id="xpNum">0</span>' }) +
+    '</em></div><div class="pbar"><i id="xpBar" style="width:' +
     pct(b) +
     '%"></i></div><div id="xpUps"></div></div>'
   );
@@ -115,18 +114,22 @@ async function play(id, r) {
     emit('reward');
     $('xpMedal').innerHTML = T(up.medal.icon);
     $('xpName').textContent = up.medal.label;
-    $('xpLv').textContent = 'Nivel ' + up.lv;
+    $('xpLv').textContent = tr('Nivel {n}', { n: up.lv });
     restart($('xpMedal'), 'pop');
     restart($('xpLine'), 'flash');
     $('xpUps').insertAdjacentHTML(
       'beforeend',
       T(
         '<div class="rec xpup">{party} ' +
-          (up.promoted ? '¡Ascenso a ' + up.medal.name + '!' : '¡Nivel ' + up.lv + '!') +
-          ' +' +
-          up.coins +
-          ' {coin}' +
-          (up.piece ? ' y una pieza: ' + up.piece.name + ' (' + RARITY[up.piece.rar].name + ')' : '') +
+          (up.promoted ? tr('¡Ascenso a {name}!', { name: up.medal.name }) : tr('¡Nivel {n}!', { n: up.lv })) +
+          ' ' +
+          (up.piece
+            ? tr('+{c} {coin} y una pieza: {name} ({rarity})', {
+                c: up.coins,
+                name: up.piece.name,
+                rarity: RARITY[up.piece.rar].name,
+              })
+            : '+' + up.coins + ' {coin}') +
           '</div>',
       ),
     );
@@ -157,13 +160,19 @@ function promote(up, alive) {
     box.innerHTML = T(
       '<i class="rays"></i><div class="promedal">' +
         up.medal.icon +
-        '</div><small>ASCENSO</small><b>' +
+        '</div><small>' +
+        tr('ASCENSO') +
+        '</small><b>' +
         up.medal.label +
         '</b><span>+' +
         up.coins +
         ' {coin}' +
-        (up.piece ? '<br>Pieza nueva: ' + up.piece.name + ' (' + RARITY[up.piece.rar].name + ')' : '') +
-        '</span><em>Toca para seguir</em>',
+        (up.piece
+          ? '<br>' + tr('Pieza nueva: {name} ({rarity})', { name: up.piece.name, rarity: RARITY[up.piece.rar].name })
+          : '') +
+        '</span><em>' +
+        tr('Toca para seguir') +
+        '</em>',
     );
     const close = () => {
       if (!box.isConnected) return;

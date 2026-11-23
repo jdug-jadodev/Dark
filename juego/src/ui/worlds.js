@@ -1,4 +1,5 @@
 /** El mapa de mundos: se abre con el botón "Mundos" del lobby y deja elegir a cuál entrar. */
+import { tr } from '../core/i18n.js';
 import { G } from '../core/state.js';
 import { WORLDS, currentWorld, worldOf, worldOpen, worldWins, worldsDone } from '../core/worlds.js';
 import { $ } from './dom.js';
@@ -11,24 +12,34 @@ const canEnter = (w) => w.ready && (worldOpen(w) || G.demo);
 /* el botón del lobby: el mundo que toca y cuántos van */
 export function renderWorldButton() {
   const w = currentWorld();
-  $('worldSub').textContent = w.name + ' · ' + worldsDone() + ' de ' + WORLDS.length + ' completados';
+  $('worldSub').textContent = tr('{name} · {n} de {total} completados', {
+    name: w.name,
+    n: worldsDone(),
+    total: WORLDS.length,
+  });
 }
 function render() {
   $('worldBox').innerHTML = T(
-    '<h2>{rocket} Mundos</h2><div class="sub">Cada mundo tiene su paisaje, sus enemigos y un jefe. Vence al jefe para abrir el siguiente.</div>' +
+    '<h2>' +
+      tr('{rocket} Mundos') +
+      '</h2><div class="sub">' +
+      tr('Cada mundo tiene su paisaje, sus enemigos y un jefe. Vence al jefe para abrir el siguiente.') +
+      '</div>' +
       WORLDS.map((w, i) => {
         const wins = worldWins(w.id),
           open = canEnter(w),
           prev = WORLDS[i - 1];
         const state = !w.ready
-          ? 'Próximamente'
+          ? tr('Próximamente')
           : !open
-            ? '{lock} Vence al jefe de ' + prev.name
+            ? tr('{lock} Vence al jefe de {name}', { name: prev.name })
             : wins
-              ? '{check} Jefe vencido' + (wins > 1 ? ' ×' + wins : '') + ' · jugar de nuevo'
+              ? wins > 1
+                ? tr('{check} Jefe vencido ×{n} · jugar de nuevo', { n: wins })
+                : tr('{check} Jefe vencido · jugar de nuevo')
               : worldOpen(w)
-                ? '{play} Jugar'
-                : '{play} Ver en modo demo';
+                ? tr('{play} Jugar')
+                : tr('{play} Ver en modo demo');
         return (
           '<button class="wcard w-' +
           w.id +
@@ -50,7 +61,9 @@ function render() {
           '</em></span></button>'
         );
       }).join('') +
-      '<button class="btn alt" data-world="">Cerrar</button>',
+      '<button class="btn alt" data-world="">' +
+      tr('Cerrar') +
+      '</button>',
   );
 }
 export function openWorlds() {

@@ -6,6 +6,7 @@
 import { emit } from '../core/events.js';
 import { buy, canUse, equip, equippedId, owns, setPreview, uniqueOn } from '../core/garage.js';
 import { isGoal, toggleGoal } from '../core/goal.js';
+import { tr } from '../core/i18n.js';
 import { BODY, BY_SLOT, PARTS, RARITY, SLOTS } from '../core/parts.js';
 import { OFFER_OFF, locked, offer, priceNow, seasonOf } from '../core/season.js';
 import { S } from '../core/profile.js';
@@ -427,10 +428,10 @@ function thumb(p) {
 /* ---------- pantalla ---------- */
 /* Las 11 ranuras se reparten en 4 grupos: primero se elige el grupo y después la ranura. */
 const GROUPS = [
-  { id: 'ship', name: 'Nave', icon: 'ufo', slots: ['ship'] },
-  { id: 'body', name: 'Cuerpo', icon: 'rocket', slots: ['hull', 'nose', 'wing', 'fin', 'glass', 'engine'] },
-  { id: 'style', name: 'Estilo', icon: 'paint', slots: ['paint', 'flame'] },
-  { id: 'fight', name: 'Combate', icon: 'target', slots: ['gun', 'boom'] },
+  { id: 'ship', name: tr('Nave'), icon: 'ufo', slots: ['ship'] },
+  { id: 'body', name: tr('Cuerpo'), icon: 'rocket', slots: ['hull', 'nose', 'wing', 'fin', 'glass', 'engine'] },
+  { id: 'style', name: tr('Estilo'), icon: 'paint', slots: ['paint', 'flame'] },
+  { id: 'fight', name: tr('Combate'), icon: 'target', slots: ['gun', 'boom'] },
 ];
 const groupOf = (slot) => GROUPS.find((g) => g.slots.includes(slot));
 const slotName = (id) => SLOTS.find((s) => s.id === id).name;
@@ -483,11 +484,15 @@ function render(reveal) {
   $('gFilters').innerHTML =
     '<button class="gfil' +
     (mine ? '' : ' sel') +
-    '" data-mine="0">Todas</button>' +
+    '" data-mine="0">' +
+    tr('Todas') +
+    '</button>' +
     '<button class="gfil' +
     (mine ? ' sel' : '') +
-    '" data-mine="1">Mías</button>';
-  $('gCount').textContent = 'Tienes ' + have + ' de ' + all.length;
+    '" data-mine="1">' +
+    tr('Mías') +
+    '</button>';
+  $('gCount').textContent = tr('Tienes {n} de {total}', { n: have, total: all.length });
   const sale = offer();
   $('gItems').innerHTML = listed()
     .map((p) => {
@@ -535,38 +540,38 @@ function render(reveal) {
     rar.name +
       ' · ' +
       (sel === on
-        ? 'puesta'
+        ? tr('puesta')
         : owns(sel)
-          ? 'es tuya'
+          ? tr('es tuya')
           : shut
-            ? 'solo en ' + season.name
+            ? tr('solo en {name}', { name: season.name })
             : '{coin} ' + price + (sale && sale.id === sel ? ' (−' + OFFER_OFF + ' %)' : '')),
   );
   $('gRar').style.color = rar.col;
   act.className = 'btn';
   act.disabled = false;
   if (sel === on) {
-    act.innerHTML = T('{check} Puesta');
+    act.innerHTML = T(tr('{check} Puesta'));
     act.disabled = true;
-  } else if (owns(sel)) act.textContent = 'Equipar';
-  else if (canUse(sel)) act.textContent = 'Equipar (demo)';
+  } else if (owns(sel)) act.textContent = tr('Equipar');
+  else if (canUse(sel)) act.textContent = tr('Equipar (demo)');
   else if (shut) {
-    act.textContent = 'Se consigue ' + season.dates;
+    act.textContent = tr('Se consigue {dates}', { dates: season.dates });
     act.className = 'btn alt';
     act.disabled = true;
   } else if (S.coins >= price) {
-    act.innerHTML = T('Comprar · {coin} ' + price);
+    act.innerHTML = T(tr('Comprar · {coin} {n}', { n: price }));
     act.className = 'btn ad';
   } else {
     /* no alcanza: el botón lleva a la tienda */
-    act.innerHTML = T('Te faltan {coin} ' + (price - S.coins) + ' · Tienda');
+    act.innerHTML = T(tr('Te faltan {coin} {n} · Tienda', { n: price - S.coins }));
     act.className = 'btn alt';
   }
   /* marcar como meta: solo lo que aún no se tiene (en modo demo no hay metas) */
   const goalBtn = $('gGoal');
   goalBtn.style.display = owns(sel) || G.demo ? 'none' : '';
   goalBtn.classList.toggle('on', isGoal(sel));
-  goalBtn.innerHTML = T('{target}<span>' + (isGoal(sel) ? 'Tu meta' : 'Meta') + '</span>');
+  goalBtn.innerHTML = T('{target}<span>' + (isGoal(sel) ? tr('Tu meta') : tr('Meta')) + '</span>');
 }
 function pickTab(id) {
   tab = id;
@@ -593,20 +598,22 @@ function hint() {
     sale = offer(),
     season = sel && !owns(sel) && seasonOf(PARTS[sel]);
   $('gHint').textContent = isGoal(sel)
-    ? 'Es tu meta: el lobby te dirá cuánto te falta'
+    ? tr('Es tu meta: el lobby te dirá cuánto te falta')
     : season && season.active
-      ? 'De ' + season.name + ': se consigue ' + season.dates
+      ? tr('De {name}: se consigue {dates}', { name: season.name, dates: season.dates })
       : sale && sale.id === sel && !owns(sel)
-        ? 'Oferta de la semana: −' + OFFER_OFF + ' % hasta el domingo'
+        ? tr('Oferta de la semana: −{n} % hasta el domingo', { n: OFFER_OFF })
         : pack
-          ? 'Su paquete (aparte): ' + pack.map((id) => PARTS[id].name).join(' y ')
+          ? tr('Su paquete (aparte): {x}', {
+              x: pack.map((id) => PARTS[id].name).join(' ' + tr('y##entre dos nombres') + ' '),
+            })
           : BODY.includes(tab) && uniqueOn()
-            ? 'Llevas una nave única: equipar algo de aquí te devuelve a la armable'
+            ? tr('Llevas una nave única: equipar algo de aquí te devuelve a la armable')
             : tab === 'gun'
-              ? 'Disparos de muestra: así se ven las tres armas'
+              ? tr('Disparos de muestra: así se ven las tres armas')
               : tab === 'boom'
-                ? 'Toca una explosión para verla'
-                : 'Desliza para girar · flechas para cambiar de pieza';
+                ? tr('Toca una explosión para verla')
+                : tr('Desliza para girar · flechas para cambiar de pieza');
 }
 function pickPart(id, reveal) {
   sel = id;

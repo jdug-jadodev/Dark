@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Pantalla de inicio · IANEJ</title>
+<!--
+  Muestra para aprobar el estilo: la pantalla del estudio (IANEJ) que sale al abrir el juego,
+  antes del menú. Todavía NO está dentro del juego: primero se elige el estilo aquí.
+  Las letras están dibujadas con trazos (no dependen de la letra del teléfono): se ven igual en todas partes.
+-->
+<style>
+:root{--bg:#070b18;--ink:#eaf1ff;--mute:#8fa0cc;--acc:#5ee0ff;--acc2:#ffb454;--line:#2a3570}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#15171c;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+#page{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:14px}
+/* el "teléfono" */
+#phone{position:relative;height:min(100%,780px);aspect-ratio:9/19.5;max-width:100%;flex:0 1 auto;min-height:0;background:#000;border-radius:26px;overflow:hidden;box-shadow:0 0 0 2px #2b2f3a,0 20px 60px rgba(0,0,0,.6)}
+#bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;flex:0 0 auto}
+#bar button{font:inherit;font-size:14px;color:var(--ink);background:#22262f;border:1px solid #3a4050;border-radius:999px;padding:9px 14px;cursor:pointer}
+#bar button.on{background:var(--ink);color:#0b0d12;border-color:var(--ink);font-weight:700}
+#note{font-size:12.5px;color:#9aa3b5;text-align:center;max-width:520px;line-height:1.45;flex:0 0 auto}
+@media (max-width:560px){
+  #page{padding:0;gap:0}
+  #phone{height:100%;width:100%;aspect-ratio:auto;border-radius:0;box-shadow:none;flex:1 1 auto}
+  #bar{position:fixed;left:0;right:0;bottom:10px;z-index:9;padding:0 8px}
+  #bar button{font-size:13px;padding:8px 11px;background:rgba(34,38,47,.85)}
+  #note{display:none}
+}
+
+/* ---------- capas dentro del teléfono ---------- */
+.layer{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#studio{background:#000;z-index:2}
+#game{background:var(--bg);z-index:1;opacity:0}
+#stars{position:absolute;inset:0;width:100%;height:100%}
+.title{position:relative;margin:0;font-size:clamp(26px,9.2cqw,40px);font-weight:800;letter-spacing:.14em;text-align:center;line-height:1.15;text-shadow:0 0 24px rgba(94,224,255,.45)}
+.title small{display:block;font-size:.5em;letter-spacing:.62em;margin:.5em 0 0 .62em;color:var(--acc);font-weight:600}
+.cap{position:absolute;bottom:13%;font-size:12px;color:var(--mute);letter-spacing:.04em}
+#phone{container-type:inline-size}
+
+/* el nombre del estudio, dibujado */
+.mark{width:56%;max-width:260px;overflow:visible}
+.mark path{fill:none;stroke:#fff;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.rule{height:2px;width:0;background:#fff;margin-top:22px;border-radius:2px;opacity:.9}
+.emblem{width:26%;max-width:120px;margin-bottom:26px;overflow:visible}
+.emblem *{fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- los tiempos (los mismos en los tres estilos) ----------
+   0.0 s negro · 0.25 s entra el nombre · 2.1 s se va · 2.55 s aparece el juego */
+.run #studio{animation:studioOut .4s ease-in 2.1s forwards}
+.run #game{animation:gameIn .7s ease-out 2.55s forwards}
+@keyframes studioOut{to{opacity:0;visibility:hidden}}
+@keyframes gameIn{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}
+
+/* ===== Estilo 1 · Sobrio: aparece suave, con una raya que crece ===== */
+.s1 .emblem{display:none}
+.s1 .mark{opacity:0}
+.s1.run .mark{animation:softIn .9s cubic-bezier(.2,.7,.2,1) .25s forwards}
+.s1.run .rule{animation:ruleIn .9s cubic-bezier(.2,.7,.2,1) .55s forwards}
+@keyframes softIn{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:none}}
+@keyframes ruleIn{to{width:22%}}
+
+/* ===== Estilo 2 · Trazo: las letras se dibujan una por una y queda un brillo ===== */
+.s2 .emblem,.s2 .rule{display:none}
+.s2 .mark path{stroke-dasharray:1;stroke-dashoffset:1;opacity:0}
+.s2.run .mark path{animation:draw .55s cubic-bezier(.4,0,.2,1) forwards,show .01s linear forwards}
+.s2.run .mark path:nth-child(1){animation-delay:.25s,.25s}
+.s2.run .mark path:nth-child(2){animation-delay:.40s,.40s}
+.s2.run .mark path:nth-child(3){animation-delay:.55s,.55s}
+.s2.run .mark path:nth-child(4){animation-delay:.70s,.70s}
+.s2.run .mark path:nth-child(5){animation-delay:.85s,.85s}
+.s2.run .mark{animation:glow 1s ease-out 1.25s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes show{to{opacity:1}}
+@keyframes glow{0%{filter:drop-shadow(0 0 0 rgba(94,224,255,0))}35%{filter:drop-shadow(0 0 16px rgba(94,224,255,.95))}100%{filter:drop-shadow(0 0 7px rgba(94,224,255,.45))}}
+
+/* ===== Estilo 3 · Emblema: un símbolo arriba y el nombre debajo, más pequeño ===== */
+.s3 .rule{display:none}
+.s3 .mark{width:40%;max-width:190px;opacity:0}
+.s3 .emblem .ring{stroke:#fff;stroke-width:6;stroke-dasharray:1;stroke-dashoffset:1}
+.s3 .emblem .ship{stroke:var(--acc);stroke-width:9;opacity:0}
+.s3 .emblem .dot{fill:var(--acc2);stroke:none;opacity:0}
+.s3.run .emblem .ring{animation:draw .8s cubic-bezier(.4,0,.2,1) .25s forwards}
+.s3.run .emblem .ship{animation:shipIn .55s cubic-bezier(.2,.9,.2,1) .7s forwards}
+.s3.run .emblem .dot{animation:show .3s ease-out 1.05s forwards}
+.s3.run .mark{animation:riseIn .6s cubic-bezier(.2,.7,.2,1) .95s forwards}
+@keyframes shipIn{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* quien pide menos movimiento en su teléfono: solo aparece y se va */
+@media (prefers-reduced-motion:reduce){
+  .run .mark,.run .mark path,.run .emblem *{animation:show .3s linear .25s forwards!important;stroke-dashoffset:0!important;transform:none!important}
+  .run .rule{animation:none!important;width:22%}
+}
+</style>
+</head>
+<body>
+<div id="page">
+  <div id="phone" class="s1">
+    <!-- lo que queda debajo: el juego -->
+    <div class="layer" id="game">
+      <canvas id="stars"></canvas>
+      <h1 class="title">ASTRION<small>SPACE</small></h1>
+      <div class="cap">aquí aparece el menú del juego</div>
+    </div>
+    <!-- la pantalla del estudio -->
+    <div class="layer" id="studio">
+      <svg class="emblem" viewBox="-6 -6 112 112" aria-hidden="true">
+        <circle class="ring" cx="50" cy="50" r="47" pathLength="1" transform="rotate(-90 50 50)"/>
+        <path class="ship" d="M30 66 L50 26 L70 66"/>
+        <circle class="dot" cx="50" cy="70" r="5.5"/>
+      </svg>
+      <svg class="mark" viewBox="-12 -12 364 124" role="img" aria-label="IANEJ">
+        <path pathLength="1" d="M6 0 V100"/>
+        <path pathLength="1" d="M40 100 L72 0 L104 100"/>
+        <path pathLength="1" d="M132 100 V0 L190 100 V0"/>
+        <path pathLength="1" d="M220 0 H270 M220 50 H262 M220 100 H270"/>
+        <path pathLength="1" d="M340 0 V68 A26 26 0 0 1 288 68"/>
+      </svg>
+      <div class="rule"></div>
+    </div>
+  </div>
+
+  <div id="bar">
+    <button data-s="s1" class="on">1 · Sobrio</button>
+    <button data-s="s2">2 · Trazo</button>
+    <button data-s="s3">3 · Emblema</button>
+    <button id="again">↻ Repetir</button>
+  </div>
+  <div id="note">Pantalla de inicio de IANEJ: fondo negro, dura 2,5 segundos y después entra el juego. Toca un estilo para verlo; «Repetir» lo vuelve a pasar.</div>
+</div>
+
+<script>
+const phone = document.getElementById('phone');
+function play(style) {
+  if (style) {
+    phone.classList.remove('s1', 's2', 's3');
+    phone.classList.add(style);
+    document.querySelectorAll('#bar [data-s]').forEach((b) => b.classList.toggle('on', b.dataset.s === style));
+  }
+  phone.classList.remove('run');
+  void phone.offsetWidth; // para que la animación arranque de nuevo
+  phone.classList.add('run');
+}
+document.querySelectorAll('#bar [data-s]').forEach((b) => b.addEventListener('click', () => play(b.dataset.s)));
+document.getElementById('again').addEventListener('click', () => play());
+
+/* estrellas del fondo del juego (solo de adorno, para ver el paso de una pantalla a la otra) */
+function stars() {
+  const c = document.getElementById('stars'), r = c.getBoundingClientRect(), k = Math.min(2, window.devicePixelRatio || 1);
+  c.width = Math.round(r.width * k);
+  c.height = Math.round(r.height * k);
+  const g = c.getContext('2d');
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  for (let i = 0; i < 170; i++) {
+    const big = rnd() < 0.08;
+    g.fillStyle = `rgba(${big ? '94,224,255' : '234,241,255'},${0.25 + rnd() * 0.7})`;
+    g.beginPath();
+    g.arc(rnd() * c.width, rnd() * c.height, (big ? 1.5 : 0.4 + rnd() * 0.8) * k, 0, 7);
+    g.fill();
+  }
+}
+stars();
+addEventListener('resize', stars);
+const first = new URLSearchParams(location.search).get('estilo');
+play(['s1', 's2', 's3'].includes(first) ? first : 's1');
+</script>
+</body>
+</html>

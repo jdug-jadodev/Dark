@@ -4,6 +4,7 @@ import { chestReady, missionsDone, streakNow } from '../core/daily.js';
 import { touchLook } from '../core/garage.js';
 import { G } from '../core/state.js';
 import { GOAL } from '../core/config.js';
+import { tr } from '../core/i18n.js';
 import { S } from '../core/profile.js';
 import { fmt } from '../core/util.js';
 import { applyNoAds } from './ads.js';
@@ -21,14 +22,21 @@ export function renderMenu() {
   applyNoAds(); // por si el mes sin anuncios se venció
   const streak = streakNow();
   tellStreak(streak);
-  $('mCoins').innerHTML = T('{coin} ' + S.coins + '  ·  {fire} racha ' + streak + (streak === 1 ? ' día' : ' días'));
+  $('mCoins').innerHTML = T(
+    '{coin} ' +
+      S.coins +
+      '  ·  ' +
+      (streak === 1 ? tr('{fire} racha 1 día') : tr('{fire} racha {n} días', { n: streak })),
+  );
   const bt = (S.topTimes || [])[0],
     parts2 = [];
-  if (worldsDone()) parts2.push('{star} Mundos: ' + worldsDone() + ' de ' + WORLDS.length);
-  if (bt) parts2.push('{timer} Supervivencia: ' + fmt(bt));
+  if (worldsDone()) parts2.push(tr('{star} Mundos: {n} de {total}', { n: worldsDone(), total: WORLDS.length }));
+  if (bt) parts2.push(tr('{timer} Supervivencia: {time}', { time: fmt(bt) }));
   if ((S.topSpace || [])[0]) parts2.push('{planet} ' + S.topSpace[0] + ' km');
   if (S.bossWins) parts2.push('{trophy} ' + S.bossWins);
-  $('mBest').innerHTML = T(parts2.length ? parts2.join(' · ') : '{star} Aún sin récord: ¡juega tu primera partida!');
+  $('mBest').innerHTML = T(
+    parts2.length ? parts2.join(' · ') : tr('{star} Aún sin récord: ¡juega tu primera partida!'),
+  );
   /* lo de hoy: cuántas misiones van, y un punto sobre el cofre si está por abrir */
   const done = missionsDone();
   $('misBtn').querySelector('small').innerHTML = T(done === 3 ? '{check} 3/3' : done + '/3');

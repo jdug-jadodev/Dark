@@ -15,7 +15,7 @@ import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { findChrome } from './navegador.mjs';
+import { findChrome, pageForTests } from './navegador.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -23,6 +23,7 @@ const flag = (n) => args.includes(n);
 const opt = (n, d) => (args.includes(n) ? args[args.indexOf(n) + 1] : d);
 
 const HTML = path.resolve(opt('--html', path.join(here, '../../demo-juego.html')));
+const PAGE = pageForTests(HTML); // sin la marca integrity: aquí Three.js se cambia por uno con reloj y azar fijos
 const BASELINE = path.join(here, 'golden.baseline.json');
 const THREE = path.join(here, '../../app/android/src/main/assets/game/three.min.js');
 
@@ -314,13 +315,14 @@ async function run() {
   const result = {};
   for (const [name, steps] of Object.entries(SCENARIOS)) {
     if (only && only !== name) continue;
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 1 });
+    /* en español, sea cual sea el idioma del computador: la referencia guarda textos */
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 1, locale: 'es-CO' });
     const page = await ctx.newPage();
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
     await page.route(/three(\.min)?\.js/, (r) => r.fulfill({ contentType: 'application/javascript', body: three }));
     await page.addInitScript(installHarness, 20261118);
-    await page.goto(pathToFileURL(HTML).href);
+    await page.goto(pathToFileURL(PAGE).href);
     await page.waitForFunction(() => document.getElementById('mCoins').textContent.includes('racha'));
     const t0 = Date.now();
     const r = await page.evaluate((s) => window.__golden(s), steps);
@@ -333,6 +335,7 @@ async function run() {
     await ctx.close();
   }
   await browser.close();
+  fs.rmSync(PAGE, { force: true });
   return result;
 }
 

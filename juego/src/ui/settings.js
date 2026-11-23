@@ -1,6 +1,8 @@
 /** Configuración: volumen de la música y de los efectos, calidad gráfica y tipo de control. Se abre desde el menú y desde la pausa. */
 import { renderAccountRow } from './account.js';
+import { renderLang } from './lang.js';
 import { play, setVolume, volumes } from '../audio/sound.js';
+import { tr } from '../core/i18n.js';
 import { gfx, setGfx } from '../core/perf.js';
 import { S, save } from '../core/profile.js';
 import { G } from '../core/state.js';
@@ -10,10 +12,10 @@ import { onReminderChange, reminderAvailable, reminderOn, setReminder } from './
 import { resize } from '../render/engine.js';
 
 const GFX_NOTE = {
-  auto: 'Empieza en alta y baja sola si el teléfono se queda corto o se calienta.',
-  high: 'La mejor imagen. Gasta más batería.',
-  medium: 'Un poco menos nítido. Gasta menos batería y calienta menos.',
-  low: 'Para teléfonos modestos o para cuidar la batería.',
+  auto: tr('Empieza en alta y baja sola si el teléfono se queda corto o se calienta.'),
+  high: tr('La mejor imagen. Gasta más batería.'),
+  medium: tr('Un poco menos nítido. Gasta menos batería y calienta menos.'),
+  low: tr('Para teléfonos modestos o para cuidar la batería.'),
 };
 const SLIDERS = [
   ['volMusic', 'music'],
@@ -23,7 +25,7 @@ function render() {
   const v = volumes();
   for (const [id, which] of SLIDERS) {
     $(id).value = v[which];
-    $(id + 'N').textContent = v[which] ? v[which] + '%' : 'apagado';
+    $(id + 'N').textContent = v[which] ? v[which] + '%' : tr('apagado');
   }
   document.querySelectorAll('#gfx .opt').forEach((b) => b.classList.toggle('sel', b.dataset.gfx === gfx()));
   $('gfxNote').textContent = GFX_NOTE[gfx()];
@@ -32,6 +34,7 @@ function render() {
     .forEach((b) => b.classList.toggle('sel', b.dataset.ctrl === (S.ctrl || 'swipe')));
   $('remRow').style.display = reminderAvailable() ? '' : 'none';
   renderAccountRow();
+  renderLang();
   if (reminderAvailable()) {
     const on = reminderOn();
     document.querySelectorAll('#rem .opt').forEach((b) => b.classList.toggle('sel', (b.dataset.rem === '1') === on));

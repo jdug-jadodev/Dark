@@ -376,3 +376,91 @@ Cuánto quita cada cosa: disparo 10, roca o charco 15, nave 18, lo que avisa en 
 
 Son primeros números: con 100 de casco se aguantan unos seis o siete golpes, más dos o tres tras revivir. Si queda muy fácil, se sube el daño en los mundos.
 
+## Pagos con Google Play (2026-11-22)
+
+El usuario decidió publicar en **Google Play** y ya tiene cuenta de desarrollador. Ahí es obligatorio cobrar con la facturación de Google (no se puede usar otra pasarela para monedas ni "sin anuncios"). Google cobra, se queda con su comisión y le paga al desarrollador; ni el juego ni el servidor ven datos de pago.
+
+**Cómo queda protegido**
+
+| Riesgo | Qué lo impide |
+|---|---|
+| Fingir que se pagó | El juego no entrega nada por su cuenta: el servidor le pregunta a Google, con su propia credencial, si ese comprobante está pagado |
+| Usar un comprobante dos veces | Cada comprobante se entrega una vez; después el servidor lo cierra en Google |
+| Pedir más de lo comprado | Las cantidades las pone el servidor, y el comprobante solo vale para su producto |
+| Pagar y no recibir (se cae la conexión o se cierra el juego) | La compra queda abierta en Google y se retoma sola al abrir el juego |
+| Pagos lentos | No se entrega hasta que Google confirme; se entrega cuando confirma |
+| Monedas gratis con el pago simulado | El pago simulado solo existe en el laboratorio y en la app de pruebas; la app de publicación instalada por fuera de la tienda no puede comprar |
+
+**Hecho:** el servidor (`back-nave/src/compras.js`, 9 pruebas), el juego (`core/shop.js`, `ui/shop.js`), Android con la librería de cobros 9.1.0 (`adapters/StoreAdapters.kt`), y la compilación de publicación firmada (`GiroEstelar.aab`). Probado de punta a punta en el navegador con un Google Play de mentira: comprar, cancelar, pago lento, compra a medias, "sin anuncios" y recuperarlo en otro teléfono, y repetir comprobantes.
+
+**Falta:** publicar el servidor (pendiente de autorización del usuario); y en Play Console: crear la app, subir el paquete a pruebas internas, crear los cinco productos, agregar probadores y crear la credencial del servidor (pasos en `back-nave/LEEME.md`). Un cobro de verdad no se puede probar hasta entonces. Después de la primera subida hay que registrar en Google Cloud la huella de la firma que pone Google Play, o el inicio con Google fallará en la versión de la tienda.
+
+**La llave de subida** está en `Documents/giro-estelar-llaves` (fuera del repositorio) y su clave en `app/firma.properties` (ignorado por git). Hay que guardar copia de las dos cosas.
+
+**Sigue después (pedido del usuario):** anuncios de verdad y, por último, internacionalización.
+
+
+## Prueba de seguridad: arreglos en el juego y en la app (2026-11-22)
+
+Una revisión independiente de la app no encontró nada crítico, pero sí que la página se fiaba de lo que traía el perfil guardado y de lo que contestaba el servidor. Quedó así (la parte del servidor está en `back-nave`):
+
+| Riesgo | Cómo quedó |
+|---|---|
+| Un texto de fuera (perfil del teléfono, progreso de la nube, respuestas del servidor, precio de Google) se vuelve HTML y ejecuta código con acceso al puente de Android | Todo se limpia al entrar: el perfil en `core/profile.js` (`cleanProfile`), lo de la nube en `core/account.js`, la copa y los retos en `core/cup.js` y `core/duel.js`. Y donde se escribe un apodo va escapado (`esc()` de `core/util.js`, uno solo para todos) |
+| Si algo se colara igual | La página trae una política de contenido (la arma `build.mjs`): solo corre el código del juego, solo conecta con su servidor, nada de marcos ni formularios. La app la aprieta al compilar (sin CDN ni localhost) |
+| Llevar la ventana del juego a otra página, con el puente pegado | `MainActivity` bloquea cualquier navegación fuera de la página de la app |
+| Desviar el juego a otro servidor con `localStorage.giro_api`, o usar los ganchos `window.__giro…` | Solo existen en el laboratorio y en la app de pruebas (`Platform.lab`) |
+| Cerrar sesión sin conexión dejaba la sesión viva en el servidor | La llave solo se borra cuando el servidor confirma; si no, se le dice al jugador |
+| Una llave de sesión robada bastaba para borrar la cuenta | Borrar la cuenta vuelve a pedir Google |
+| Una compra reclamada por otra instalación | La compra va a nombre de la instalación (huella del identificador anónimo, que la app le pasa a Google) y el servidor lo comprueba |
+| Código de internet dentro de la app | El build falla si la página de la app carga algo por `http`; en el laboratorio, Three.js del CDN lleva `integrity` (es el mismo archivo que va en la app) |
+| La consola del juego en el registro del teléfono | Solo en la app de pruebas |
+
+`juego/test/seguridad.mjs` (dentro de `npm test`) mete cargas de ataque en el perfil, en el servidor y en la nube y comprueba que nada se vuelve código, que la política frena lo que debe y que la app de publicación no trae ayudas de prueba.
+
+**Mejora posible, no hecha:** que la llave de sesión nunca pase por la página (que las llamadas con sesión las haga Kotlin). Hoy está cifrada en el teléfono, pero la página la puede leer por el puente; con lo anterior ya no hay forma conocida de colar código, y esto sería la tercera barrera. Es un cambio grande: queda para después del lanzamiento.
+
+**Riesgo aceptado:** las monedas y el "sin anuncios" viven en el perfil, que es del jugador: quien modifique su teléfono se los puede poner. No hay nada competitivo ni de otros jugadores que dependa de eso.
+
+## Idiomas (2026-11-22)
+
+Pedido del usuario: internacionalización, con selector de idioma en Configuración. Quedó en español (el original), inglés y portugués de Brasil; los tres los elegí yo como punto de partida, falta que el usuario diga cuáles más quiere.
+
+- **Cómo funciona** (`juego/src/core/i18n.js`): cada texto visible pasa por `tr('Texto en español', { datos })` y la clave de la traducción es el mismo texto en español. Los catálogos están en `juego/src/core/lang/{en,pt}/`. El idioma se decide al cargar (el que eligió el jugador; si no, el del teléfono; si no está, inglés) y cambiarlo en Configuración guarda y vuelve a arrancar el juego. En plena partida el selector no sale.
+- **Lo fijo de `index.html`** se traduce al arrancar (`ui/lang.js`). Los textos de `core/config.js` (que no puede importar nada) se marcan con el comentario `/*tr*/` y se traducen donde se muestran.
+- **Android**: lo único que la app escribe por su cuenta (el aviso diario y el título de compartir) está en `application/Texts.kt`, en el idioma que el juego le cuenta por `setLang`.
+- **Prueba**: `test/idiomas.mjs` (dentro de `npm test`) falla si a algún catálogo le falta un texto o cambia sus `{datos}` o etiquetas. 913 textos. La golden corre fija en español y sigue idéntica.
+- **Nombre del juego**: se va a cambiar (pedido del usuario). Quedó en un solo sitio: `juego/src/core/brand.js` y `app/android/src/main/res/values/strings.xml`. El identificador del paquete (`com.giroestelar`) no se ha tocado: queda fijo en la primera subida a Google Play, así que hay que decidirlo antes.
+- **Revisado en pantalla** (navegador, 390×780): 16 pantallas en inglés y en portugués, sin textos cortados. **No revisado**: en un teléfono real, ni los avisos de mitad de partida ni las pantallas de los jefes en otros idiomas.
+- **Agregar un idioma**: una carpeta de catálogos nueva, un renglón en `LANGS` y un bloque en `Texts.kt`. Los plurales suponen dos formas (uno / muchos), que sirve para español, inglés, portugués, francés, italiano y alemán; ruso, polaco o árabe necesitarían más.
+
+
+## Nombre nuevo: Astrion Space (2026-11-22)
+
+- El juego se llama **Astrion Space** (lo eligió el usuario). El estudio que firma es **IANEJ**.
+- Cambió solo lo que el jugador ve: `juego/src/core/brand.js`, `app/android/src/main/res/values/strings.xml` y el título del menú (en mayúsculas por estilo, `.ltop h1`).
+- **No cambia** (interno; tocarlo borraría partidas guardadas o rompería el inicio con Google): el paquete `com.giroestelar`, las preferencias `giro_estelar.xml`, la clave `giro_estelar_demo`, las claves de prueba `giro_*`, la etiqueta del registro `GiroEstelar`, la dirección del servidor y los nombres de los archivos `GiroEstelar.apk/.aab`.
+- **Pantalla de inicio del estudio**: el usuario aprobó el estilo «Trazo» de la muestra `pantalla-inicio.html` (raíz del repositorio) y ya está dentro del juego:
+  - El dibujo está en `juego/index.html` (`#studio`, cinco trazos, sin texto), la animación en `estilos.css` y el cuándo en `juego/src/ui/studio.js`.
+  - Negro desde el primer instante; empieza cuando el juego ya arrancó y el teléfono dejó de estar ocupado (dos cuadros seguidos a menos de 40 ms, o 2 s de espera). Dura 3,25 s: las letras se dibujan, queda el brillo, el nombre se apaga en negro y el negro se desvanece sobre el menú.
+  - Sale una vez por apertura (marca en `sessionStorage`): no se repite cuando el juego se reinicia solo por cambio de idioma o por traer el progreso de la cuenta.
+  - Nunca se queda tapando: plazos en el código y, si el código no llegara a correr, la hoja de estilos la saca sola a los 10 s.
+  - Prueba `test/inicio.mjs` (dentro de `npm test`). Las demás pruebas corren sin ella (`pageForTests` la quita; `seguridad.mjs` la da por vista).
+  - **Sin ver en el teléfono**: si el trazo corre fluido en el A56.
+
+## Contra las trampas: tiquete de partida, tope de monedas y lista de revisión (2026-11-22)
+
+Los dos riesgos que la revisión de seguridad había dejado "por diseño" (la copa le creía el tiempo al teléfono; las monedas y piezas viven en el teléfono). El usuario aprobó la propuesta, sabiendo que una partida empezada sin internet deja de contar para la copa.
+
+- **Tiquete de partida.** Al empezar una Supervivencia el juego pide un tiquete al servidor (`core/cup.js`, `askTicket`; lo dispara `cupStart` en `ui/cup.js` desde `startRun`). La marca solo entra a la copa con ese tiquete, y el servidor comprueba que el tiempo quepa en el reloj real que pasó (`back-nave/src/tiquetes.js`). Un tiquete, una marca.
+  - Empieza sin conexión → no cuenta, y la pantalla de fin lo dice («esta partida empezó sin conexión y no entró a la copa»; en los tres idiomas).
+  - La conexión se cae después → la marca se guarda con su tiquete (`S.cup.ticket`) y entra cuando vuelve.
+  - El servidor rechaza la marca → el juego la suelta y no insiste.
+  - Sin servidor configurado (las pruebas) todo queda como antes: la referencia (golden) sigue idéntica.
+  - Contra el servidor publicado hoy, que no conoce los tiquetes (contesta 404), el juego manda la marca como antes. Quien exige el tiquete es el servidor nuevo.
+- **Tope de monedas** (`back-nave/src/tope.js`). El servidor lleva cuánto vale lo de cada cuenta (monedas + piezas) y nota un salto que no cabe en lo comprado más lo que se gana jugando. El progreso se guarda igual; esa instalación queda fuera de la copa hasta que se le levante desde el panel. También revisa «sin anuncios» contra las compras.
+  - El servidor necesita los precios de las piezas: `juego/tools/precios.mjs` se los copia (`back-nave/src/precios.js`). **Cada vez que se agreguen piezas o cambien precios hay que correrlo y publicar el servidor**; `npm test` falla si la copia está atrasada.
+- **Lista de revisión** en el panel del servidor: la copa de la semana con señales (muy por encima, llegó tarde, justo en el máximo), botón de vetar, y los vetados con su motivo y botón de levantar.
+- **Pruebas**: `juego/test/copa.mjs` (el juego de verdad contra el servidor local, dentro de `npm test`; se salta si no está la carpeta `back-nave`), `back-nave/test/trampas.test.mjs` y la paridad de almacenes. Servidor: 72 pruebas. La migración de la base publicada se probó sobre una copia del esquema actual.
+- **Lo que queda abierto**: quien modifique el juego puede pedir el tiquete, esperar y mandar un tiempo inventado, o mandar otro identificador para esquivar el veto del tope. Lo cierra el **sello de app original de Google (Play Integrity)**, que se deja para la fase final: no se puede probar hasta que la app exista en Play Console. Los retos entre amigos no usan tiquete.
+- **Sin publicar**: el servidor nuevo y la app nueva salen juntos (ver `back-nave/LEEME.md`).

@@ -160,7 +160,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;displa
 /* ---------- Lobby y taller: la nave se ve al fondo, así que estas pantallas no oscurecen el centro ---------- */
 .screen.lobby,.screen.garage{background:none;backdrop-filter:none;padding:0;flex-direction:column;align-items:stretch;justify-content:flex-start;overflow:hidden}
 .ltop,.gtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 12px 30px;background:linear-gradient(rgba(5,8,20,.92),rgba(5,8,20,0))}
-.ltop h1{margin:0;font-size:24px;letter-spacing:.3px;text-shadow:0 2px 10px #000}
+.ltop h1{margin:0;font-size:22px;letter-spacing:2px;text-transform:uppercase;text-shadow:0 2px 10px #000}
 .ltop .best{margin:3px 0 0;text-shadow:0 1px 4px #000}
 .lobby .coins{align-self:flex-start;margin:-18px 12px 0;padding:6px 12px;border-radius:999px;background:rgba(16,23,51,.78);border:1px solid var(--line);font-size:15px}
 .lbtn{border:1px solid var(--line);border-radius:14px;background:rgba(16,23,51,.78);color:var(--ink);font-size:12px;font-weight:700;padding:8px 6px;min-width:62px;cursor:pointer}
@@ -391,3 +391,34 @@ button.lchip{cursor:pointer}
 #acctOpen.ok{border-color:var(--ok);color:var(--ok)}
 .hint2{font-size:11.5px;color:var(--mute);line-height:1.4;margin-top:7px;text-align:left}
 #settingsClose{margin-top:18px}
+/* tienda: lo último que pasó con una compra */
+.shopmsg{font-size:13px;color:#ffd08a;min-height:0;margin:2px 0 6px;line-height:1.35}
+.shopmsg:empty{display:none}
+
+/* ---------- Pantalla del estudio (IANEJ) ----------
+   Negro encima de todo desde el primer instante. Cuando el juego termina de arrancar, ui/studio.js
+   le pone .run: las letras se dibujan una por una, queda un brillo, a los 2,1 s el nombre se
+   apaga y a los 2,55 s el negro se desvanece y deja ver el menú (3,25 s en total). Los tiempos son los de la muestra aprobada (pantalla-inicio.html, estilo «Trazo»). */
+#studio{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center;animation:studioGiveUp .4s ease-in 10s forwards}
+#studio svg{width:min(56vw,260px);overflow:visible}
+#studio path{fill:none;stroke:#fff;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0}
+#studio.run{animation:studioOut .7s ease-out 2.55s forwards}
+#studio.run svg{animation:studioGlow 1s ease-out 1.25s forwards,studioHide .4s ease-in 2.1s forwards}
+#studio.run path{animation:studioDraw .55s cubic-bezier(.4,0,.2,1) forwards,studioShow .01s linear forwards}
+#studio.run path:nth-child(1){animation-delay:.25s,.25s}
+#studio.run path:nth-child(2){animation-delay:.4s,.4s}
+#studio.run path:nth-child(3){animation-delay:.55s,.55s}
+#studio.run path:nth-child(4){animation-delay:.7s,.7s}
+#studio.run path:nth-child(5){animation-delay:.85s,.85s}
+@keyframes studioDraw{to{stroke-dashoffset:0}}
+@keyframes studioShow{to{opacity:1}}
+@keyframes studioGlow{0%{filter:drop-shadow(0 0 0 rgba(94,224,255,0))}35%{filter:drop-shadow(0 0 16px rgba(94,224,255,.95))}100%{filter:drop-shadow(0 0 7px rgba(94,224,255,.45))}}
+@keyframes studioHide{to{opacity:0}}
+@keyframes studioOut{to{opacity:0;visibility:hidden}}
+/* red de seguridad sin código: si el juego no llegara a arrancar, a los 10 s el negro se va solo y deja ver lo que haya */
+@keyframes studioGiveUp{to{opacity:0;visibility:hidden}}
+/* quien pide menos movimiento en su teléfono: el nombre solo aparece y se va */
+@media (prefers-reduced-motion:reduce){
+  #studio.run path:nth-child(n){animation:studioShow .3s linear .25s forwards;stroke-dashoffset:0}
+  #studio.run svg{animation:studioHide .4s ease-in 2.1s forwards}
+}

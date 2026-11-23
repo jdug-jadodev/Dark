@@ -4,9 +4,11 @@
  * la tabla, los retos y el apodo, y la línea que sale al terminar una partida. Las reglas están en
  * core/cup.js y core/duel.js.
  */
+import { GAME } from '../core/brand.js';
 import {
   LIVE,
   apiUrl,
+  askTicket,
   cupNow,
   nick,
   recordCup,
@@ -27,8 +29,9 @@ import {
   sendDuel,
   syncDuels,
 } from '../core/duel.js';
+import { tr } from '../core/i18n.js';
 import { G } from '../core/state.js';
-import { fmt } from '../core/util.js';
+import { esc, fmt } from '../core/util.js';
 import { noteVisit } from '../core/visits.js';
 import { $ } from './dom.js';
 import { T } from './icons.js';
@@ -40,8 +43,7 @@ let refresh = () => {}; // repinta el lobby (lo entrega main.js)
 let editing = false;
 let tab = 'cup'; // qué se está mirando: 'cup' (copa semanal) o 'duel' (retos)
 const MEDAL = ['{medal1}', '{medal2}', '{medal3}'];
-const place = (n) => n + '.º';
-const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const place = (n) => tr('{n}.º', { n });
 /* "2 d 5 h", "5 h 20 min", "12 min" */
 function left(secs) {
   const d = Math.floor(secs / 86400),
@@ -54,7 +56,7 @@ function left(secs) {
 /* ---------- botones del lobby ---------- */
 export function renderCupButton() {
   const c = cupNow();
-  $('cupBtn').querySelector('small').innerHTML = c.rank ? place(c.rank) : c.best ? fmt(c.best) : 'nueva';
+  $('cupBtn').querySelector('small').innerHTML = c.rank ? place(c.rank) : c.best ? fmt(c.best) : tr('nueva');
   $('cupBtn').classList.toggle('dot', !!c.passed || duelNews()); // lo pasaron en la copa o en un reto
   tellCup(c.rank || 0);
 }
@@ -65,32 +67,34 @@ function challengeText(secs, kind, code) {
   const duel = kind === 'duel' && duelOf(code);
   if (duel)
     return (
-      'Te reto en Giro Estelar: aguanté ' +
-      fmt(duel.mine) +
-      ' en esta pista. Entra a Copa, pestaña Retos, y escribe el código ' +
-      duel.code +
-      '. ¿Me ganas? \u{1F680}'
+      tr(
+        'Te reto en {game}: aguanté {time} en esta pista. Entra a Copa, pestaña Retos, y escribe el código {code}. ¿Me ganas?',
+        { game: GAME, time: fmt(duel.mine), code: duel.code },
+      ) + ' \u{1F680}'
     );
-  const c = cupNow();
+  const c = cupNow(),
+    time = fmt(secs || c.best);
   return (
-    'Aguanté ' +
-    fmt(secs || c.best) +
-    ' en Supervivencia de Giro Estelar' +
-    (c.rank ? ' y voy ' + place(c.rank) + ' en la copa de esta semana' : '') +
-    '. ¿Me ganas? \u{1F680}'
+    (c.rank
+      ? tr('Aguanté {time} en Supervivencia de {game} y voy {place} en la copa de esta semana. ¿Me ganas?', {
+          game: GAME,
+          time,
+          place: place(c.rank),
+        })
+      : tr('Aguanté {time} en Supervivencia de {game}. ¿Me ganas?', { game: GAME, time })) + ' \u{1F680}'
   );
 }
 /* abre el menú de compartir del teléfono; el botón cuenta qué pasó */
 export async function challenge(button, secs, kind, code) {
   const how = await Platform.share(challengeText(secs, kind, code));
-  if (how === 'copied') button.innerHTML = T('{check} Copiado: pégalo en tu chat');
-  else if (!how) button.innerHTML = T('No se pudo compartir');
+  if (how === 'copied') button.innerHTML = T(tr('{check} Copiado: pégalo en tu chat'));
+  else if (!how) button.innerHTML = T(tr('No se pudo compartir'));
 }
 
 /* ---------- ventana ---------- */
 const TABS = [
-  ['cup', '{trophy} Copa'],
-  ['duel', '{swords} Retos'],
+  ['cup', tr('{trophy} Copa')],
+  ['duel', tr('{swords} Retos')],
 ];
 const tabsBar = () =>
   '<div class="tabs">' +
@@ -101,25 +105,34 @@ const tabsBar = () =>
   '</div>';
 /* el apodo: hace falta para aparecer en cualquier tabla */
 const nickForm = (name) =>
-  '<div class="nick"><input id="cupNick" maxlength="14" autocomplete="off" placeholder="Tu apodo" value="' +
+  '<div class="nick"><input id="cupNick" maxlength="14" autocomplete="off" placeholder="' +
+  esc(tr('Tu apodo')) +
+  '" value="' +
   esc(name) +
   '"><button class="btn" data-k="save">' +
-  (name ? 'Guardar' : 'Entrar') +
+  (name ? tr('Guardar') : tr('Entrar')) +
   '</button></div><div class="sub" id="cupNickErr">' +
-  (name ? '' : 'Elige un apodo para aparecer en la tabla (de 2 a 14 letras).') +
+  (name ? '' : tr('Elige un apodo para aparecer en la tabla (de 2 a 14 letras).')) +
   '</div>';
+/* con qué apodo se juega, y el enlace para cambiarlo */
+const playingAs = (name) =>
+  '<div class="sub">' +
+  tr('Juegas como <b>{name}</b>', { name: esc(name) }) +
+  ' · <button class="link" data-k="edit">' +
+  tr('cambiar apodo') +
+  '</button></div>';
 
 /* la tabla de la copa */
 const VIEWS = {
   cup: {
-    title: '{trophy} Copa semanal',
-    sub: (ends) => 'Gana quien más aguante en Supervivencia. Termina en ' + ends + ' y empieza otra.',
+    title: tr('{trophy} Copa semanal'),
+    sub: (ends) => tr('Gana quien más aguante en Supervivencia. Termina en {ends} y empieza otra.', { ends }),
     state: cupNow,
     live: LIVE,
     ends: weekEnds,
-    mine: 'Tu mejor de la semana',
-    empty: 'Nadie ha marcado tiempo esta semana. El primer puesto está libre.',
-    play: '{timer} Jugar Supervivencia',
+    mine: tr('Tu mejor de la semana'),
+    empty: tr('Nadie ha marcado tiempo esta semana. El primer puesto está libre.'),
+    play: tr('{timer} Jugar Supervivencia'),
     cls: 'surv',
   },
 };
@@ -133,11 +146,9 @@ function render() {
   let h = tabsBar() + '<div class="sub">' + V.sub(left(t ? t.ends : V.ends())) + '</div>';
   if (tab === 'cup' && c.passed && c.rank)
     h +=
-      '<div class="passed">Te pasaron: ibas ' +
-      place(c.passed) +
-      ' y ahora vas ' +
-      place(c.rank) +
-      '. ¡A recuperarlo!</div>';
+      '<div class="passed">' +
+      tr('Te pasaron: ibas {a} y ahora vas {b}. ¡A recuperarlo!', { a: place(c.passed), b: place(c.rank) }) +
+      '</div>';
   if (!name || editing) h += nickForm(name);
   /* lo mío */
   h +=
@@ -146,8 +157,14 @@ function render() {
     '</b><span>' +
     V.mine +
     '</span></div><div><b>' +
-    (c.rank ? place(c.rank) + (c.total ? ' <small>de ' + c.total + '</small>' : '') : '—') +
-    '</b><span>Tu puesto</span></div></div>';
+    (c.rank
+      ? c.total
+        ? tr('{place} <small>de {total}</small>', { place: place(c.rank), total: c.total })
+        : place(c.rank)
+      : '—') +
+    '</b><span>' +
+    tr('Tu puesto') +
+    '</span></div></div>';
   /* tabla */
   if (t && t.top.length) {
     h +=
@@ -161,7 +178,7 @@ function render() {
             (MEDAL[i] || i + 1 + '.') +
             '</i> ' +
             esc(r.nick) +
-            (r.me ? ' (tú)' : '') +
+            (r.me ? ' ' + tr('(tú)') : '') +
             '</span><b>' +
             fmt(r.time) +
             '</b></div>',
@@ -172,7 +189,9 @@ function render() {
           t.me.rank +
           '.</i> ' +
           esc(name) +
-          ' (tú)</span><b>' +
+          ' ' +
+          tr('(tú)') +
+          '</span><b>' +
           fmt(t.me.time) +
           '</b></div>'
         : '') +
@@ -181,27 +200,30 @@ function render() {
   /* estado */
   if (!online)
     h +=
-      '<div class="note">La tabla en línea todavía no está conectada. Tu mejor tiempo queda guardado en este teléfono.</div>';
+      '<div class="note">' +
+      tr('La tabla en línea todavía no está conectada. Tu mejor tiempo queda guardado en este teléfono.') +
+      '</div>';
   else if (V.live.offline)
     h +=
-      '<div class="note">Sin conexión. ' +
-      (c.best && !c.sent ? 'Tu tiempo se enviará cuando vuelva.' : 'La tabla se actualizará cuando vuelva.') +
+      '<div class="note">' +
+      (c.best && !c.sent
+        ? tr('Sin conexión. Tu tiempo se enviará cuando vuelva.')
+        : tr('Sin conexión. La tabla se actualizará cuando vuelva.')) +
       '</div>';
-  else if (!t) h += '<div class="note">Cargando la tabla…</div>';
-  else if (c.best && !name) h += '<div class="note">Tu tiempo entra a la tabla cuando elijas un apodo.</div>';
-  if (name && !editing)
-    h +=
-      '<div class="sub">Juegas como <b>' +
-      esc(name) +
-      '</b> · <button class="link" data-k="edit">cambiar apodo</button></div>';
+  else if (!t) h += '<div class="note">' + tr('Cargando la tabla…') + '</div>';
+  else if (c.best && !name)
+    h += '<div class="note">' + tr('Tu tiempo entra a la tabla cuando elijas un apodo.') + '</div>';
+  if (name && !editing) h += playingAs(name);
   h +=
     '<button class="btn ' +
     V.cls +
     '" data-k="play">' +
     V.play +
     '</button>' +
-    (c.best ? '<button class="btn alt" data-k="share">{share} Retar a mis amigos</button>' : '') +
-    '<button class="btn alt" data-k="close">Cerrar</button>';
+    (c.best ? '<button class="btn alt" data-k="share">' + tr('{share} Retar a mis amigos') + '</button>' : '') +
+    '<button class="btn alt" data-k="close">' +
+    tr('Cerrar') +
+    '</button>';
   $('cupBox').innerHTML = T(h);
   const input = $('cupNick');
   /* dentro del apodo las teclas son letras, no controles de la nave */
@@ -230,20 +252,35 @@ export function closeCup() {
   return true;
 }
 
+/* ---------- al empezar una partida ---------- */
+/* Si es una Supervivencia que cuenta para la copa, pide su tiquete (ver core/cup.js). No espera
+   la respuesta: la partida arranca ya, y el tiquete queda en la partida cuando llegue. */
+export function cupStart() {
+  const run = G.run;
+  if (run.mode !== 'endless' || run.invincible || run.kind === 'duel') return;
+  askTicket().then((ticket) => {
+    run.ticket = ticket;
+  });
+}
+
 /* ---------- al terminar una partida de Supervivencia ---------- */
 /* Anota el tiempo donde corresponde (la copa, o el reto si era uno) y devuelve la línea
    para la pantalla de fin (vacía en modo demo). */
 export function cupBlock(secs) {
   if (G.run.invincible) return '';
   if (G.run.kind === 'duel') return duelBlock(secs);
-  const r = recordCup(secs),
+  const r = recordCup(secs, G.run.ticket),
     c = cupNow();
   if (r.improved) update().then(showRank);
   return (
-    '<div class="mini cupline">{trophy} <b>Copa semanal:</b> ' +
+    '<div class="mini cupline">{trophy} <b>' +
+    tr('Copa semanal:') +
+    '</b> ' +
     (r.improved
-      ? '¡nuevo mejor tiempo de la semana, ' + fmt(r.best) + '!'
-      : 'tu mejor de la semana es ' + fmt(c.best) + '.') +
+      ? tr('¡nuevo mejor tiempo de la semana, {time}!', { time: fmt(r.best) })
+      : r.missed
+        ? tr('esta partida empezó sin conexión y no entró a la copa.')
+        : tr('tu mejor de la semana es {time}.', { time: fmt(c.best) })) +
     ' <span id="cupRank">' +
     rankText(c) +
     '</span></div>'
@@ -251,10 +288,12 @@ export function cupBlock(secs) {
 }
 const rankText = (c) =>
   c.rank
-    ? 'Vas ' + place(c.rank) + (c.total ? ' de ' + c.total : '') + '.'
+    ? c.total
+      ? tr('Vas {place} de {total}.', { place: place(c.rank), total: c.total })
+      : tr('Vas {place}.', { place: place(c.rank) })
     : nick()
       ? ''
-      : 'Ponte un apodo en la Copa para entrar a la tabla.';
+      : tr('Ponte un apodo en la Copa para entrar a la tabla.');
 /* cuando el servidor contesta, la línea de la pantalla de fin se actualiza con el puesto */
 function showRank() {
   const el = $('cupRank');
@@ -297,7 +336,7 @@ export function bootCup(onChange) {
       $('cupNick').focus();
     } else if (k === 'save') {
       if (!setNick($('cupNick').value)) {
-        $('cupNickErr').textContent = 'El apodo debe tener de 2 a 14 letras o números.';
+        $('cupNickErr').textContent = tr('El apodo debe tener de 2 a 14 letras o números.');
         return;
       }
       editing = false;
@@ -319,16 +358,15 @@ export function bootCup(onChange) {
 /* cómo va un reto, en una línea */
 function duelStatus(d) {
   const r = d.rival;
-  if (!d.mine) return r ? 'Por superar: ' + esc(r.nick) + ' con ' + fmt(r.time) : 'Aún sin tiempos';
-  if (!r) return 'Tu tiempo: ' + fmt(d.mine) + ' · nadie más lo ha jugado';
+  if (!d.mine)
+    return r ? tr('Por superar: {name} con {time}', { name: esc(r.nick), time: fmt(r.time) }) : tr('Aún sin tiempos');
+  if (!r) return tr('Tu tiempo: {time} · nadie más lo ha jugado', { time: fmt(d.mine) });
+  const data = { name: esc(r.nick), time: fmt(r.time), mine: fmt(d.mine) };
   return d.rank === 1
-    ? 'Vas ganando: ' + fmt(d.mine) + ' contra ' + fmt(r.time) + ' de ' + esc(r.nick)
-    : (d.news ? '¡Te superó ' : 'Va ganando ') +
-        esc(r.nick) +
-        ' con ' +
-        fmt(r.time) +
-        (d.news ? '! Tú, ' : ' · tú ') +
-        fmt(d.mine);
+    ? tr('Vas ganando: {mine} contra {time} de {name}', data)
+    : d.news
+      ? tr('¡Te superó {name} con {time}! Tú, {mine}', data)
+      : tr('Va ganando {name} con {time} · tú {mine}', data);
 }
 function renderDuels() {
   const name = nick(),
@@ -336,17 +374,27 @@ function renderDuels() {
     online = !!apiUrl();
   let h =
     tabsBar() +
-    '<div class="sub">Juega una pista, manda su código y que tus amigos intenten superarte en esa misma pista. No hace falta estar conectados a la vez.</div>';
+    '<div class="sub">' +
+    tr(
+      'Juega una pista, manda su código y que tus amigos intenten superarte en esa misma pista. No hace falta estar conectados a la vez.',
+    ) +
+    '</div>';
   if (!name || editing) h += nickForm(name);
   h +=
     '<button class="btn surv" data-k="newduel"' +
     (name && online ? '' : ' disabled') +
-    '>{swords} Crear un reto nuevo</button>' +
-    '<div class="nick"><input id="duelCode" maxlength="7" autocomplete="off" autocapitalize="characters" placeholder="Código"><button class="btn" data-k="joinduel">Buscar</button></div><div class="sub" id="duelErr">' +
+    '>' +
+    tr('{swords} Crear un reto nuevo') +
+    '</button>' +
+    '<div class="nick"><input id="duelCode" maxlength="7" autocomplete="off" autocapitalize="characters" placeholder="' +
+    esc(tr('Código')) +
+    '"><button class="btn" data-k="joinduel">' +
+    tr('Buscar') +
+    '</button></div><div class="sub" id="duelErr">' +
     (!online
-      ? 'Los retos necesitan la tabla en línea, que aún no está conectada.'
+      ? tr('Los retos necesitan la tabla en línea, que aún no está conectada.')
       : !name
-        ? 'Elige un apodo para crear o aceptar retos.'
+        ? tr('Elige un apodo para crear o aceptar retos.')
         : '') +
     '</div>';
   h += list.length
@@ -358,28 +406,27 @@ function renderDuels() {
             (d.news ? ' news' : '') +
             '"><div><b>' +
             d.code +
-            '</b><small>de ' +
-            esc(d.by) +
-            ' · ' +
-            d.n +
-            (d.n === 1 ? ' jugador' : ' jugadores') +
+            '</b><small>' +
+            (d.n === 1
+              ? tr('de {name} · 1 jugador', { name: esc(d.by) })
+              : tr('de {name} · {n} jugadores', { name: esc(d.by), n: d.n })) +
             '</small><span>' +
             duelStatus(d) +
             '</span></div><button class="btn" data-k="playduel" data-code="' +
             d.code +
-            '">Jugar</button><button class="btn alt" data-k="shareduel" data-code="' +
+            '">' +
+            tr('Jugar') +
+            '</button><button class="btn alt" data-k="shareduel" data-code="' +
             d.code +
-            '" aria-label="Compartir el reto">{share}</button></div>',
+            '" aria-label="' +
+            esc(tr('Compartir el reto')) +
+            '">{share}</button></div>',
         )
         .join('') +
       '</div>'
-    : '<div class="note">Aún no tienes retos. Crea uno, o escribe el código que te mandaron.</div>';
-  if (name && !editing)
-    h +=
-      '<div class="sub">Juegas como <b>' +
-      esc(name) +
-      '</b> · <button class="link" data-k="edit">cambiar apodo</button></div>';
-  h += '<button class="btn alt" data-k="close">Cerrar</button>';
+    : '<div class="note">' + tr('Aún no tienes retos. Crea uno, o escribe el código que te mandaron.') + '</div>';
+  if (name && !editing) h += playingAs(name);
+  h += '<button class="btn alt" data-k="close">' + tr('Cerrar') + '</button>';
   $('cupBox').innerHTML = T(h);
   for (const id of ['cupNick', 'duelCode']) {
     const input = $(id);
@@ -392,13 +439,13 @@ function renderDuels() {
 async function joinDuel() {
   const code = cleanCode($('duelCode').value),
     err = $('duelErr');
-  if (!nick()) return (err.textContent = 'Primero elige un apodo.');
-  if (code.length < 6) return (err.textContent = 'El código tiene 6 letras o números.');
-  err.textContent = 'Buscando…';
+  if (!nick()) return (err.textContent = tr('Primero elige un apodo.'));
+  if (code.length < 6) return (err.textContent = tr('El código tiene 6 letras o números.'));
+  err.textContent = tr('Buscando…');
   const d = await fetchDuel(code);
   if (!isOpen() || tab !== 'duel') return;
-  if (d === 'missing') $('duelErr').textContent = 'Ese código no existe. Revísalo.';
-  else if (!d) $('duelErr').textContent = 'Sin conexión: no se pudo buscar el reto.';
+  if (d === 'missing') $('duelErr').textContent = tr('Ese código no existe. Revísalo.');
+  else if (!d) $('duelErr').textContent = tr('Sin conexión: no se pudo buscar el reto.');
   else render(); // queda de primero en la lista, listo para jugar
 }
 /* al terminar la partida de un reto: lo crea (si era nuevo) o envía el tiempo, y cuenta cómo quedó */
@@ -406,14 +453,19 @@ function duelBlock(secs) {
   const rival = G.run.duel && G.run.duel.rival;
   Promise.resolve().then(() => settleDuel(secs));
   return (
-    '<div class="mini cupline">{swords} <b>Reto:</b> <span id="duelMsg">' +
+    '<div class="mini cupline">{swords} <b>' +
+    tr('Reto:') +
+    '</b> <span id="duelMsg">' +
     (!G.run.duel
-      ? 'creando tu reto…'
+      ? tr('creando tu reto…')
       : rival
         ? secs > rival.time
-          ? '¡superaste a ' + esc(rival.nick) + ' (' + fmt(rival.time) + ')!'
-          : 'te faltaron ' + fmt(Math.ceil(rival.time - secs)) + ' para alcanzar a ' + esc(rival.nick) + '.'
-        : 'enviando tu tiempo…') +
+          ? tr('¡superaste a {name} ({time})!', { name: esc(rival.nick), time: fmt(rival.time) })
+          : tr('te faltaron {time} para alcanzar a {name}.', {
+              name: esc(rival.nick),
+              time: fmt(Math.ceil(rival.time - secs)),
+            })
+        : tr('enviando tu tiempo…')) +
     '</span><div id="duelBtns"></div></div>'
   );
 }
@@ -426,31 +478,34 @@ async function settleDuel(secs) {
   if (R !== G.run || !msg || !btns) return; // el jugador ya se fue de esta pantalla
   if (!d || d === 'missing') {
     msg.textContent = R.duel
-      ? 'tu tiempo no se pudo enviar (sin conexión).'
+      ? tr('tu tiempo no se pudo enviar (sin conexión).')
       : nick()
-        ? 'no se pudo crear (sin conexión).'
-        : 'para crear retos necesitas un apodo (en Copa).';
-    btns.innerHTML = T('<button class="btn alt" data-a="duelretry">Reintentar</button>');
+        ? tr('no se pudo crear (sin conexión).')
+        : tr('para crear retos necesitas un apodo (en Copa).');
+    btns.innerHTML = T('<button class="btn alt" data-a="duelretry">' + tr('Reintentar') + '</button>');
     btns.dataset.secs = secs;
     return;
   }
   const created = !R.duel;
   R.duel = { code: d.code, rival: d.rival };
   msg.innerHTML = created
-    ? 'listo. Su código es <b class="code">' +
-      d.code +
-      '</b>: mándalo y que intenten superar tu ' +
-      fmt(d.mine) +
-      ' en esta misma pista.'
+    ? tr(
+        'listo. Su código es <b class="code">{code}</b>: mándalo y que intenten superar tu {time} en esta misma pista.',
+        { code: d.code, time: fmt(d.mine) },
+      )
     : esc(said) +
-      ' Vas ' +
-      place(d.rank) +
-      ' de ' +
-      d.n +
-      (d.rank === 1 ? '.' : d.rival ? ': ' + esc(d.rival.nick) + ' va primero con ' + fmt(d.rival.time) + '.' : '.');
+      ' ' +
+      (d.rank !== 1 && d.rival
+        ? tr('Vas {place} de {total}: {name} va primero con {time}.', {
+            place: place(d.rank),
+            total: d.n,
+            name: esc(d.rival.nick),
+            time: fmt(d.rival.time),
+          })
+        : tr('Vas {place} de {total}.', { place: place(d.rank), total: d.n }));
   btns.innerHTML = T(
-    '<button class="btn" data-a="duelshare">{share} ' +
-      (created ? 'Enviar el reto' : 'Retar a alguien más') +
+    '<button class="btn" data-a="duelshare">' +
+      (created ? tr('{share} Enviar el reto') : tr('{share} Retar a alguien más')) +
       '</button>',
   );
   renderCupButton();
@@ -460,7 +515,7 @@ export function duelAction(action, button) {
   if (action === 'duelshare') challenge(button, 0, 'duel', G.run.duel && G.run.duel.code);
   else if (action === 'duelretry') {
     const secs = +$('duelBtns').dataset.secs || Math.floor(G.t);
-    $('duelMsg').textContent = 'intentando de nuevo…';
+    $('duelMsg').textContent = tr('intentando de nuevo…');
     $('duelBtns').innerHTML = '';
     settleDuel(secs);
   }

@@ -18,13 +18,13 @@
  */
 import { apiUrl } from './cup.js';
 import { pilot } from './pilot.js';
-import { S, onSave, saveQuiet } from './profile.js';
+import { S, cleanProfile, onSave, saveQuiet } from './profile.js';
 import { G } from './state.js';
 import { worldsDone } from './worlds.js';
 import { Platform } from '../platform/platform.js';
 
 /* lo que es de este teléfono y no viaja con la cuenta */
-const LOCAL = ['acct', 'ctrl', 'volMusic', 'volSfx', 'gfx', 'remAsked'];
+const LOCAL = ['acct', 'ctrl', 'volMusic', 'volSfx', 'gfx', 'remAsked', 'lang', 'buying'];
 const PUSH_AFTER = 15000; // se sube 15 s después del último cambio, para no subir a cada rato
 
 const listeners = [];
@@ -99,6 +99,17 @@ export function summary(d) {
   return out;
 }
 
+/* Lo que el servidor dice que hay en la cuenta: { version, at, data }. Lo guardado no se usa
+   tal cual: pasa por la misma limpieza que el perfil del teléfono (core/profile.js). */
+const cloudOf = (x) =>
+  x && typeof x === 'object'
+    ? {
+        version: Math.max(0, Math.floor(+x.version) || 0),
+        at: Math.max(0, +x.at || 0),
+        data: x.data && typeof x.data === 'object' ? cleanProfile(x.data) : null,
+      }
+    : null;
+
 /* ---------- hablar con el servidor ---------- */
 const call = (method, path, data, withKey = true) =>
   Platform.api(method, apiUrl() + path, data, withKey ? Platform.account.secret() : '');
@@ -125,7 +136,7 @@ export async function signIn() {
   if (!r) return { ok: false, why: 'net' };
   if (r.status !== 200 || !r.data.session) return { ok: false, why: 'denied' };
   Platform.account.setSecret(r.data.session);
-  const cloud = r.data.save;
+  const cloud = cloudOf(r.data.save);
   tell('changed');
   if (!cloud || !cloud.data) {
     /* la cuenta está vacía: se sube lo de este teléfono */
@@ -160,7 +171,7 @@ export async function push() {
   if (!r) return 'net';
   if (r.status === 200) {
     /* si el perfil cambió mientras viajaba la petición, sigue habiendo cambios por subir */
-    S.acct = { v: r.data.version, at: r.data.at, sum: mark(sent) };
+    S.acct = { v: Math.floor(+r.data.version) || 0, at: +r.data.at || 0, sum: mark(sent) };
     saveQuiet();
     if (dirty()) later();
     tell('changed');
@@ -168,7 +179,7 @@ export async function push() {
   }
   if (r.status === 409 && r.data.data) {
     /* otro teléfono guardó después */
-    return clash({ version: r.data.version, at: r.data.at, data: r.data.data });
+    return clash(cloudOf(r.data));
   }
   if (r.status === 401) {
     dropSession();
@@ -212,18 +223,43 @@ function adopt(cloud) {
 }
 
 /* ---------- salir ---------- */
-/* cerrar sesión: el progreso se queda en el teléfono y deja de subirse */
+/* Cerrar sesión: el progreso se queda en el teléfono y deja de subirse. La llave de este teléfono
+   solo se borra cuando el servidor confirmó que la sesión ya no vale (o que ya no valía): si no
+   hay conexión no se borra, porque entonces la sesión seguiría viva sin que nadie pudiera cerrarla.
+   Devuelve true si quedó cerrada; false si no se pudo confirmar. */
 export async function signOut() {
   await push(); // lo último, antes de salir
-  await call('POST', '/v1/auth/logout');
-  dropSession();
-}
-/* borrar la cuenta y todo lo guardado en la nube. Devuelve true si se borró. */
-export async function deleteAccount() {
-  const r = await call('DELETE', '/v1/account');
+  const r = await call('POST', '/v1/auth/logout');
   if (!r || (r.status !== 200 && r.status !== 401)) return false;
   dropSession();
   return true;
+}
+/* Borrar la cuenta y todo lo guardado en la nube. Tener la llave de sesión no basta: el servidor
+   pide que Google vuelva a confirmar quién es el jugador en ese momento (así, una llave robada no
+   alcanza para borrarle la cuenta a nadie).
+   Devuelve 'ok' (se borró), 'cancel' (no confirmó con Google), 'denied' (Google confirmó otra
+   cuenta, o no confirmó), 'out' (la sesión ya no valía: no se borró nada) o 'net'. */
+export async function deleteAccount() {
+  const n = await call('POST', '/v1/auth/nonce', undefined, false);
+  if (!n || n.status !== 200 || !n.data.nonce) return 'net';
+  const idToken = await Platform.account.idToken(n.data.nonce);
+  if (!idToken) return 'cancel';
+  const r = await call('DELETE', '/v1/account', { nonce: n.data.nonce, idToken });
+  if (!r) return 'net';
+  if (r.status === 200) {
+    dropSession();
+    return 'ok';
+  }
+  if (r.status === 401 || r.status === 403) {
+    /* ¿falló la sesión o falló la confirmación? Si la sesión ya no vale, se cierra aquí también */
+    const still = await call('GET', '/v1/save');
+    if (still && still.status === 401) {
+      dropSession();
+      return 'out';
+    }
+    return still ? 'denied' : 'net';
+  }
+  return 'net';
 }
 
 /* ---------- al abrir el juego ---------- */
@@ -233,7 +269,7 @@ export async function syncAtStart() {
   if (!r) return; // sin conexión: se intenta después
   if (r.status === 401) return dropSession();
   if (r.status !== 200) return;
-  const cloud = r.data,
+  const cloud = cloudOf(r.data),
     known = (S.acct && S.acct.v) || 0;
   if (!S.acct || !cloud.data) S.acct = { v: 0, at: 0, sum: '' };
   if (!cloud.data || cloud.version === known) return void push(); // la cuenta no cambió: se sube lo pendiente

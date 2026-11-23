@@ -12,6 +12,7 @@
  */
 import { hash } from './dates.js';
 import { owns } from './garage.js';
+import { tr } from './i18n.js';
 import { BY_SLOT, SLOTS } from './parts.js';
 import { S, save } from './profile.js';
 import { locked } from './season.js';
@@ -84,24 +85,24 @@ export const BONUS_COINS = 150; // por completar las tres
 /* stat = qué número de la partida cuenta · sum = se va sumando partida a partida (si no, vale la mejor) */
 const POOL = {
   run: [
-    { t: 'Recoge {n} monedas en Mundos', n: 15, stat: 'coins', sum: true },
-    { t: 'Llega a {n} puntos en un mundo', n: 80, stat: 'pts' },
-    { t: 'Esquiva {n} obstáculos en Mundos', n: 60, stat: 'dodged', sum: true },
-    { t: 'Pasa rozando {n} obstáculos en Mundos', n: 8, stat: 'near', sum: true },
-    { t: 'Recoge {n} armas en Mundos', n: 2, stat: 'weapons', sum: true },
+    { t: tr('Recoge {n} monedas en Mundos'), n: 15, stat: 'coins', sum: true },
+    { t: tr('Llega a {n} puntos en un mundo'), n: 80, stat: 'pts' },
+    { t: tr('Esquiva {n} obstáculos en Mundos'), n: 60, stat: 'dodged', sum: true },
+    { t: tr('Pasa rozando {n} obstáculos en Mundos'), n: 8, stat: 'near', sum: true },
+    { t: tr('Recoge {n} armas en Mundos'), n: 2, stat: 'weapons', sum: true },
   ],
   endless: [
-    { t: 'Aguanta {n} en Supervivencia', n: 90, stat: 'time', clock: true },
-    { t: 'Llega al nivel {n} en Supervivencia', n: 6, stat: 'level' },
-    { t: 'Esquiva {n} obstáculos en Supervivencia', n: 80, stat: 'dodged', sum: true },
-    { t: 'Derriba {n} naves en Supervivencia', n: 4, stat: 'kills', sum: true },
-    { t: 'Recoge {n} monedas en Supervivencia', n: 25, stat: 'coins', sum: true },
+    { t: tr('Aguanta {n} en Supervivencia'), n: 90, stat: 'time', clock: true },
+    { t: tr('Llega al nivel {n} en Supervivencia'), n: 6, stat: 'level' },
+    { t: tr('Esquiva {n} obstáculos en Supervivencia'), n: 80, stat: 'dodged', sum: true },
+    { t: tr('Derriba {n} naves en Supervivencia'), n: 4, stat: 'kills', sum: true },
+    { t: tr('Recoge {n} monedas en Supervivencia'), n: 25, stat: 'coins', sum: true },
   ],
   space: [
-    { t: 'Recorre {n} km en Viaje espacial', n: 2500, stat: 'km', sum: true },
-    { t: 'Recorre {n} km en un solo viaje', n: 1500, stat: 'km' },
-    { t: 'Aguanta {n} en Viaje espacial', n: 60, stat: 'time', clock: true },
-    { t: 'Pasa rozando {n} obstáculos en Viaje espacial', n: 6, stat: 'near', sum: true },
+    { t: tr('Recorre {n} km en Viaje espacial'), n: 2500, stat: 'km', sum: true },
+    { t: tr('Recorre {n} km en un solo viaje'), n: 1500, stat: 'km' },
+    { t: tr('Aguanta {n} en Viaje espacial'), n: 60, stat: 'time', clock: true },
+    { t: tr('Pasa rozando {n} obstáculos en Viaje espacial'), n: 6, stat: 'near', sum: true },
   ],
 };
 export const MODES = ['run', 'endless', 'space'];

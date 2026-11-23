@@ -3,7 +3,8 @@
  * cada uno expone funciones boot…() y aquí se llaman en orden, porque unas dependen de otras
  * (por ejemplo, la escena debe existir antes de agregarle la pista).
  */
-import { bootPlatform } from './platform/platform.js';
+import { Platform, bootPlatform } from './platform/platform.js';
+import { tr } from './core/i18n.js';
 import { S, bootProfile, save } from './core/profile.js';
 import { noteVisit } from './core/visits.js';
 import { bootPerf } from './core/perf.js';
@@ -13,6 +14,7 @@ import { spawnCrater, spawnMeteor } from './game/blasts.js';
 import { spawnArch, spawnPeak, spawnPools } from './game/run.js';
 import { WORLDS, survivalMap, worldOf } from './core/worlds.js';
 import { bootDom } from './ui/dom.js';
+import { bootLang } from './ui/lang.js';
 import { bootEngine, bootEngineResize } from './render/engine.js';
 import { bootKit } from './render/kit.js';
 import { bootTrack } from './render/track.js';
@@ -46,12 +48,18 @@ import { bootReminder } from './ui/reminder.js';
 import { bootInput } from './ui/input.js';
 import { bootLoop } from './loop.js';
 import { bootSound } from './audio/sound.js';
+import { bootStudio } from './ui/studio.js';
+
+/* Lo primero: la pantalla del estudio queda citada para cuando termine el arranque (o falle):
+   así nunca se queda tapando el juego. Ver ui/studio.js */
+bootStudio();
 
 if (!window.THREE) {
-  document.getElementById('mBest').textContent = 'No se pudo cargar el motor 3D (necesita internet).';
+  document.getElementById('mBest').textContent = tr('No se pudo cargar el motor 3D (necesita internet).');
 } else {
   bootPlatform();
   bootProfile();
+  bootLang(); // antes de que nadie más escriba en la página: traduce lo fijo de index.html
   bootAccount(); // antes de que el arranque toque el perfil: ver core/account.js
   noteVisit(); // medición: hoy se abrió el juego
   bootPerf();
@@ -89,66 +97,69 @@ if (!window.THREE) {
   bootInput();
   bootSound();
   bootLoop();
-  /* para las pruebas de la pista con semilla: fijar la semilla de la próxima Supervivencia y leer
-     la huella de la pista que va saliendo */
-  window.__giroSeed = (seed) => {
-    G.nextSeed = seed;
-    G.nextKind = 'test';
-    startRun('endless');
-  };
-  window.__giroTrack = () => ({ seed: G.run.seed, t: G.t, sig: G.run.sig });
-  /* y para ver un mundo sin pasar por el mapa */
-  window.__giroWorld = (id) => {
-    G.nextWorld = worldOf(id);
-    startRun();
-  };
-  /* para ir directo al jefe del mundo; con un nombre de ataque, lo obliga a usar ese */
-  /* para jugar Supervivencia en un mapa concreto: el id de un mundo, o 'espacio' */
-  window.__giroMap = (id) => playSurvival(id);
-  /* para probar las cuentas: cambiar el perfil como lo haría una partida, y subirlo ya */
-  window.__giroProfile = (change) => {
-    Object.assign(S, change);
-    save();
-    return { coins: S.coins, acct: S.acct };
-  };
-  window.__giroPush = () => push();
-  window.__giroMapIds = () => WORLDS.filter((w) => w.ready).map((w) => w.id);
-  window.__giroMaps = (n) => Array.from({ length: n }, () => (survivalMap() || { id: 'espacio' }).id);
-  /* para probar el casco: un golpe directo a la nave */
-  window.__giroHit = (dmg) => {
-    G.ship.inv = 0;
-    return takeHit(G.ship.x, G.ship.y, dmg);
-  };
-  window.__giroState = () => ({
-    t: G.t,
-    pts: G.run.pts,
-    mode: G.run.mode,
-    state: G.state,
-    map: G.run.map ? G.run.map.id : 'espacio',
-    hull: G.run.hull,
-    revived: !!G.run.revived,
-  });
-  window.__giroBoss = (atk) => {
-    if (atk === 'die') crash();
-    else if (G.run.mode !== 'boss') G.run.pts = 1e6;
-    else if (atk && G.run.boss) {
-      const b = G.run.boss;
-      b.atk = null;
-      b.rest = 0;
-      b.last = '';
-      b.sig = [atk];
-    }
-    return G.run.mode !== 'boss' ? 'run' : G.run.boss.intro > 0 ? 'intro' : 'fight';
-  };
-  /* y para hacer salir ya una montaña (o volcán) del mundo que se esté jugando */
-  window.__giroPeak = (what) => {
-    const w = G.run.world,
-      pk = w && w.peaks;
-    if (!w) return;
-    if (what === 'meteor' && w.meteors) spawnMeteor(w.meteors);
-    else if (what === 'crater' && w.craters) spawnCrater(w.craters);
-    else if (what === 'pool' && pk && pk.pools) spawnPools(pk.pools);
-    else if (what && pk && pk.arch) spawnArch(pk.arch);
-    else if (pk) spawnPeak(pk);
-  };
+  /* Ayudas para las pruebas: solo en el laboratorio y en la app de pruebas (nunca en la de publicación) */
+  if (Platform.lab) {
+    /* para las pruebas de la pista con semilla: fijar la semilla de la próxima Supervivencia y leer
+       la huella de la pista que va saliendo */
+    window.__giroSeed = (seed) => {
+      G.nextSeed = seed;
+      G.nextKind = 'test';
+      startRun('endless');
+    };
+    window.__giroTrack = () => ({ seed: G.run.seed, t: G.t, sig: G.run.sig });
+    /* y para ver un mundo sin pasar por el mapa */
+    window.__giroWorld = (id) => {
+      G.nextWorld = worldOf(id);
+      startRun();
+    };
+    /* para ir directo al jefe del mundo; con un nombre de ataque, lo obliga a usar ese */
+    /* para jugar Supervivencia en un mapa concreto: el id de un mundo, o 'espacio' */
+    window.__giroMap = (id) => playSurvival(id);
+    /* para probar las cuentas: cambiar el perfil como lo haría una partida, y subirlo ya */
+    window.__giroProfile = (change) => {
+      Object.assign(S, change);
+      save();
+      return { coins: S.coins, acct: S.acct };
+    };
+    window.__giroPush = () => push();
+    window.__giroMapIds = () => WORLDS.filter((w) => w.ready).map((w) => w.id);
+    window.__giroMaps = (n) => Array.from({ length: n }, () => (survivalMap() || { id: 'espacio' }).id);
+    /* para probar el casco: un golpe directo a la nave */
+    window.__giroHit = (dmg) => {
+      G.ship.inv = 0;
+      return takeHit(G.ship.x, G.ship.y, dmg);
+    };
+    window.__giroState = () => ({
+      t: G.t,
+      pts: G.run.pts,
+      mode: G.run.mode,
+      state: G.state,
+      map: G.run.map ? G.run.map.id : 'espacio',
+      hull: G.run.hull,
+      revived: !!G.run.revived,
+    });
+    window.__giroBoss = (atk) => {
+      if (atk === 'die') crash();
+      else if (G.run.mode !== 'boss') G.run.pts = 1e6;
+      else if (atk && G.run.boss) {
+        const b = G.run.boss;
+        b.atk = null;
+        b.rest = 0;
+        b.last = '';
+        b.sig = [atk];
+      }
+      return G.run.mode !== 'boss' ? 'run' : G.run.boss.intro > 0 ? 'intro' : 'fight';
+    };
+    /* y para hacer salir ya una montaña (o volcán) del mundo que se esté jugando */
+    window.__giroPeak = (what) => {
+      const w = G.run.world,
+        pk = w && w.peaks;
+      if (!w) return;
+      if (what === 'meteor' && w.meteors) spawnMeteor(w.meteors);
+      else if (what === 'crater' && w.craters) spawnCrater(w.craters);
+      else if (what === 'pool' && pk && pk.pools) spawnPools(pk.pools);
+      else if (what && pk && pk.arch) spawnArch(pk.arch);
+      else if (pk) spawnPeak(pk);
+    };
+  }
 }

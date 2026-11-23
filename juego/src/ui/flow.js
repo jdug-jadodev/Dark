@@ -1,5 +1,6 @@
 /** Flujo de una partida: empezar, cuenta regresiva, pausa, salir, choque y revivir. */
 import { maybeAskReminder } from './reminder.js';
+import { tr } from '../core/i18n.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { COUNT_STEP, FLIP_AT, GOAL, HULL_REVIVE, HULL_SECOND, MINI_AT } from '../core/config.js';
@@ -12,6 +13,7 @@ import { km, spaceRevive } from '../game/space.js';
 import { after, timers } from '../game/timers.js';
 import { Platform } from '../platform/platform.js';
 import { adTag, showAd } from './ads.js';
+import { cupStart } from './cup.js';
 import { countRun } from './daily.js';
 import { $, put } from './dom.js';
 import { T } from './icons.js';
@@ -38,6 +40,7 @@ export function showPad(on) {
 export function startRun(mode) {
   hideAll();
   newRun(mode);
+  cupStart();
   const isBoss = G.run.mode === 'boss';
   if (isBoss) G.run.boss.intro = 1;
   $('hud').classList.toggle('boss', isBoss);
@@ -54,11 +57,11 @@ export function startRun(mode) {
     'hint',
     G.run.mode === 'space'
       ? btn
-        ? 'Flechas: muévete arriba, abajo y a los lados'
-        : 'Desliza en cualquier dirección: arriba, abajo y a los lados'
+        ? tr('Flechas: muévete arriba, abajo y a los lados')
+        : tr('Desliza en cualquier dirección: arriba, abajo y a los lados')
       : btn
-        ? 'Flechas: {up}{down} a la izquierda · {prev}{next} a la derecha'
-        : 'Desliza el dedo en cualquier parte para mover la nave',
+        ? tr('Flechas: {up}{down} a la izquierda · {prev}{next} a la derecha')
+        : tr('Desliza el dedo en cualquier parte para mover la nave'),
   );
   $('hud').style.display = 'block';
   $('hint').style.display = 'block';
@@ -84,7 +87,7 @@ export function tickCount(dt) {
     }
     return;
   }
-  c.textContent = '¡YA!';
+  c.textContent = tr('¡YA!');
   emit('go');
   after(0.5, () => c.classList.remove('show'));
   G.state = 'play';
@@ -93,10 +96,10 @@ export function tickCount(dt) {
   });
   if (G.run.mode === 'boss')
     showToast(
-      G.run.world ? '¡EL JEFE DE ESTE MUNDO!' : '¡JEFE FINAL!',
-      (G.run.boss.name || 'Centinela del Vacío') + ' · recoge armas en el camino',
+      G.run.world ? tr('¡EL JEFE DE ESTE MUNDO!') : tr('¡JEFE FINAL!'),
+      tr('{name} · recoge armas en el camino', { name: G.run.boss.name || tr('Centinela del Vacío') }),
     );
-  if (G.run.mode === 'space') showToast('Viaje espacial', 'Esquiva todo lo que venga');
+  if (G.run.mode === 'space') showToast(tr('Viaje espacial'), tr('Esquiva todo lo que venga'));
 }
 /* ---------- Pausa ---------- */
 export function pauseGame() {
@@ -107,12 +110,16 @@ export function pauseGame() {
   G.ptr.has = false;
   $('pauseInfo').textContent =
     G.run.mode === 'space'
-      ? 'Viaje espacial · ' + km() + ' km · ' + fmt(G.t)
+      ? tr('Viaje espacial · {km} km · {time}', { km: km(), time: fmt(G.t) })
       : G.run.mode === 'endless'
-        ? 'Supervivencia · ' + fmt(G.t) + ' · Nivel ' + level()
+        ? tr('Supervivencia · {time} · Nivel {n}', { time: fmt(G.t), n: level() })
         : G.run.mode === 'boss'
-          ? 'Jefe final'
-          : (G.run.world ? G.run.world.name : 'Aventura') + ' · ' + Math.floor(G.run.pts) + ' de ' + goal() + ' puntos';
+          ? tr('Jefe final')
+          : tr('{name} · {n} de {total} puntos', {
+              name: G.run.world ? G.run.world.name : tr('Aventura'),
+              n: Math.floor(G.run.pts),
+              total: goal(),
+            });
   $('pause').classList.add('show');
 }
 export function resumeGame() {
@@ -160,21 +167,25 @@ export function crash() {
     });
     return;
   }
-  $('crashTitle').innerHTML = T(eaten ? '{skull} ¡Te tragó!' : '{boom} ¡Chocaste!');
+  $('crashTitle').innerHTML = T(eaten ? tr('{skull} ¡Te tragó!') : tr('{boom} ¡Chocaste!'));
   $('crashInfo').innerHTML = T(
     G.run.mode === 'space'
-      ? 'Recorriste ' + km() + ' km en ' + fmt(G.t)
+      ? tr('Recorriste {km} km en {time}', { km: km(), time: fmt(G.t) })
       : G.run.mode === 'endless'
-        ? 'Aguantaste ' + fmt(G.t) + ' · Nivel ' + level()
+        ? tr('Aguantaste {time} · Nivel {n}', { time: fmt(G.t), n: level() })
         : G.run.mode === 'boss'
-          ? (eaten ? 'El Devorador te tragó · le' : 'Le') +
-            ' hiciste ' +
-            Math.round((1 - G.run.boss.hp / G.run.boss.max) * 100) +
-            '% de daño' +
-            (eaten ? '' : ' al jefe')
-          : 'Llevabas ' + Math.floor(G.run.pts) + ' de ' + goal() + ' puntos y ' + G.run.coins + ' {coin}',
+          ? eaten
+            ? tr('El Devorador te tragó · le hiciste {n}% de daño', {
+                n: Math.round((1 - G.run.boss.hp / G.run.boss.max) * 100),
+              })
+            : tr('Le hiciste {n}% de daño al jefe', { n: Math.round((1 - G.run.boss.hp / G.run.boss.max) * 100) })
+          : tr('Llevabas {n} de {total} puntos y {c} {coin}', {
+              n: Math.floor(G.run.pts),
+              total: goal(),
+              c: G.run.coins,
+            }),
   );
-  $('reviveBtn').innerHTML = T(adTag() ? '{play} Revivir viendo un anuncio' : '{play} Revivir');
+  $('reviveBtn').innerHTML = T(adTag() ? tr('{play} Revivir viendo un anuncio') : tr('{play} Revivir'));
   after(eaten ? 1.3 : 0.45, () => {
     if (G.state === 'paused') $('crash').classList.add('show');
   });
@@ -212,7 +223,7 @@ export function bootFlow() {
   /* ---------- Choque ---------- */
   $('reviveBtn').addEventListener('click', () => {
     $('crash').classList.remove('show');
-    showAd('Recompensa: revivir y seguir la partida', revive);
+    showAd(tr('Recompensa: revivir y seguir la partida'), revive);
   });
   $('giveUp').addEventListener('click', () => {
     $('crash').classList.remove('show');

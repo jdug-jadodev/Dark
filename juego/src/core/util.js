@@ -49,3 +49,10 @@ export const fmt = (s) => {
   s = Math.floor(s);
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 };
+/* ---------- lo que viene de fuera ----------
+   Lo que contesta el servidor, lo guardado en el teléfono o en la nube y lo que escribe el jugador
+   no es de fiar: antes de usarlo se limpia. esc() deja un texto listo para escribirlo como HTML
+   (nada de lo que traiga se vuelve etiqueta); num() deja un número entero entre 0 y un tope. */
+const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ESC[c]);
+export const num = (x, max = 1e9) => Math.min(max, Math.max(0, Math.floor(+x) || 0));

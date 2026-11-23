@@ -25,7 +25,9 @@ import androidx.webkit.WebViewAssetLoader
 import com.giroestelar.adapters.AccountControl
 import com.giroestelar.adapters.AndroidThermal
 import com.giroestelar.adapters.GoogleSignIn
+import com.giroestelar.adapters.PlayStore
 import com.giroestelar.adapters.SessionVault
+import com.giroestelar.adapters.StoreControl
 import com.giroestelar.adapters.GameBridge
 import com.giroestelar.adapters.ReminderControl
 import com.giroestelar.adapters.canNotify
@@ -35,7 +37,10 @@ import com.giroestelar.adapters.SharedPrefsGameStateStore
 import com.giroestelar.adapters.VibratorHaptics
 import com.giroestelar.application.Account
 import com.giroestelar.application.GameHost
+import com.giroestelar.application.Page
+import com.giroestelar.application.Store
 import java.time.LocalDateTime
+import org.json.JSONObject
 
 /**
  * Punto de armado de la app: crea los adaptadores, los conecta con [GameHost] y abre el juego
@@ -76,17 +81,31 @@ class MainActivity : Activity() {
             // solo con un servidor de pruebas configurado: ese servidor no tiene candado (https)
             if (testApi.isNotEmpty()) settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             webViewClient = object : WebViewClient() {
-                override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-                    assets.shouldInterceptRequest(request.url)
+                override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                    /* solo en la app de pruebas con un servidor de pruebas: la página se sirve
+                       con ese servidor permitido en su política de contenido */
+                    if (testApi.isNotEmpty() && request.url.path == Page.GAME_PATH) {
+                        val html = this@MainActivity.assets.open("game/index.html").bufferedReader().use { it.readText() }
+                        return WebResourceResponse("text/html", "utf-8", Page.allowServer(html, testApi).byteInputStream())
+                    }
+                    return assets.shouldInterceptRequest(request.url)
+                }
+
+                /* La ventana del juego no sale de la página del juego: el puente con Android queda
+                   pegado a lo que esté cargado aquí, así que cualquier otra dirección se bloquea
+                   (no se abre aquí ni en el navegador). */
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
+                    !Page.inside(request.url.toString())
             }
             webChromeClient = object : WebChromeClient() {
+                /* lo que el juego escribe en su consola va al registro del teléfono solo en la app de pruebas */
                 override fun onConsoleMessage(m: ConsoleMessage): Boolean {
-                    Log.i(TAG, "${m.message()} (${m.sourceId()?.substringAfterLast('/')}:${m.lineNumber()})")
+                    if (debuggable) Log.i(TAG, "${m.message()} (${m.sourceId()?.substringAfterLast('/')}:${m.lineNumber()})")
                     return true
                 }
             }
             addJavascriptInterface(
-                GameBridge(host, debuggable, reminderControl(), testApi, ::shareText, accountControl()),
+                GameBridge(host, debuggable, reminderControl(), testApi, ::shareText, accountControl(), storeControl()),
                 "GiroNative",
             )
         }
@@ -115,7 +134,7 @@ class MainActivity : Activity() {
             onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { askGameBack() }
         }
 
-        web.loadUrl("https://appassets.androidplatform.net/assets/game/index.html")
+        web.loadUrl(Page.GAME)
     }
 
     /* ---- cuenta: entrar con Google y guardar la llave de sesión ---- */
@@ -138,6 +157,26 @@ class MainActivity : Activity() {
         override fun setSecret(value: String) = vault.set(value)
     }
 
+    /* ---- tienda: cobros con Google Play ---- */
+    private fun storeControl() = object : StoreControl {
+        /* el juego recibe (tipo, texto JSON); el tipo es fijo y el texto va entre comillas, escapado */
+        private val play = PlayStore(this@MainActivity) { kind, json ->
+            web.evaluateJavascript("window.__giroStore && window.__giroStore('$kind', ${JSONObject.quote(json)})", null)
+        }
+        override fun ready(): Boolean = play.ready()
+
+        /* el juego llama desde otro hilo: todo lo de la tienda corre en el principal */
+        override fun products(ids: String) = runOnUiThread { play.products(ids) }
+
+        /* sin un identificador válido no se abre el pago: la compra no quedaría a nombre de nadie */
+        override fun buy(id: String, uid: String) = runOnUiThread {
+            val buyer = Store.buyerTag(uid)
+            if (Store.validProduct(id) && buyer != null) play.buy(id, buyer) else play.refuse()
+        }
+
+        override fun pending() = runOnUiThread { play.pending() }
+    }
+
     /* ---- recordatorio diario ---- */
     private fun reminderControl() = object : ReminderControl {
         /* el juego llama desde otro hilo: lo que toca la pantalla o pide permiso va al hilo principal */
@@ -152,12 +191,13 @@ class MainActivity : Activity() {
         override fun isOn(): Boolean = reminders.enabled && canNotify(this@MainActivity)
         override fun noteStreak(days: Int) = reminders.noteStreak(days)
         override fun noteCup(rank: Int) = reminders.noteCup(rank)
+        override fun noteLang(code: String) = reminders.noteLang(code)
     }
 
     /** Abre el menú de compartir de Android con el reto (WhatsApp, etc.). */
     private fun shareText(text: String) = runOnUiThread {
         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-        startActivity(Intent.createChooser(send, "Retar a mis amigos"))
+        startActivity(Intent.createChooser(send, reminders.texts.share))
     }
 
     /** El jugador respondió si deja mostrar avisos: solo si dijo que sí queda encendido. */

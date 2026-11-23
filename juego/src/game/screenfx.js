@@ -1,5 +1,6 @@
 /** Giro de pantalla (una vez en Aventura, periódico en Supervivencia), turbulencias y vueltas de 360°. */
 import { emit } from '../core/events.js';
+import { tr } from '../core/i18n.js';
 import { G } from '../core/state.js';
 import { W, WOB_AT } from '../core/config.js';
 import { chaos, survLv } from '../core/difficulty.js';
@@ -36,7 +37,7 @@ function baseAngle(dt, x, c) {
     B = G.run.wb;
   let a = 0,
     w = false,
-    txt = '¡GIRA EL CELU!';
+    txt = tr('¡GIRA EL CELU!');
   if (R.st === 0 && x >= R.at && B.t < 0 && free(c)) {
     R.st = 1;
     R.t = 0;
@@ -59,7 +60,7 @@ function baseAngle(dt, x, c) {
       a = Math.PI;
       if (R.t > 8) {
         w = true;
-        txt = '¡VUELVE A LA NORMALIDAD!';
+        txt = tr('¡VUELVE A LA NORMALIDAD!');
       }
       if (R.t >= 10) {
         R.st = 4;
@@ -94,7 +95,7 @@ function baseAngle(dt, x, c) {
         G.pops.push({
           x: W / 2,
           y: 140,
-          text: (G.run.world && G.run.world.shake) || '¡TURBULENCIA!',
+          text: (G.run.world && G.run.world.shake) || tr('¡TURBULENCIA!'),
           life: 1.4,
           col: '#c792ff',
         });
@@ -148,7 +149,7 @@ function spinAngle(dt, c) {
     G.pops.push({
       x: W / 2,
       y: 140,
-      text: P.turns === 2 ? '¡DOBLE GIRO!' : '¡GIRO 360°!',
+      text: P.turns === 2 ? tr('¡DOBLE GIRO!') : tr('¡GIRO 360°!'),
       life: 1.2,
       col: '#ffd54a',
     });

@@ -17,3 +17,8 @@ android/src/main/assets/game/index.html
 .idea/
 *.iml
 .DS_Store
+
+# Firma de publicación: dónde está la llave y sus claves (nunca al repositorio)
+firma.properties
+*.jks
+*.keystore

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El nombre de la app, en un solo sitio (el del juego está en juego/src/core/brand.js). -->
+<resources>
+    <string name="app_name" translatable="false">Astrion Space</string>
+</resources>

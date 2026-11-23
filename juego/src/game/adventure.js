@@ -1,5 +1,6 @@
 /** Paso principal de Aventura y Supervivencia: fases, apariciones, choques, casco. */
 import { spawnCrater, spawnMeteor, updateBlasts } from './blasts.js';
+import { tr } from '../core/i18n.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import {
@@ -37,7 +38,7 @@ import {
   speedAt,
   thirdRock,
 } from '../core/difficulty.js';
-import { clamp, roll, rollIn } from '../core/util.js';
+import { clamp, esc, roll, rollIn } from '../core/util.js';
 import {
   beginBoss,
   bossTick,
@@ -84,7 +85,7 @@ export function update(dt) {
           G.pops.push({
             x: G.ship.x,
             y: G.ship.y - 46,
-            text: '{wrench} +' + g + '% casco',
+            text: tr('{wrench} +{n}% casco', { n: g }),
             life: 1.4,
             col: '#6ef2a5',
           });
@@ -96,7 +97,7 @@ export function update(dt) {
         G.pops.push({
           x: W / 2,
           y: 100,
-          text: '{wrench} ¡Reparación en camino!',
+          text: tr('{wrench} ¡Reparación en camino!'),
           life: 1.6,
           col: '#6ef2a5',
         });
@@ -105,16 +106,16 @@ export function update(dt) {
       if (G.run.phase !== -1 && lv % SURV_BOSS_EVERY === 0) G.run.bossDue = lv;
       G.run.phase = lv;
       showToast(
-        'Nivel ' + lv,
+        tr('Nivel {n}', { n: lv }),
         G.run.bossDue === lv
-          ? '¡Se acerca un jefe! Busca un arma'
+          ? tr('¡Se acerca un jefe! Busca un arma')
           : lv === UNCAP_LVL
-            ? '¡Sin límite de naves! A ver cuánto aguantas'
+            ? tr('¡Sin límite de naves! A ver cuánto aguantas')
             : lv === 1 && G.run.kind === 'duel'
               ? G.run.duel && G.run.duel.rival
-                ? 'Reto: aguanta más que ' + G.run.duel.rival.nick
-                : 'Reto nuevo: tu tiempo será la marca a superar'
-              : SURV_TIP_AT[lv] || SURV_TIPS[Math.min(lv - 1, SURV_TIPS.length - 1)],
+                ? tr('Reto: aguanta más que {nick}', { nick: esc(G.run.duel.rival.nick) })
+                : tr('Reto nuevo: tu tiempo será la marca a superar')
+              : tr(SURV_TIP_AT[lv] || SURV_TIPS[Math.min(lv - 1, SURV_TIPS.length - 1)]),
       );
     }
   } else {
@@ -126,12 +127,12 @@ export function update(dt) {
         emit('phase');
       }
       G.run.phase = ph;
-      if (G.run.stage === 'run') showToast(phaseOf(ph).name, phaseOf(ph).tip);
+      if (G.run.stage === 'run') showToast(tr(phaseOf(ph).name), tr(phaseOf(ph).tip));
     }
   }
   updatePortals(dt);
   let warn = false,
-    wtxt = '¡GIRA EL CELU!';
+    wtxt = tr('¡GIRA EL CELU!');
   if (G.run.stage === 'run') {
     const r = runAngle(dt, x);
     G.angle = r.a;
@@ -141,7 +142,7 @@ export function update(dt) {
     G.angle += (0 - G.angle) * Math.min(1, dt * 4);
     if (G.run.stage === 'warn') {
       warn = true;
-      wtxt = '¡EL JEFE SE ACERCA!';
+      wtxt = tr('¡EL JEFE SE ACERCA!');
     }
   }
   $('warnTxt').textContent = wtxt;
@@ -255,7 +256,7 @@ export function update(dt) {
     else if (G.run.pts >= goal()) {
       G.run.stage = 'warn';
       G.run.transT = 3.4;
-      showToast('¡ALERTA!', 'Algo enorme se acerca…');
+      showToast(tr('¡ALERTA!'), tr('Algo enorme se acerca…'));
       for (const e of G.en) e.life = Math.min(e.life, 0);
     }
   } else if (G.run.stage === 'mini') {
@@ -310,7 +311,7 @@ export function update(dt) {
         G.pops.push({
           x: G.ship.x,
           y: G.ship.y - 30,
-          text: '¡Escudo!',
+          text: tr('¡Escudo!'),
           life: 1,
           col: '#78e6ff',
         });
@@ -346,7 +347,7 @@ export function update(dt) {
         G.pops.push({
           x: G.ship.x,
           y: G.ship.y - 28,
-          text: '¡CASI! +' + b + (G.run.mode === 'run' ? ' {bolt}' : ''),
+          text: tr('¡CASI! +{n}', { n: b }) + (G.run.mode === 'run' ? ' {bolt}' : ''),
           life: 1,
           col: '#6ef2a5',
         });
@@ -394,7 +395,7 @@ function hullHit(dmg, x, y) {
   G.pops.push({
     x: G.ship.x,
     y: G.ship.y - 30,
-    text: '-' + dmg + '% casco',
+    text: tr('-{n}% casco', { n: dmg }),
     life: 1,
     col: '#ff6b8a',
   });
@@ -411,7 +412,7 @@ export function takeHit(x, y, dmg) {
     G.pops.push({
       x: G.ship.x,
       y: G.ship.y - 30,
-      text: '¡Escudo!',
+      text: tr('¡Escudo!'),
       life: 1,
       col: '#78e6ff',
     });

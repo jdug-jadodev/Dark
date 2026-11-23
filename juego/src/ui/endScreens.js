@@ -3,9 +3,10 @@ import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { BOSS_UNLOCK, GOAL, MINI_AT } from '../core/config.js';
 import { goal, level, prog } from '../core/difficulty.js';
+import { tr } from '../core/i18n.js';
 import { S, save } from '../core/profile.js';
 import { doubleCoins, payout } from '../core/season.js';
-import { fmt } from '../core/util.js';
+import { esc, fmt } from '../core/util.js';
 import { SPC, km } from '../game/space.js';
 import { adTag, showAd } from './ads.js';
 import { challenge, cupBlock, duelAction } from './cup.js';
@@ -19,7 +20,17 @@ import { goalBlock } from './news.js';
 import { xpBlock } from './pilot.js';
 import { backToMenu, showPad, startRun } from './flow.js';
 /* en fin de semana las monedas de la partida valen doble: se avisa junto a lo ganado */
-const weekend = () => (doubleCoins() ? '<small>monedas dobles de fin de semana</small>' : '');
+const weekend = () => (doubleCoins() ? '<small>' + tr('monedas dobles de fin de semana') + '</small>' : '');
+/* el botón de duplicar lo ganado viendo un anuncio */
+const x2Button = (gain) =>
+  '<button class="btn ad" data-a="x2">' +
+  tr('{play} Duplicar monedas{ad} +{n} {coin}', { ad: adTag(), n: gain }) +
+  '</button>';
+/* un rótulo de la cuadrícula de números */
+const cell = (value, label) => '<div><b>' + value + '</b><span>' + label + '</span></div>';
+const menuButton = () => '<button class="btn alt" data-a="menu">' + tr('Menú') + '</button>';
+const worldsButton = () => '<button class="btn alt" data-a="worlds">' + tr('{rocket} Mundos') + '</button>';
+/* los apodos los escriben otros jugadores: nunca van como HTML */
 export function finishBoss(win) {
   G.state = 'end';
   emit(win ? 'win' : 'lose');
@@ -42,31 +53,33 @@ export function finishBoss(win) {
     (win
       ? w
         ? won
-          ? '{trophy} ¡' + w.name + ' completado!'
-          : '{trophy} ¡' + b.name + ' derrotado!'
-        : '{trophy} ¡Jefe derrotado!'
-      : '{skull} ' + (b.name || 'El jefe') + (b.form === 'devourer' ? ' te tragó' : ' te venció')) +
+          ? tr('{trophy} ¡{name} completado!', { name: w.name })
+          : tr('{trophy} ¡{name} derrotado!', { name: b.name })
+        : tr('{trophy} ¡Jefe derrotado!')
+      : b.name
+        ? b.form === 'devourer'
+          ? tr('{skull} {name} te tragó', { name: b.name })
+          : tr('{skull} {name} te venció', { name: b.name })
+        : b.form === 'devourer'
+          ? tr('{skull} El jefe te tragó')
+          : tr('{skull} El jefe te venció')) +
     '</div>' +
-    '<div class="grid"><div><b>' +
-    Math.floor(G.run.bt) +
-    ' s</b><span>Tiempo</span></div>' +
-    '<div><b>' +
-    dmg +
-    '%</b><span>Daño al jefe</span></div>' +
-    '<div><b>' +
-    G.run.wpnPicks +
-    '</b><span>Armas</span></div>' +
-    '<div><b>' +
-    (S.bossWins || 0) +
-    '</b><span>Victorias</span></div></div>' +
+    '<div class="grid">' +
+    cell(Math.floor(G.run.bt) + ' s', tr('Tiempo')) +
+    cell(dmg + '%', tr('Daño al jefe')) +
+    cell(G.run.wpnPicks, tr('Armas')) +
+    cell(S.bossWins || 0, tr('Victorias')) +
+    '</div>' +
     '<div class="gain">+' +
     gain +
     ' {coin}' +
+    '<small>' +
     (win
       ? won && won.first
-        ? '<small>premio por completar el mundo</small>'
-        : '<small>cofre del jefe</small>'
-      : '<small>según el daño que hiciste</small>') +
+        ? tr('premio por completar el mundo')
+        : tr('cofre del jefe')
+      : tr('según el daño que hiciste')) +
+    '</small>' +
     weekend() +
     '</div>' +
     xpBlock(win) +
@@ -75,26 +88,28 @@ export function finishBoss(win) {
     (win
       ? w
         ? !won
-          ? 'En modo demo el mundo no cuenta como completado: para abrir el siguiente hay que vencer al jefe de verdad.'
+          ? tr(
+              'En modo demo el mundo no cuenta como completado: para abrir el siguiente hay que vencer al jefe de verdad.',
+            )
           : next
-            ? (won.first ? '{sparkle} Se abrió un mundo nuevo: ' : 'Siguiente mundo: ') + next.name + '.'
-            : 'Completaste todos los mundos que hay por ahora. Vienen más.'
-        : 'Siguiente: un jefe nuevo por zona, con ataques distintos (en el juego real).'
-      : 'Tip: el jefe cambia de ataque al azar; quédate cerca de las armas que caen y no te quedes quieto.') +
+            ? won.first
+              ? tr('{sparkle} Se abrió un mundo nuevo: {name}.', { name: next.name })
+              : tr('Siguiente mundo: {name}.', { name: next.name })
+            : tr('Completaste todos los mundos que hay por ahora. Vienen más.')
+        : tr('Siguiente: un jefe nuevo por zona, con ataques distintos (en el juego real).')
+      : tr('Tip: el jefe cambia de ataque al azar; quédate cerca de las armas que caen y no te quedes quieto.')) +
     '</div>' +
-    '<button class="btn ad" data-a="x2">{play} Duplicar monedas' +
-    adTag() +
-    ' +' +
-    gain +
-    ' {coin}</button>' +
-    (win && next ? '<button class="btn" data-a="nextworld">{play} Ir a ' + next.name + '</button>' : '') +
+    x2Button(gain) +
+    (win && next
+      ? '<button class="btn" data-a="nextworld">' + tr('{play} Ir a {name}', { name: next.name }) + '</button>'
+      : '') +
     '<button class="btn' +
     (win && next ? ' alt' : '') +
-    '" data-a="boss">{swords} ' +
-    (win ? 'Pelear otra vez' : 'Reintentar') +
+    '" data-a="boss">' +
+    (win ? tr('{swords} Pelear otra vez') : tr('{swords} Reintentar')) +
     '</button>' +
-    (w ? '<button class="btn alt" data-a="worlds">{rocket} Mundos</button>' : '') +
-    '<button class="btn alt" data-a="menu">Menú</button>';
+    (w ? worldsButton() : '') +
+    menuButton();
   tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
@@ -121,7 +136,7 @@ function finishSpace() {
         '"><span>' +
         ['{medal1}', '{medal2}', '{medal3}', '4.', '5.'][i] +
         ' ' +
-        (i === rank ? 'Esta partida' : '') +
+        (i === rank ? tr('Esta partida') : '') +
         '</span><b>' +
         v +
         ' km</b></div>',
@@ -129,27 +144,23 @@ function finishSpace() {
     .join('');
   const next = list[rank > 0 ? rank - 1 : 0];
   $('endBox').innerHTML =
-    '<div class="big">{planet} Recorriste ' +
-    d +
-    ' km</div>' +
+    '<div class="big">' +
+    tr('{planet} Recorriste {n} km', { n: d }) +
+    '</div>' +
     (rec
-      ? '<div class="rec">{star} ¡Nuevo récord!</div>'
+      ? '<div class="rec">' + tr('{star} ¡Nuevo récord!') + '</div>'
       : rank > 0
-        ? '<div class="sub">Te faltaron ' + (next - d) + ' km para subir al puesto ' + rank + '</div>'
-        : '<div class="sub">Récord: ' + list[0] + ' km</div>') +
-    '<div class="grid"><div><b>' +
-    fmt(G.t) +
-    '</b><span>Tiempo</span></div>' +
-    '<div><b>' +
-    SPC.sector +
-    '</b><span>Sector</span></div>' +
-    '<div><b>' +
-    SPC.near +
-    '</b><span>Casi</span></div>' +
-    '<div><b>' +
-    Math.round(SPC.speed / 10) +
-    '</b><span>km/s final</span></div></div>' +
-    '<div class="top"><b>Tus mejores distancias</b>' +
+        ? '<div class="sub">' + tr('Te faltaron {n} km para subir al puesto {rank}', { n: next - d, rank }) + '</div>'
+        : '<div class="sub">' + tr('Récord: {n} km', { n: list[0] }) + '</div>') +
+    '<div class="grid">' +
+    cell(fmt(G.t), tr('Tiempo')) +
+    cell(SPC.sector, tr('Sector')) +
+    cell(SPC.near, tr('Casi')) +
+    cell(Math.round(SPC.speed / 10), tr('km/s final')) +
+    '</div>' +
+    '<div class="top"><b>' +
+    tr('Tus mejores distancias') +
+    '</b>' +
     rows +
     '</div>' +
     '<div class="gain">+' +
@@ -160,11 +171,11 @@ function finishSpace() {
     xpBlock() +
     goalBlock() +
     mis +
-    (gain > 0
-      ? '<button class="btn ad" data-a="x2">{play} Duplicar monedas' + adTag() + ' +' + gain + ' {coin}</button>'
-      : '') +
-    '<button class="btn space" data-a="space">{planet} Volar de nuevo</button>' +
-    '<button class="btn alt" data-a="menu">Menú</button>';
+    (gain > 0 ? x2Button(gain) : '') +
+    '<button class="btn space" data-a="space">' +
+    tr('{planet} Volar de nuevo') +
+    '</button>' +
+    menuButton();
   tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
@@ -194,36 +205,33 @@ export function finish(win) {
   const mis = missionBlock(countRun());
   const w = G.run.world;
   const nextGoal = w
-    ? 'Te faltaron ' + Math.max(0, Math.ceil(goal() - G.run.pts)) + ' puntos para llegar a ' + w.boss.name + '.'
+    ? tr('Te faltaron {n} puntos para llegar a {name}.', {
+        n: Math.max(0, Math.ceil(goal() - G.run.pts)),
+        name: w.boss.name,
+      })
     : !G.run.miniDone
-      ? 'Te faltaron ' + Math.max(0, Math.ceil((GOAL * MINI_AT) / 100 - G.run.pts)) + ' puntos para el jefe intermedio.'
-      : 'Te faltaron ' + Math.max(0, Math.ceil(GOAL - G.run.pts)) + ' puntos para el jefe final.';
+      ? tr('Te faltaron {n} puntos para el jefe intermedio.', {
+          n: Math.max(0, Math.ceil((GOAL * MINI_AT) / 100 - G.run.pts)),
+        })
+      : tr('Te faltaron {n} puntos para el jefe final.', { n: Math.max(0, Math.ceil(GOAL - G.run.pts)) });
   $('endBox').innerHTML =
-    '<div class="big">{boom} ' +
-    (w ? 'No llegaste al jefe' : 'Partida terminada') +
+    '<div class="big">' +
+    (w ? tr('{boom} No llegaste al jefe') : tr('{boom} Partida terminada')) +
     '</div>' +
     (w ? '<div class="sub">' + w.icon + ' ' + w.name + '</div>' : '') +
     (rec
-      ? '<div class="rec">{star} ¡Nuevo récord! ' + pts + ' puntos</div>'
-      : '<div class="sub">Récord: ' + (S.best || 0) + ' puntos</div>') +
-    '<div class="grid"><div><b>' +
-    pts +
-    '/' +
-    goal() +
-    '</b><span>Puntos</span></div>' +
-    '<div><b>' +
-    G.run.dodged +
-    '</b><span>Esquivados</span></div>' +
-    '<div><b>' +
-    G.run.near +
-    '</b><span>Casi-fallos</span></div>' +
-    '<div><b>' +
-    G.run.wpnPicks +
-    '</b><span>Armas</span></div></div>' +
+      ? '<div class="rec">' + tr('{star} ¡Nuevo récord! {n} puntos', { n: pts }) + '</div>'
+      : '<div class="sub">' + tr('Récord: {n} puntos', { n: S.best || 0 }) + '</div>') +
+    '<div class="grid">' +
+    cell(pts + '/' + goal(), tr('Puntos')) +
+    cell(G.run.dodged, tr('Esquivados')) +
+    cell(G.run.near, tr('Casi-fallos')) +
+    cell(G.run.wpnPicks, tr('Armas')) +
+    '</div>' +
     '<div class="gain">+' +
     gain +
     ' {coin}' +
-    (win ? '<small>incluye +25 por completar el reto</small>' : '') +
+    (win ? '<small>' + tr('incluye +25 por completar el reto') + '</small>' : '') +
     weekend() +
     '</div>' +
     xpBlock() +
@@ -234,14 +242,12 @@ export function finish(win) {
     Math.min(100, prog()) +
     '%"></i></div></div>' +
     mis +
-    '<button class="btn ad" data-a="x2">{play} Duplicar monedas' +
-    adTag() +
-    ' +' +
-    gain +
-    ' {coin}</button>' +
-    '<button class="btn" data-a="again">Jugar otra vez</button>' +
-    (w ? '<button class="btn alt" data-a="worlds">{rocket} Mundos</button>' : '') +
-    '<button class="btn alt" data-a="menu">Menú</button>';
+    x2Button(gain) +
+    '<button class="btn" data-a="again">' +
+    tr('Jugar otra vez') +
+    '</button>' +
+    (w ? worldsButton() : '') +
+    menuButton();
   tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
@@ -271,7 +277,7 @@ function finishSurv() {
         '"><span>' +
         ['{medal1}', '{medal2}', '{medal3}', '4.', '5.'][i] +
         ' ' +
-        (i === rank ? 'Esta partida' : '') +
+        (i === rank ? tr('Esta partida') : '') +
         '</span><b>' +
         fmt(v) +
         '</b></div>',
@@ -279,37 +285,39 @@ function finishSurv() {
     .join('');
   const next = list[rank > 0 ? rank - 1 : 0];
   $('endBox').innerHTML =
-    '<div class="big">{timer} Aguantaste ' +
-    fmt(secs) +
+    '<div class="big">' +
+    tr('{timer} Aguantaste {time}', { time: fmt(secs) }) +
     '</div>' +
     (G.run.kind === 'duel'
-      ? '<div class="sub">{swords} Reto' +
-        (G.run.duel && G.run.duel.rival ? ' contra ' + G.run.duel.rival.nick : ' nuevo') +
+      ? '<div class="sub">' +
+        (G.run.duel && G.run.duel.rival
+          ? tr('{swords} Reto contra {name}', { name: esc(G.run.duel.rival.nick) })
+          : tr('{swords} Reto nuevo')) +
         '</div>'
       : '') +
     (rec
-      ? '<div class="rec">{star} ¡Nuevo récord!</div>'
+      ? '<div class="rec">' + tr('{star} ¡Nuevo récord!') + '</div>'
       : rank > 0
-        ? '<div class="sub">Te faltaron ' + Math.ceil(next - secs) + ' s para subir al puesto ' + rank + '</div>'
-        : '<div class="sub">Récord: ' + fmt(list[0]) + '</div>') +
-    '<div class="grid"><div><b>' +
-    level() +
-    '</b><span>Nivel</span></div>' +
-    '<div><b>' +
-    G.run.dodged +
-    '</b><span>Esquivados</span></div>' +
-    '<div><b>' +
-    G.run.kills +
-    '</b><span>Naves</span></div>' +
-    '<div><b>' +
-    G.run.wpnPicks +
-    '</b><span>Armas</span></div></div>' +
+        ? '<div class="sub">' +
+          tr('Te faltaron {n} s para subir al puesto {rank}', { n: Math.ceil(next - secs), rank }) +
+          '</div>'
+        : '<div class="sub">' + tr('Récord: {time}', { time: fmt(list[0]) }) + '</div>') +
+    '<div class="grid">' +
+    cell(level(), tr('Nivel')) +
+    cell(G.run.dodged, tr('Esquivados')) +
+    cell(G.run.kills, tr('Naves')) +
+    cell(G.run.wpnPicks, tr('Armas')) +
+    '</div>' +
     (G.run.bossKills
-      ? '<div class="rec">{swords} ' +
-        (G.run.bossKills === 1 ? 'Derribaste un jefe' : 'Derribaste ' + G.run.bossKills + ' jefes') +
+      ? '<div class="rec">' +
+        (G.run.bossKills === 1
+          ? tr('{swords} Derribaste un jefe')
+          : tr('{swords} Derribaste {n} jefes', { n: G.run.bossKills })) +
         '</div>'
       : '') +
-    '<div class="top"><b>Tus mejores tiempos</b>' +
+    '<div class="top"><b>' +
+    tr('Tus mejores tiempos') +
+    '</b>' +
     rows +
     '</div>' +
     cup +
@@ -321,14 +329,14 @@ function finishSurv() {
     xpBlock() +
     goalBlock() +
     mis +
-    (gain > 0
-      ? '<button class="btn ad" data-a="x2">{play} Duplicar monedas' + adTag() + ' +' + gain + ' {coin}</button>'
-      : '') +
-    '<button class="btn surv" data-a="endless">{timer} Intentar de nuevo</button>' +
+    (gain > 0 ? x2Button(gain) : '') +
+    '<button class="btn surv" data-a="endless">' +
+    tr('{timer} Intentar de nuevo') +
+    '</button>' +
     (G.run.invincible || G.run.kind === 'duel'
       ? '' // el reto trae su propio botón para enviarlo
-      : '<button class="btn alt" data-a="share">{share} Retar a mis amigos</button>') +
-    '<button class="btn alt" data-a="menu">Menú</button>';
+      : '<button class="btn alt" data-a="share">' + tr('{share} Retar a mis amigos') + '</button>') +
+    menuButton();
   tok('endBox');
   $('end').classList.add('show');
   $('endBox')._gain = gain;
@@ -351,12 +359,12 @@ export function bootEndScreens() {
     else if (a === 'duelshare' || a === 'duelretry') duelAction(a, b);
     else if (a === 'x2') {
       const gain = $('endBox')._gain || 0;
-      showAd('Recompensa: duplicar las monedas de esta partida (+' + gain + ' {coin})', () => {
+      showAd(tr('Recompensa: duplicar las monedas de esta partida (+{n} {coin})', { n: gain }), () => {
         S.coins += gain;
         save();
         emit('reward');
         b.disabled = true;
-        b.innerHTML = T('{check} Monedas duplicadas');
+        b.innerHTML = T(tr('{check} Monedas duplicadas'));
       });
     }
   });

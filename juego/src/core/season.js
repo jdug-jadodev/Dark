@@ -7,11 +7,25 @@
  *   - Piezas de temporada: solo se pueden comprar en sus fechas (quien ya las tiene, las conserva).
  */
 import { hash, weekEnds, weekKey } from './dates.js';
+import { tr } from './i18n.js';
 import { BY_SLOT, PARTS, priceOf } from './parts.js';
 
 const DAY = 86400000;
-const MONTHS = 'enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre'.split(' ');
-const days = (n) => (n === 1 ? '1 día' : n + ' días');
+const MONTHS = [
+  tr('enero'),
+  tr('febrero'),
+  tr('marzo'),
+  tr('abril'),
+  tr('mayo'),
+  tr('junio'),
+  tr('julio'),
+  tr('agosto'),
+  tr('septiembre'),
+  tr('octubre'),
+  tr('noviembre'),
+  tr('diciembre'),
+];
+const days = (n) => (n === 1 ? tr('1 día') : tr('{n} días', { n }));
 
 /* ---------- fin de semana: monedas dobles ---------- */
 export const doubleCoins = () => {
@@ -24,7 +38,7 @@ export const payout = (coins) => (doubleCoins() ? coins * 2 : coins);
 /* ---------- temporadas ---------- */
 /* from/to = [mes, día], los dos incluidos */
 const SEASONS = {
-  navidad: { name: 'Navidad', from: [12, 1], to: [1, 6], parts: ['ship.trineo', 'gun.regalos', 'flame.elfos'] },
+  navidad: { name: tr('Navidad'), from: [12, 1], to: [1, 6], parts: ['ship.trineo', 'gun.regalos', 'flame.elfos'] },
 };
 const SEASON_OF = {};
 for (const [key, s] of Object.entries(SEASONS)) for (const id of s.parts) SEASON_OF[id] = key;
@@ -49,7 +63,12 @@ export function seasonOf(part) {
     active: w.active,
     startsIn: w.active ? 0 : Math.ceil((w.start - now) / DAY),
     endsIn: w.active ? Math.ceil((w.end - now) / DAY) : 0,
-    dates: 'del ' + s.from[1] + ' de ' + MONTHS[s.from[0] - 1] + ' al ' + s.to[1] + ' de ' + MONTHS[s.to[0] - 1],
+    dates: tr('del {d1} de {m1} al {d2} de {m2}', {
+      d1: s.from[1],
+      m1: MONTHS[s.from[0] - 1],
+      d2: s.to[1],
+      m2: MONTHS[s.to[0] - 1],
+    }),
   };
 }
 /* fuera de su temporada una pieza no se puede comprar */
@@ -80,8 +99,12 @@ export function events(owns) {
     soon = [], // lo que viene
     day = new Date().getDay();
   if (doubleCoins())
-    now.push({ icon: '{coin}', text: '<b>Monedas dobles</b> ' + (day === 6 ? 'hoy y mañana' : 'hoy') });
-  else if (day >= 4) soon.push({ icon: '{coin}', text: 'Monedas dobles ' + (day === 5 ? 'mañana' : 'el sábado') });
+    now.push({
+      icon: '{coin}',
+      text: day === 6 ? tr('<b>Monedas dobles</b> hoy y mañana') : tr('<b>Monedas dobles</b> hoy'),
+    });
+  else if (day >= 4)
+    soon.push({ icon: '{coin}', text: day === 5 ? tr('Monedas dobles mañana') : tr('Monedas dobles el sábado') });
   for (const s of Object.values(SEASONS)) {
     const main = PARTS[s.parts[0]],
       info = seasonOf(main),
@@ -94,14 +117,22 @@ export function events(owns) {
         text: '<b>' + s.name + ':</b> ' + main.name + ' · ' + days(info.endsIn),
       });
     else if (info.startsIn <= 14)
-      soon.push({ icon: '{gift}', part: missing, text: s.name + ' llega en ' + days(info.startsIn) });
+      soon.push({
+        icon: '{gift}',
+        part: missing,
+        text: tr('{name} llega en {days}', { name: s.name, days: days(info.startsIn) }),
+      });
   }
   const o = offer();
   if (o && !owns(o.id))
     now.push({
       icon: '{star}',
       part: o.id,
-      text: '<b>Oferta: ' + o.name + '</b> −' + OFFER_OFF + ' % · ' + days(Math.max(1, Math.ceil(weekEnds() / 86400))),
+      text: tr('<b>Oferta: {name}</b> −{off} % · {days}', {
+        name: o.name,
+        off: OFFER_OFF,
+        days: days(Math.max(1, Math.ceil(weekEnds() / 86400))),
+      }),
     });
   return now.concat(soon);
 }

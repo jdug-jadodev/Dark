@@ -8,8 +8,9 @@
  *       rival: { nick, time } (el mejor de los demás, o null), news (me superaron y no lo he visto) }
  */
 import { Platform } from '../platform/platform.js';
-import { apiUrl, nick, uid } from './cup.js';
+import { apiUrl, cleanNick, nick, uid } from './cup.js';
 import { S, save } from './profile.js';
+import { num } from './util.js';
 
 const KEEP = 12;
 export const cleanCode = (text) =>
@@ -30,27 +31,31 @@ export function seenDuelNews() {
   save();
 }
 
-/* guarda lo que contestó el servidor sobre un reto y lo devuelve como queda en S.duels */
+/* guarda lo que contestó el servidor sobre un reto y lo devuelve como queda en S.duels.
+   Lo que llega del servidor no se copia tal cual: el código, los apodos y los números se limpian
+   aquí, porque después se escriben en la pantalla. */
 function keep(view) {
-  const old = duelOf(view.code),
-    others = view.top.filter((r) => !r.me),
+  const code = cleanCode(view.code),
+    old = duelOf(code),
+    me = view.me && typeof view.me === 'object' ? view.me : null,
+    others = view.top.filter((r) => r && typeof r === 'object' && !r.me),
     d = {
-      code: view.code,
-      seed: view.seed,
-      by: view.by,
-      mine: view.me ? view.me.time : old ? old.mine : 0,
-      rank: view.me ? view.me.rank : 0,
-      n: view.total,
-      rival: others.length ? { nick: others[0].nick, time: others[0].time } : null,
+      code,
+      seed: num(view.seed, 4294967295),
+      by: cleanNick(view.by),
+      mine: me ? num(me.time, 1e6) : old ? old.mine : 0,
+      rank: me ? num(me.rank) : 0,
+      n: num(view.total),
+      rival: others.length ? { nick: cleanNick(others[0].nick), time: num(others[0].time, 1e6) } : null,
     };
   /* me superaron desde la última vez que miré */
   if (old && old.rank && d.rank > old.rank) d.news = true;
   else if (old && old.news) d.news = true;
-  S.duels = [d, ...duels().filter((x) => x.code !== view.code)].slice(0, KEEP);
+  S.duels = [d, ...duels().filter((x) => x.code !== code)].slice(0, KEEP);
   save();
   return d;
 }
-const ok = (r) => r && typeof r.code === 'string' && Array.isArray(r.top);
+const ok = (r) => r && typeof r.code === 'string' && cleanCode(r.code).length === 6 && Array.isArray(r.top);
 
 /* ---------- conexión con el servidor ---------- */
 /* Todas devuelven el reto (como queda en S.duels), 'missing' si ese código no existe, o null si

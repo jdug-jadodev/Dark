@@ -21,38 +21,38 @@ export const WOB_AT = 30; // % desde donde hay turbulencias
 export const PH = [
   {
     t: 0,
-    name: 'Calentamiento',
-    tip: 'Desliza el dedo para esquivar',
+    name: /*tr*/ 'Calentamiento',
+    tip: /*tr*/ 'Desliza el dedo para esquivar',
   },
   {
     t: 4,
-    name: 'Naves y armas',
-    tip: 'Recoge armas y derriba naves',
+    name: /*tr*/ 'Naves y armas',
+    tip: /*tr*/ 'Recoge armas y derriba naves',
   },
   {
     t: 18,
-    name: 'Se acelera',
-    tip: 'Escuadrones enemigos a la vista',
+    name: /*tr*/ 'Se acelera',
+    tip: /*tr*/ 'Escuadrones enemigos a la vista',
   },
   {
     t: WOB_AT,
-    name: 'Turbulencia',
-    tip: 'La pantalla se moverá sola',
+    name: /*tr*/ 'Turbulencia',
+    tip: /*tr*/ 'La pantalla se moverá sola',
   },
   {
     t: 50,
-    name: 'Zona roja',
-    tip: 'Naves más pesadas',
+    name: /*tr*/ 'Zona roja',
+    tip: /*tr*/ 'Naves más pesadas',
   },
   {
     t: FLIP_AT,
-    name: '¡Pantalla girada!',
-    tip: 'Los controles siguen igual',
+    name: /*tr*/ '¡Pantalla girada!',
+    tip: /*tr*/ 'Los controles siguen igual',
   },
   {
     t: 75,
-    name: 'Caos total',
-    tip: 'Turbulencias cada vez más seguidas',
+    name: /*tr*/ 'Caos total',
+    tip: /*tr*/ 'Turbulencias cada vez más seguidas',
   },
 ];
 export const WALLS = [14, 26, 38, 56, 70, 84, 92];
@@ -61,47 +61,47 @@ export const CAPDEF = {
   shield: {
     c: '#78e6ff',
     i: '{shield}',
-    t: '¡ESCUDO!',
+    t: /*tr*/ '¡ESCUDO!',
   },
   twin: {
     c: '#ffb454',
     i: '{blaster}',
-    t: '¡DOBLE CAÑÓN!',
+    t: /*tr*/ '¡DOBLE CAÑÓN!',
   },
   spread: {
     c: '#b4ff5e',
     i: '{trident}',
-    t: '¡ABANICO!',
+    t: /*tr*/ '¡ABANICO!',
   },
   heavy: {
     c: '#ff8a3c',
     i: '{bomb}',
-    t: '¡CAÑÓN PESADO!',
+    t: /*tr*/ '¡CAÑÓN PESADO!',
   },
   orbit: {
     c: '#c792ff',
     i: '{orbit}',
-    t: '¡ESCUDO ORBITAL!',
+    t: /*tr*/ '¡ESCUDO ORBITAL!',
   },
   laser: {
     c: '#ff6b8a',
     i: '{laser}',
-    t: '¡LÁSER!',
+    t: /*tr*/ '¡LÁSER!',
   },
   magnet: {
     c: '#6ef2a5',
     i: '{magnet}',
-    t: '¡IMÁN!',
+    t: /*tr*/ '¡IMÁN!',
   },
   nova: {
     c: '#ffffff',
     i: '{nova}',
-    t: '¡NOVA!',
+    t: /*tr*/ '¡NOVA!',
   },
   repair: {
     c: '#6ef2a5',
     i: '{wrench}',
-    t: '¡REPARACIÓN!',
+    t: /*tr*/ '¡REPARACIÓN!',
   },
 };
 export const GUN_T = 10;
@@ -111,23 +111,23 @@ export const BOSS_UNLOCK = 40;
 export const SURV_RATE = 0.7; // % de progreso por segundo (100% ≈ 2:23)
 export const LVL = 12; // % por nivel (≈ 17 s por nivel)
 export const SURV_TIPS = [
-  'Sobrevive el mayor tiempo posible',
-  'Llegan las naves enemigas',
-  'Se acelera',
-  'Turbulencias a la vista',
-  'Naves más pesadas',
-  '¡Prepárate para girar!',
-  'Caos total',
-  'Cada vez más rápido…',
-  '¿Hasta dónde llegas?',
+  /*tr*/ 'Sobrevive el mayor tiempo posible',
+  /*tr*/ 'Llegan las naves enemigas',
+  /*tr*/ 'Se acelera',
+  /*tr*/ 'Turbulencias a la vista',
+  /*tr*/ 'Naves más pesadas',
+  /*tr*/ '¡Prepárate para girar!',
+  /*tr*/ 'Caos total',
+  /*tr*/ 'Cada vez más rápido…',
+  /*tr*/ '¿Hasta dónde llegas?',
 ];
 /* Avisos de los niveles donde empieza algo nuevo (los demás usan SURV_TIPS) */
 export const SURV_TIP_AT = {
-  5: '¡Giros de 360° y cometas! Mira de dónde vienen',
-  9: 'En el nivel 10 te espera un jefe',
-  10: 'Menos naves, más asteroides',
-  15: '¡Arcoíris! Todo gira y se mueve más rápido',
-  20: '¡Locura total! Cometas a toda velocidad',
+  5: /*tr*/ '¡Giros de 360° y cometas! Mira de dónde vienen',
+  9: /*tr*/ 'En el nivel 10 te espera un jefe',
+  10: /*tr*/ 'Menos naves, más asteroides',
+  15: /*tr*/ '¡Arcoíris! Todo gira y se mueve más rápido',
+  20: /*tr*/ '¡Locura total! Cometas a toda velocidad',
 };
 /* La "locura" de Supervivencia entra por niveles */
 export const CHAOS_LVL = 5; // giros de 360°, cometas lentos, la pista se mueve más y los colores van cambiando
@@ -197,11 +197,11 @@ export const BTN_SPEED = 270;
 export const SPR = 120;
 export const SPZ = -2400; // radio del área de vuelo · distancia donde nacen los obstáculos
 export const SPACE_TIPS = [
-  'Más rápido',
-  'Campo de asteroides',
-  'El universo gira',
-  'Cuidado con las vigas',
-  '¡Sigue así, piloto!',
+  /*tr*/ 'Más rápido',
+  /*tr*/ 'Campo de asteroides',
+  /*tr*/ 'El universo gira',
+  /*tr*/ 'Cuidado con las vigas',
+  /*tr*/ '¡Sigue así, piloto!',
 ];
 /* -- PORTALES: en cada cambio de fase o nivel la pista cruza un portal -- */
 export const WARP_T = 1.2;

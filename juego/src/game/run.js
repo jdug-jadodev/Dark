@@ -1,5 +1,6 @@
 /** Partida nueva, generadores (rocas, paredes, monedas, cápsulas), partículas y avance ambiental. */
 import { G } from '../core/state.js';
+import { tr } from '../core/i18n.js';
 import { FLIP_AT, LVL, SHIP_DEF, SPAWN, SY, W, WALLS } from '../core/config.js';
 import { clamp, rand, roll, rollIn, seedTrack, vrand } from '../core/util.js';
 import { survivalMap } from '../core/worlds.js';
@@ -187,7 +188,7 @@ export function spawnWall(v) {
   G.pops.push({
     x: W / 2,
     y: 60,
-    text: '¡Sigue el camino!',
+    text: tr('¡Sigue el camino!'),
     life: 1.4,
     col: '#ffb454',
   });

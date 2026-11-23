@@ -4,13 +4,14 @@
  */
 import { owns } from '../core/garage.js';
 import { goal, goalLeft, goalPct } from '../core/goal.js';
+import { locale, tr } from '../core/i18n.js';
 import { events } from '../core/season.js';
 import { accountOffer, openAccount } from './account.js';
 import { $ } from './dom.js';
 import { openGarageAt } from './garage.js';
 import { T } from './icons.js';
 
-export const num = (n) => n.toLocaleString('es-CO');
+export const num = (n) => n.toLocaleString(locale());
 
 export function renderNews() {
   const g = goal(),
@@ -23,14 +24,17 @@ export function renderNews() {
       '">{target}<span><b>' +
       g.name +
       '</b> ' +
-      (left ? 'te faltan {coin} ' + num(left) : '¡ya te alcanza!') +
+      (left ? tr('te faltan {coin} {n}', { n: num(left) }) : tr('¡ya te alcanza!')) +
       '<i class="bar"><i style="width:' +
       goalPct() +
       '%"></i></i></span></button>'
     : ''; // sin meta no se pide nada: marcarla es opcional, desde el taller
   /* una sola vez, cuando ya hay algo que perder: la invitación a guardar el progreso */
   if (accountOffer())
-    h += '<button class="lchip" data-acct="1">{cloud}<span><b>Guarda tu progreso</b> para no perderlo</span></button>';
+    h +=
+      '<button class="lchip" data-acct="1">{cloud}<span>' +
+      tr('<b>Guarda tu progreso</b> para no perderlo') +
+      '</span></button>';
   /* dos avisos como mucho, para no tapar la nave: primero lo que vale hoy */
   for (const e of events(owns).slice(0, 2))
     h += e.part
@@ -44,10 +48,10 @@ export function goalBlock() {
   if (!g) return '';
   const left = goalLeft();
   return (
-    '<div class="mini goalline">{target} <b>Tu meta: ' +
-    g.name +
+    '<div class="mini goalline">{target} <b>' +
+    tr('Tu meta: {name}', { name: g.name }) +
     '</b> · ' +
-    (left ? 'te faltan {coin} ' + num(left) : '¡ya te alcanza! Búscala en el taller.') +
+    (left ? tr('te faltan {coin} {n}', { n: num(left) }) : tr('¡ya te alcanza! Búscala en el taller.')) +
     '<div class="pbar"><i style="width:' +
     goalPct() +
     '%"></i></div></div>'

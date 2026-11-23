@@ -3,6 +3,7 @@
  * del lobby. Cada mapa se muestra con una foto pequeña de cómo se ve (ui/mapThumbs.js).
  * La elección se recuerda (S.survMap): es la que usan "Jugar de nuevo" y la copa.
  */
+import { tr } from '../core/i18n.js';
 import { S, save } from '../core/profile.js';
 import { WORLDS } from '../core/worlds.js';
 import { $ } from './dom.js';
@@ -16,12 +17,20 @@ function render() {
     list = maps(),
     sel = (id) => (cur === id ? ' sel' : '');
   $('mapBox').innerHTML = T(
-    '<h2>{timer} Supervivencia</h2><div class="sub">Elige el mapa, o deja que te sorprenda. Las reglas son las mismas en todos.</div>' +
+    '<h2>' +
+      tr('{timer} Supervivencia') +
+      '</h2><div class="sub">' +
+      tr('Elige el mapa, o deja que te sorprenda. Las reglas son las mismas en todos.') +
+      '</div>' +
       '<button class="mcard wide' +
       sel('azar') +
       '" data-map="azar"><span class="mosaic">' +
       list.map((w) => '<i class="th-' + w.id + '"></i>').join('') +
-      '<u>?</u></span><span><b>Al azar</b><small>No sabes cuál te va a tocar</small></span></button>' +
+      '<u>?</u></span><span><b>' +
+      tr('Al azar') +
+      '</b><small>' +
+      tr('No sabes cuál te va a tocar') +
+      '</small></span></button>' +
       '<div class="mgrid">' +
       list
         .map(
@@ -37,7 +46,9 @@ function render() {
             '</b></button>',
         )
         .join('') +
-      '</div><button class="btn alt" data-map="">Cerrar</button>',
+      '</div><button class="btn alt" data-map="">' +
+      tr('Cerrar') +
+      '</button>',
   );
 }
 export function openMaps() {

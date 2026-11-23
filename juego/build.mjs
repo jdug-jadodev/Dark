@@ -8,6 +8,7 @@
  *   --musica <carpeta>             de dónde tomar la música grabada (por defecto musica/)
  */
 import { build } from 'esbuild';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -34,8 +35,10 @@ if (js.includes('</script')) throw new Error('El código contiene "</script": ro
 const css = fs.readFileSync(path.join(here, 'estilos.css'), 'utf8');
 /* los {iconos} escritos en index.html se vuelven dibujos aquí, al construir */
 const { T } = await import(pathToFileURL(path.join(here, 'src/ui/icons.js')).href);
-const template = T(fs.readFileSync(path.join(here, 'index.html'), 'utf8'));
-for (const mark of ['/*__CSS__*/', '<!--__SONG__-->', '/*__JS__*/']) {
+/* y el nombre del juego (core/brand.js) entra donde index.html dice __GAME__ */
+const { GAME } = await import(pathToFileURL(path.join(here, 'src/core/brand.js')).href);
+const template = T(fs.readFileSync(path.join(here, 'index.html'), 'utf8')).replaceAll('__GAME__', GAME);
+for (const mark of ['<!--__CSP__-->', '/*__CSS__*/', '<!--__SONG__-->', '/*__JS__*/']) {
   if (!template.includes(mark)) throw new Error(`index.html no tiene la marca ${mark}`);
 }
 /* Música grabada: los temas que haya en musica/ (los escribe tools/grabar-musica.mjs) van dentro
@@ -64,10 +67,37 @@ function trackTags(all) {
   return { tags, names };
 }
 const game = trackTags(false);
-const html = template
+const page = template
   .replace('/*__CSS__*/', () => css.trim())
   .replace('<!--__SONG__-->', () => game.tags)
   .replace('/*__JS__*/', () => js.trim());
+
+/* Política de contenido: qué puede cargar y ejecutar la página. Es la segunda barrera: si algún
+   texto de fuera lograra colarse como HTML, igual no podría ejecutar código ni mandar datos a otro lado.
+     - código: solo el del juego (por su huella exacta: cambiarle una letra lo invalida), Three.js
+       del CDN (en el laboratorio) o del archivo incluido (en la app). Nada de onclick= ni eval.
+     - conexiones: solo el servidor del juego, y localhost para las pruebas en el computador.
+     - nada de marcos, complementos, formularios ni <base>.
+   La app la aprieta más al compilar (app/android/build.gradle.kts): quita el CDN y localhost. */
+const { API_URL } = await import(pathToFileURL(path.join(here, 'src/core/config.js')).href);
+const inline = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+if (inline.length !== 1) throw new Error(`Esperaba un solo <script> en línea y hay ${inline.length}`);
+/* la huella se calcula como la lee el navegador: con los saltos de línea normalizados */
+const hash = crypto.createHash('sha256').update(inline[0].replace(/\r\n?/g, '\n'), 'utf8').digest('base64');
+const policy = [
+  "default-src 'none'",
+  `script-src 'self' https://cdnjs.cloudflare.com 'sha256-${hash}'`,
+  "style-src 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "media-src 'self' data: blob:",
+  "font-src 'self' data:",
+  `connect-src ${new URL(API_URL).origin} http://localhost:* http://127.0.0.1:*`,
+  "frame-src 'none'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join('; ');
+const html = page.replace('<!--__CSP__-->', () => `<meta http-equiv="Content-Security-Policy" content="${policy}">`);
 
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);

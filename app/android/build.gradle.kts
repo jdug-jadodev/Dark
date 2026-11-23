@@ -13,6 +13,13 @@ val cuenta = Properties().apply {
 }
 val googleClientId: String = cuenta.getProperty("googleClientId", "").trim()
 
+/* firma.properties (no se sube al repositorio): dónde está la llave con la que se firma lo que
+   se sube a Google Play, y sus claves. Sin ese archivo, la versión de publicación no se firma. */
+val firma = Properties().apply {
+    val file = rootProject.file("firma.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.giroestelar"
     compileSdk = 36
@@ -33,8 +40,22 @@ android {
 
     buildFeatures { buildConfig = true }
 
+    signingConfigs {
+        if (firma.getProperty("storeFile") != null) {
+            create("publicacion") {
+                storeFile = file(firma.getProperty("storeFile"))
+                storePassword = firma.getProperty("storePassword")
+                keyAlias = firma.getProperty("keyAlias")
+                keyPassword = firma.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("publicacion")
+        }
     }
 }
 
@@ -48,6 +69,8 @@ dependencies {
     implementation("androidx.credentials:credentials:1.5.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    /* cobros con Google Play (la tienda obliga a usar una versión vigente de esta librería) */
+    implementation("com.android.billingclient:billing:9.1.0")
     testImplementation(kotlin("test"))
 }
 
@@ -64,11 +87,25 @@ val syncGame by tasks.registering {
     inputs.file(source)
     outputs.file(target)
     doLast {
-        val cdn = Regex("""<script src="https://[^"]*three[^"]*"></script>""")
-        val html = source.readText()
+        val cdn = Regex("""<script src="https://[^"]*three[^"]*"[^>]*></script>""")
+        var html = source.readText()
         check(cdn.containsMatchIn(html)) { "No encontré la etiqueta de Three.js en demo-juego.html" }
+        html = html.replace(cdn, """<script src="three.min.js"></script>""")
+        /* La política de contenido de la página (juego/build.mjs) se aprieta para la app: aquí no
+           hay CDN ni pruebas en el computador, así que el código solo sale de la app misma y las
+           conexiones solo van al servidor del juego. (La app de pruebas con un servidor de pruebas
+           configurado le agrega ese servidor al abrir la página: ver MainActivity.) */
+        for (extra in listOf(" https://cdnjs.cloudflare.com", " http://localhost:* http://127.0.0.1:*")) {
+            check(html.contains(extra)) { "La política de contenido de demo-juego.html no trae '$extra': revisa juego/build.mjs" }
+            html = html.replace(extra, "")
+        }
+        check(html.contains("""http-equiv="Content-Security-Policy"""")) { "demo-juego.html no trae política de contenido" }
+        /* nada de código traído de internet dentro de la app: todo va incluido */
+        check(!Regex("""src\s*=\s*["']?(https?:)?//""").containsMatchIn(html)) {
+            "El juego todavía carga algo de internet (src=\"http…\"): en la app todo debe ir incluido"
+        }
         target.parentFile.mkdirs()
-        target.writeText(html.replace(cdn, """<script src="three.min.js"></script>"""))
+        target.writeText(html)
     }
 }
 tasks.named("preBuild") { dependsOn(syncGame) }

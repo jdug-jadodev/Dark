@@ -2,6 +2,7 @@
 import { WORLDS, worldsDone } from '../core/worlds.js';
 import { GOAL } from '../core/config.js';
 import { missionsDone, streakNow } from '../core/daily.js';
+import { tr } from '../core/i18n.js';
 import { owns } from '../core/garage.js';
 import { PARTS } from '../core/parts.js';
 import { S } from '../core/profile.js';
@@ -17,7 +18,7 @@ const top = (title, list, show) =>
   '</b>' +
   (list.length
     ? list.map((v, i) => '<div><span>' + MEDAL[i] + '</span><b>' + show(v) + '</b></div>').join('')
-    : '<div><span>Aún sin partidas</span><b>—</b></div>') +
+    : '<div><span>' + tr('Aún sin partidas') + '</span><b>—</b></div>') +
   '</div>';
 function render() {
   const parts = Object.keys(PARTS),
@@ -28,27 +29,33 @@ function render() {
     '<div class="grid">' +
     '<div><b>' +
     worldsDone() +
-    '</b><span>Mundos (de ' +
-    WORLDS.length +
-    ')</span></div>' +
+    '</b><span>' +
+    tr('Mundos (de {total})', { total: WORLDS.length }) +
+    '</span></div>' +
     '<div><b>' +
     (S.bossWins || 0) +
-    '</b><span>Jefes vencidos</span></div>' +
+    '</b><span>' +
+    tr('Jefes vencidos') +
+    '</span></div>' +
     '<div><b>' +
     streak +
-    '</b><span>Racha (' +
-    (streak === 1 ? 'día' : 'días') +
-    ')</span></div>' +
+    '</b><span>' +
+    (streak === 1 ? tr('Racha (día)') : tr('Racha (días)')) +
+    '</span></div>' +
     '<div><b>' +
     missionsDone() +
-    '/3</b><span>Misiones hoy</span></div></div>' +
-    top('{timer} Supervivencia: mejores tiempos', S.topTimes || [], fmt) +
-    top('{planet} Viaje espacial: mejores distancias', S.topSpace || [], (v) => v + ' km') +
-    '<div class="top"><div><span>{puzzle} Piezas de la nave</span><b>' +
-    mine +
-    ' de ' +
-    parts.length +
-    '</b></div><div><span>{calendar} Días que has jugado</span><b>' +
+    '/3</b><span>' +
+    tr('Misiones hoy') +
+    '</span></div></div>' +
+    top(tr('{timer} Supervivencia: mejores tiempos'), S.topTimes || [], fmt) +
+    top(tr('{planet} Viaje espacial: mejores distancias'), S.topSpace || [], (v) => v + ' km') +
+    '<div class="top"><div><span>' +
+    tr('{puzzle} Piezas de la nave') +
+    '</span><b>' +
+    tr('{n} de {total}', { n: mine, total: parts.length }) +
+    '</b></div><div><span>' +
+    tr('{calendar} Días que has jugado') +
+    '</span><b>' +
     daysPlayed() +
     '</b></div></div>';
   tok('statsBox');

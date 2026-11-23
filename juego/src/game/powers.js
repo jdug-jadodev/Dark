@@ -1,5 +1,6 @@
 /** Cápsulas, poderes y armas: aplicar, disparar, láser, orbes, balas del jugador. */
 import { emit } from '../core/events.js';
+import { tr } from '../core/i18n.js';
 import { G } from '../core/state.js';
 import { CAPDEF, GUN_T, H, HULL_KIT, LASER_T, SPAWN, W } from '../core/config.js';
 import { ap } from '../core/difficulty.js';
@@ -30,11 +31,11 @@ function applyCap(type) {
   } else if (type === 'orbit') s.orbit = 11;
   else if (type === 'magnet') s.mag = 9;
   else if (type === 'nova') nova();
-  let text = d.t;
+  let text = tr(d.t);
   if (type === 'repair') {
     const g = Math.min(HULL_KIT, 100 - G.run.hull);
     G.run.hull += g;
-    text = g > 0 ? '{wrench} +' + g + '% casco' : '{wrench} Casco al máximo';
+    text = g > 0 ? tr('{wrench} +{n}% casco', { n: g }) : tr('{wrench} Casco al máximo');
   }
   emit(type === 'nova' ? 'nova' : 'power', type);
   G.pops.push({
@@ -135,7 +136,7 @@ export function updatePowers(dt) {
       G.pops.push({
         x: s.x,
         y: s.y - 30,
-        text: 'Arma agotada',
+        text: tr('Arma agotada'),
         life: 1,
         col: '#8fa0cc',
       });

@@ -54,6 +54,7 @@ class GameBridge(
     private val testApi: String = "",
     private val share: (String) -> Unit = {},
     private val account: AccountControl? = null,
+    private val store: StoreControl? = null,
 ) {
     @JavascriptInterface fun loadState(): String = host.loadState() ?: ""
     @JavascriptInterface fun saveState(json: String) { host.saveState(json) }
@@ -69,6 +70,8 @@ class GameBridge(
     @JavascriptInterface fun reminderOn(): Boolean = reminder.isOn()
     @JavascriptInterface fun noteStreak(days: Int) = reminder.noteStreak(days)
     @JavascriptInterface fun noteCup(rank: Int) = reminder.noteCup(rank)
+    /* el idioma que el jugador eligió en el juego, para que el aviso salga en el mismo */
+    @JavascriptInterface fun setLang(code: String) = reminder.noteLang(code.take(8))
 
     /** Compartir un texto (retar a los amigos) con la app que el jugador elija. */
     @JavascriptInterface fun share(text: String) = share.invoke(text.take(MAX_SHARE_CHARS))
@@ -79,6 +82,12 @@ class GameBridge(
     @JavascriptInterface fun secretGet(): String = account?.secret() ?: ""
     @JavascriptInterface fun secretSet(value: String) { account?.setSecret(value) }
 
+    /* tienda: cobrar con Google Play. Las respuestas llegan por window.__giroStore. Ver StoreAdapters.kt */
+    @JavascriptInterface fun storeReady(): Boolean = store?.ready() ?: false
+    @JavascriptInterface fun storeProducts(ids: String) { store?.products(ids) }
+    @JavascriptInterface fun storeBuy(id: String, uid: String) { store?.buy(id, uid) }
+    @JavascriptInterface fun storePending() { store?.pending() }
+
     private companion object { const val MAX_SHARE_CHARS = 500 }
 }
 
@@ -88,6 +97,7 @@ interface ReminderControl {
     fun isOn(): Boolean
     fun noteStreak(days: Int)
     fun noteCup(rank: Int)
+    fun noteLang(code: String)
 }
 
 /**

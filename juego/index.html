@@ -2,14 +2,26 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<!--__CSP__-->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#070b18">
-<title>Giro Estelar 3D – Demo</title>
+<title>__GAME__</title>
 <style>
 /*__CSS__*/
 </style>
 </head>
 <body>
+<!-- Pantalla del estudio: «IANEJ» sobre negro al abrir el juego, antes del menú (ver ui/studio.js).
+     Las letras son trazos dibujados, no texto: se ven igual en cualquier teléfono. -->
+<div id="studio" aria-hidden="true">
+  <svg viewBox="-12 -12 364 124">
+    <path pathLength="1" d="M6 0 V100"/>
+    <path pathLength="1" d="M40 100 L72 0 L104 100"/>
+    <path pathLength="1" d="M132 100 V0 L190 100 V0"/>
+    <path pathLength="1" d="M220 0 H270 M220 50 H262 M220 100 H270"/>
+    <path pathLength="1" d="M340 0 V68 A26 26 0 0 1 288 68"/>
+  </svg>
+</div>
 <div id="app">
   <div id="stage">
     <canvas id="cv"></canvas>
@@ -36,7 +48,7 @@
     <!-- Lobby (menú principal): la nave del jugador se ve al fondo, en el centro -->
     <div class="screen lobby show" id="menu">
       <div class="ltop">
-        <h1>Giro Estelar</h1>
+        <h1>__GAME__</h1>
         <div class="ltools">
           <button class="lbtn round" id="statsBtn" aria-label="Métricas">{stats}</button>
           <button class="lbtn round" data-open="settings" aria-label="Configuración">{gear}</button>
@@ -168,6 +180,7 @@
     <div class="screen" id="settings">
       <div class="card">
         <h2>{gear} Configuración</h2>
+        <div id="langRow"><div class="ctrl" id="lang"><span>{planet} Idioma:</span></div></div>
         <label class="vol"><span>{music} Música</span><input type="range" id="volMusic" min="0" max="100" step="5"><b id="volMusicN"></b></label>
         <label class="vol"><span>{sound} Efectos</span><input type="range" id="volSfx" min="0" max="100" step="5"><b id="volSfxN"></b></label>
         <div class="ctrl" id="gfx"><span>Gráficos:</span><button class="opt" data-gfx="auto">Auto</button><button class="opt" data-gfx="high">Alta</button><button class="opt" data-gfx="medium">Media</button><button class="opt" data-gfx="low">Baja</button></div>
@@ -196,6 +209,7 @@
       <div class="card">
         <h2>{cart} Tienda</h2>
         <div class="coins" id="shopCoins">{coin} 0</div>
+        <div class="shopmsg" id="shopMsg"></div>
         <div id="shopList"></div>
         <div class="note">Las monedas solo compran piezas de apariencia: nada de aquí da ventaja en el juego.</div>
         <button class="btn alt" id="shopClose">Cerrar</button>
@@ -227,7 +241,8 @@
   <div id="banner">Banner pequeño de anuncio · aquí iría AdMob (320×50)</div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- integrity: si el archivo del CDN no es exactamente el esperado, el navegador no lo ejecuta (en la app va incluido) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!--__SONG__-->
 <script>
 /*__JS__*/

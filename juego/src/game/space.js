@@ -1,5 +1,6 @@
 /** Modo Viaje espacial: vuelo libre, patrones de obstáculos, giro del universo. */
 import { emit } from '../core/events.js';
+import { tr } from '../core/i18n.js';
 import { G } from '../core/state.js';
 import { SENS, SPACE_TIPS, SPR, SPZ } from '../core/config.js';
 import { ease, pick, rand } from '../core/util.js';
@@ -193,7 +194,7 @@ function spacePattern(T) {
       x: SPC.x,
       y: SPC.y + 30,
       z: -60,
-      text: '¡Busca el hueco!',
+      text: tr('¡Busca el hueco!'),
       life: 1.6,
       col: '#ffb454',
     });
@@ -217,7 +218,7 @@ function spacePattern(T) {
       x: SPC.x,
       y: SPC.y + 30,
       z: -60,
-      text: '¡Viga giratoria!',
+      text: tr('¡Viga giratoria!'),
       life: 1.4,
       col: '#ff6b8a',
     });
@@ -245,7 +246,7 @@ export function spaceUpdate(dt) {
   if (sec !== SPC.sector) {
     SPC.sector = sec;
     G.run.coins += 5;
-    showToast('Sector ' + sec, pick(SPACE_TIPS) + ' · +5 {coin}');
+    showToast(tr('Sector {n}', { n: sec }), tr(pick(SPACE_TIPS)) + ' · +5 {coin}');
     emit('phase');
   }
   /* el universo gira lento, cada vez más */
@@ -281,7 +282,7 @@ export function spaceUpdate(dt) {
       SPC.spinOff = 0;
     }
   }
-  $('warnTxt').textContent = '¡VUELTA 360°!';
+  $('warnTxt').textContent = tr('¡VUELTA 360°!');
   $('warn').classList.toggle('show', warn);
   if (warn) emit('alarm');
   SPC.spawnT -= dt;
@@ -324,7 +325,7 @@ export function spaceUpdate(dt) {
         x: SPC.x,
         y: SPC.y + 18,
         z: 0,
-        text: '¡CASI! +1',
+        text: tr('¡CASI! +{n}', { n: 1 }),
         life: 1,
         col: '#6ef2a5',
       });

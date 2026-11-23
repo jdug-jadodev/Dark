@@ -1,5 +1,6 @@
 /** Jefes intermedio y final: movimiento, ataques al azar, armas que caen, naves de apoyo. */
 import { updateBlasts, zone } from './blasts.js';
+import { tr } from '../core/i18n.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import {
@@ -115,7 +116,7 @@ function startAtk(b) {
     G.pops.push({
       x: b.x,
       y: b.y + 60,
-      text: '¡CUIDADO!',
+      text: tr('¡CUIDADO!'),
       life: 1,
       col: '#ffffff',
     });
@@ -198,7 +199,7 @@ function tickAtk(b, dt) {
         G.pops.push({
           x: W / 2,
           y: 220,
-          text: '¡Sigue el camino!',
+          text: tr('¡Sigue el camino!'),
           life: 1.2,
           col: '#ffb454',
         });
@@ -294,7 +295,7 @@ function tickAtk(b, dt) {
       dur = 3.8;
       if (!A.done) {
         A.done = true;
-        G.pops.push({ x: W / 2, y: 230, text: '¡TE TRAGA! Tira hacia atrás', life: 1.6, col: '#ff8a3c' });
+        G.pops.push({ x: W / 2, y: 230, text: tr('¡TE TRAGA! Tira hacia atrás'), life: 1.6, col: '#ff8a3c' });
       }
       b.pull = A.t < 3.3 ? Math.min(1, A.t / 0.4) : 0;
       if (b.pull) {
@@ -373,7 +374,7 @@ export function startMini() {
   G.run.wb.t = -1;
   for (const e of G.en) e.life = Math.min(e.life, 0);
   $('hud').classList.add('boss');
-  showToast('¡JEFE INTERMEDIO!', 'Vigía Ámbar · recoge armas y derríbalo');
+  showToast(tr('¡JEFE INTERMEDIO!'), tr('{name} · recoge armas y derríbalo', { name: NAME.mini }));
   emit('bossIntro');
 }
 export function endMini() {
@@ -394,7 +395,7 @@ export function endMini() {
   G.pops.push({
     x: W / 2,
     y: 240,
-    text: '¡JEFE DERROTADO! +30 · +20 {coin}',
+    text: tr('¡JEFE DERROTADO! +30 · +20 {coin}'),
     life: 1.8,
     col: '#ffd54a',
   });
@@ -403,7 +404,7 @@ export function endMini() {
 /* ---------- Jefes de Supervivencia: uno cada 10 niveles ----------
    Salen por turnos el Vigía y el Centinela, cada vez con más aguante. El jugador tiene un
    tiempo para derribarlo (premio: monedas, reparación y un escudo); si no, el jefe se retira. */
-const NAME = { mini: 'Vigía Ámbar', final: 'Centinela del Vacío' };
+const NAME = { mini: tr('Vigía Ámbar'), final: tr('Centinela del Vacío') };
 export const bossName = (b) => NAME[b.kind];
 /* el jefe espera a que la pantalla esté quieta y sin cometas ni paredes a la vista */
 export const survBossFree = () =>
@@ -424,7 +425,10 @@ export function startSurvBoss() {
   R.stage = 'mini';
   for (const e of G.en) e.life = Math.min(e.life, 0);
   $('hud').classList.add('boss');
-  showToast('¡JEFE DEL NIVEL ' + b.lv + '!', NAME[kind] + ' · derríbalo antes de que se vaya');
+  showToast(
+    tr('¡JEFE DEL NIVEL {n}!', { n: b.lv }),
+    tr('{name} · derríbalo antes de que se vaya', { name: NAME[kind] }),
+  );
   emit('bossIntro');
 }
 /* Avanza la pelea. Mientras dura, el nivel no sube (el tiempo aguantado sí sigue contando). */
@@ -454,7 +458,7 @@ function endSurvBoss(win) {
     G.pops.push({
       x: W / 2,
       y: 240,
-      text: '¡JEFE DERROTADO! +' + b.prize + ' {coin}' + (fix ? ' · {wrench} +' + fix + '%' : ''),
+      text: tr('¡JEFE DERROTADO! +{n} {coin}', { n: b.prize }) + (fix ? ' · {wrench} +' + fix + '%' : ''),
       life: 1.8,
       col: '#ffd54a',
     });
@@ -462,7 +466,7 @@ function endSurvBoss(win) {
   } else {
     explode(b.x, b.y, '#9fb0e0', 18);
     emit('phase');
-    G.pops.push({ x: W / 2, y: 240, text: 'El jefe se retiró', life: 1.6, col: '#9aa8cc' });
+    G.pops.push({ x: W / 2, y: 240, text: tr('El jefe se retiró'), life: 1.6, col: '#9aa8cc' });
   }
   G.eb.length = 0;
   R.boss = null;
@@ -492,7 +496,7 @@ export function beginBoss() {
   G.run.phase = -1;
   G.angle = 0;
   $('hud').classList.add('boss');
-  showToast(G.run.world ? '¡EL JEFE DE ESTE MUNDO!' : '¡JEFE FINAL!', G.run.boss.name || 'Centinela del Vacío');
+  showToast(G.run.world ? tr('¡EL JEFE DE ESTE MUNDO!') : tr('¡JEFE FINAL!'), G.run.boss.name || NAME.final);
   emit('bossIntro');
 }
 export function updateBoss(dt) {
@@ -514,8 +518,8 @@ export function updateBoss(dt) {
   if (ph !== G.run.phase) {
     if (G.run.phase !== -1)
       showToast(
-        'Fase ' + (ph + 1) + ' de 3',
-        ['', 'Ataques nuevos y naves de apoyo', '¡Todo vale! No te detengas'][ph],
+        tr('Fase {n} de 3', { n: ph + 1 }),
+        ['', tr('Ataques nuevos y naves de apoyo'), tr('¡Todo vale! No te detengas')][ph],
       );
     if (G.run.phase !== -1) emit('phase');
     G.run.phase = ph;
@@ -526,7 +530,7 @@ export function updateBoss(dt) {
   }
   let ang = 0,
     warn = false,
-    wtxt = '¡GIRA EL CELU!';
+    wtxt = tr('¡GIRA EL CELU!');
   if (G.run.flipStart !== null) {
     const x = bt - G.run.flipStart;
     if (x < 0) warn = true;
@@ -535,7 +539,7 @@ export function updateBoss(dt) {
       ang = Math.PI;
       if (x > 7.1) {
         warn = true;
-        wtxt = '¡VUELVE A LA NORMALIDAD!';
+        wtxt = tr('¡VUELVE A LA NORMALIDAD!');
       }
     } else if (x < 10.2) ang = Math.PI * (1 - ease((x - 8.6) / 1.6));
     else G.run.flipStart = null;

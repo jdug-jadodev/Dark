@@ -19,6 +19,7 @@ import {
   summary,
   syncAtStart,
 } from '../core/account.js';
+import { locale, tr } from '../core/i18n.js';
 import { S, saveQuiet } from '../core/profile.js';
 import { G } from '../core/state.js';
 import { fmt } from '../core/util.js';
@@ -40,10 +41,11 @@ let view = 'home', // 'home' | 'busy' | 'choose' | 'confirm'
 /* hace cuánto fue algo, en palabras */
 function ago(at) {
   const s = Math.max(0, Math.floor((Date.now() - at) / 1000));
-  if (s < 90) return 'hace un momento';
-  if (s < 3600) return 'hace ' + Math.round(s / 60) + ' minutos';
-  if (s < 86400 * 2) return 'hace ' + Math.round(s / 3600) + ' horas';
-  return 'hace ' + Math.round(s / 86400) + ' días';
+  if (s < 90) return tr('hace un momento');
+  if (s < 3600) return tr('hace {n} minutos', { n: Math.round(s / 60) });
+  if (s < 5400) return tr('hace 1 hora');
+  if (s < 86400 * 2) return tr('hace {n} horas', { n: Math.round(s / 3600) });
+  return tr('hace {n} días', { n: Math.round(s / 86400) });
 }
 /* la tarjeta de un progreso, para comparar */
 function card(title, d, pick, when) {
@@ -52,61 +54,98 @@ function card(title, d, pick, when) {
     '<div class="acard"><b>' +
     title +
     '</b>' +
-    (when ? '<small>guardado ' + ago(when) + '</small>' : '<small>&nbsp;</small>') +
+    (when ? '<small>' + tr('guardado {ago}', { ago: ago(when) }) + '</small>' : '<small>&nbsp;</small>') +
     '<div class="arank">' +
     x.medal.icon +
     '<span>' +
     x.medal.label +
-    '<small>nivel ' +
-    x.level +
+    '<small>' +
+    tr('nivel {n}', { n: x.level }) +
     '</small></span></div><div class="arow">{coin} ' +
-    x.coins.toLocaleString('es-CO') +
+    x.coins.toLocaleString(locale()) +
     '</div><div class="arow">{puzzle} ' +
-    x.pieces +
-    ' piezas</div><div class="arow">{rocket} ' +
-    x.worlds +
-    ' mundos</div><div class="arow">{timer} ' +
+    (x.pieces === 1 ? tr('1 pieza') : tr('{n} piezas', { n: x.pieces })) +
+    '</div><div class="arow">{rocket} ' +
+    (x.worlds === 1 ? tr('1 mundo') : tr('{n} mundos', { n: x.worlds })) +
+    '</div><div class="arow">{timer} ' +
     (x.best ? fmt(x.best) : '—') +
     '</div><button class="btn" data-acct="' +
     pick +
-    '">Usar este</button></div>'
+    '">' +
+    tr('Usar este') +
+    '</button></div>'
   );
 }
 function render() {
-  let h = '<h2>{cloud} Tu progreso</h2>';
-  if (view === 'busy') h += '<div class="sub">' + (note || 'Un momento…') + '</div>';
+  let h = '<h2>' + tr('{cloud} Tu progreso') + '</h2>';
+  if (view === 'busy') h += '<div class="sub">' + (note || tr('Un momento…')) + '</div>';
   else if (view === 'choose')
     h +=
-      '<div class="sub">Hay dos progresos distintos: el de este teléfono y el que está guardado en tu cuenta. Elige con cuál te quedas; el otro se reemplaza.</div><div class="apick">' +
-      card('En este teléfono', cloudCopy(), 'local', 0) +
-      card('En tu cuenta', other.data, 'cloud', other.at) +
-      '</div><button class="btn alt" data-acct="later">Decidir después</button>';
+      '<div class="sub">' +
+      tr(
+        'Hay dos progresos distintos: el de este teléfono y el que está guardado en tu cuenta. Elige con cuál te quedas; el otro se reemplaza.',
+      ) +
+      '</div><div class="apick">' +
+      card(tr('En este teléfono'), cloudCopy(), 'local', 0) +
+      card(tr('En tu cuenta'), other.data, 'cloud', other.at) +
+      '</div><button class="btn alt" data-acct="later">' +
+      tr('Decidir después') +
+      '</button>';
   else if (view === 'confirm')
     h +=
-      '<div class="sub">¿Borrar tu cuenta y todo lo que está guardado en la nube? Lo que tienes en este teléfono se queda aquí, pero ya no estará a salvo si lo pierdes o reinstalas.</div>' +
-      '<button class="btn danger" data-acct="delete">Sí, borrar mi cuenta</button><button class="btn alt" data-acct="home">No, volver</button>';
+      '<div class="sub">' +
+      tr(
+        '¿Borrar tu cuenta y todo lo que está guardado en la nube? Lo que tienes en este teléfono se queda aquí, pero ya no estará a salvo si lo pierdes o reinstalas.',
+      ) +
+      ' ' +
+      tr('Para confirmar te pediremos entrar con Google otra vez.') +
+      '</div>' +
+      '<button class="btn danger" data-acct="delete">' +
+      tr('Sí, borrar mi cuenta') +
+      '</button><button class="btn alt" data-acct="home">' +
+      tr('No, volver') +
+      '</button>';
   else if (signedIn())
     h +=
-      '<div class="astate ok">{check} Tu progreso se guarda en tu cuenta de Google</div><div class="sub">' +
+      '<div class="astate ok">' +
+      tr('{check} Tu progreso se guarda en tu cuenta de Google') +
+      '</div><div class="sub">' +
       (pendingUpload()
-        ? 'Hay cambios por subir.'
+        ? tr('Hay cambios por subir.')
         : lastSync()
-          ? 'Último guardado: ' + ago(lastSync()) + '.'
-          : 'Todavía no se ha guardado.') +
-      ' Si cambias de teléfono o reinstalas, entra con la misma cuenta y lo recuperas.</div>' +
+          ? tr('Último guardado: {ago}.', { ago: ago(lastSync()) })
+          : tr('Todavía no se ha guardado.')) +
+      ' ' +
+      tr('Si cambias de teléfono o reinstalas, entra con la misma cuenta y lo recuperas.') +
+      '</div>' +
       (note ? '<div class="note">' + note + '</div>' : '') +
-      '<button class="btn" data-acct="push">{cloud} Guardar ahora</button>' +
-      '<button class="btn alt" data-acct="out">Cerrar sesión</button>' +
-      '<button class="btn alt" data-acct="close">Listo</button>' +
-      '<button class="alink" data-acct="confirm">Borrar mi cuenta y lo guardado</button>';
+      '<button class="btn" data-acct="push">' +
+      tr('{cloud} Guardar ahora') +
+      '</button>' +
+      '<button class="btn alt" data-acct="out">' +
+      tr('Cerrar sesión') +
+      '</button>' +
+      '<button class="btn alt" data-acct="close">' +
+      tr('Listo') +
+      '</button>' +
+      '<button class="alink" data-acct="confirm">' +
+      tr('Borrar mi cuenta y lo guardado') +
+      '</button>';
   else
     h +=
-      '<div class="sub">Entra con Google y tu progreso queda guardado: si cambias de teléfono o reinstalas el juego, lo recuperas.</div>' +
-      '<div class="note">{lock} No vemos tu contraseña ni guardamos tu correo o tu nombre. Es opcional: sin cuenta juegas igual.</div>' +
+      '<div class="sub">' +
+      tr('Entra con Google y tu progreso queda guardado: si cambias de teléfono o reinstalas el juego, lo recuperas.') +
+      '</div>' +
+      '<div class="note">' +
+      tr('{lock} No vemos tu contraseña ni guardamos tu correo o tu nombre. Es opcional: sin cuenta juegas igual.') +
+      '</div>' +
       (note ? '<div class="note warn">' + note + '</div>' : '') +
       '<button class="btn gbtn" data-acct="in">' +
       GOOGLE +
-      'Continuar con Google</button><button class="btn alt" data-acct="close">Ahora no</button>';
+      tr('Continuar con Google') +
+      '</button><button class="btn alt" data-acct="close">' +
+      tr('Ahora no') +
+      '</button>';
   $('acctBox').innerHTML = T(h);
 }
 const show = (v, text = '') => {
@@ -134,24 +173,24 @@ export const accountOffer = () => accountAvailable() && !signedIn() && !S.acctSe
 export function renderAccountRow() {
   const on = signedIn();
   $('acctRow').style.display = accountAvailable() ? '' : 'none';
-  $('acctOpen').innerHTML = T(on ? '{check} Guardado en tu cuenta' : '{cloud} Guardar mi progreso');
+  $('acctOpen').innerHTML = T(on ? tr('{check} Guardado en tu cuenta') : tr('{cloud} Guardar mi progreso'));
   $('acctOpen').classList.toggle('ok', on);
   $('acctNote').textContent = on
-    ? 'Se sube solo cada vez que juegas. Toca para ver cuándo se guardó o cerrar sesión.'
-    : 'Entra con Google para no perderlo si cambias de teléfono o reinstalas el juego.';
+    ? tr('Se sube solo cada vez que juegas. Toca para ver cuándo se guardó o cerrar sesión.')
+    : tr('Entra con Google para no perderlo si cambias de teléfono o reinstalas el juego.');
 }
 
 const WHY = {
-  net: 'No se pudo conectar. Revisa tu internet e intenta de nuevo.',
-  cancel: 'No se completó el inicio de sesión.',
-  denied: 'Google no confirmó la cuenta. Intenta de nuevo.',
+  net: tr('No se pudo conectar. Revisa tu internet e intenta de nuevo.'),
+  cancel: tr('No se completó el inicio de sesión.'),
+  denied: tr('Google no confirmó la cuenta. Intenta de nuevo.'),
 };
 async function act(a) {
   if (a === 'close' || a === 'later') return void closeAccount();
   if (a === 'home') return show('home');
   if (a === 'confirm') return show('confirm');
   if (a === 'in') {
-    show('busy', 'Entrando con Google…');
+    show('busy', tr('Entrando con Google…'));
     const r = await signIn();
     if (!r.ok) return show('home', WHY[r.why]);
     if (r.result === 'choose') {
@@ -161,34 +200,52 @@ async function act(a) {
     return show(
       'home',
       r.result === 'saved'
-        ? 'Listo: tu progreso quedó guardado.'
+        ? tr('Listo: tu progreso quedó guardado.')
         : r.result === 'same'
-          ? 'Tu progreso ya estaba guardado en tu cuenta.'
+          ? tr('Tu progreso ya estaba guardado en tu cuenta.')
           : '',
     );
   }
   if (a === 'push') {
-    show('busy', 'Guardando…');
+    show('busy', tr('Guardando…'));
     const r = await push();
-    return show('home', r === 'net' ? WHY.net : r === 'ok' || r === 'idle' ? 'Guardado.' : '');
+    return show('home', r === 'net' ? WHY.net : r === 'ok' || r === 'idle' ? tr('Guardado.') : '');
   }
   if (a === 'out') {
-    show('busy', 'Cerrando sesión…');
-    await signOut();
-    return show('home', 'Sesión cerrada. Tu progreso sigue en este teléfono.');
+    show('busy', tr('Cerrando sesión…'));
+    const closed = await signOut();
+    return show(
+      'home',
+      closed
+        ? tr('Sesión cerrada. Tu progreso sigue en este teléfono.')
+        : tr(
+            'No se pudo confirmar el cierre de sesión (sin conexión). Tu sesión sigue abierta: intenta de nuevo con internet.',
+          ),
+    );
   }
   if (a === 'delete') {
-    show('busy', 'Borrando tu cuenta…');
-    const ok = await deleteAccount();
-    return show('home', ok ? 'Tu cuenta y lo guardado en la nube se borraron.' : WHY.net);
+    show('busy', tr('Confirma con Google para borrar tu cuenta…'));
+    const r = await deleteAccount();
+    return show(
+      'home',
+      r === 'ok'
+        ? tr('Tu cuenta y lo guardado en la nube se borraron.')
+        : r === 'cancel'
+          ? tr('No se borró nada: faltó confirmar con Google.')
+          : r === 'denied'
+            ? tr('No se borró nada: Google no confirmó que esta cuenta sea tuya.')
+            : r === 'out'
+              ? tr('Tu sesión ya estaba cerrada y no se borró nada. Entra de nuevo para borrar la cuenta.')
+              : WHY.net,
+    );
   }
   if (a === 'local' || a === 'cloud') {
     const cloud = other;
     other = null;
-    show('busy', a === 'cloud' ? 'Trayendo tu progreso…' : 'Guardando el de este teléfono…');
+    show('busy', a === 'cloud' ? tr('Trayendo tu progreso…') : tr('Guardando el de este teléfono…'));
     if (a === 'cloud') return keepCloud(cloud); // el juego vuelve a arrancar con ese progreso
     const r = await keepLocal(cloud);
-    return show('home', r === 'ok' ? 'Listo: quedó el de este teléfono.' : WHY.net);
+    return show('home', r === 'ok' ? tr('Listo: quedó el de este teléfono.') : WHY.net);
   }
 }
 export function bootAccountScreen(refresh) {

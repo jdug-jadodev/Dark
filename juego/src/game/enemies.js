@@ -1,5 +1,6 @@
 /** Naves enemigas: aparición, escuadrones, disparos y balas enemigas. */
 import { emit } from '../core/events.js';
+import { tr } from '../core/i18n.js';
 import { G } from '../core/state.js';
 import { H, HULL_SHIP, SPAWN, W } from '../core/config.js';
 import { ap, flipping, heavyMax, pace, shotRest } from '../core/difficulty.js';
@@ -25,7 +26,7 @@ export function hitEnemy(e, d) {
     G.pops.push({
       x: e.x,
       y: e.y,
-      text: '¡DESTRUIDA! +' + p,
+      text: tr('¡DESTRUIDA! +{n}', { n: p }),
       life: 1.1,
       col: '#ffd54a',
     });
@@ -43,7 +44,7 @@ export function spawnEnemy(inBoss, ex) {
     G.pops.push({
       x: W / 2,
       y: 60,
-      text: '¡Naves enemigas!',
+      text: tr('¡Naves enemigas!'),
       life: 1.2,
       col: '#ff6b8a',
     });

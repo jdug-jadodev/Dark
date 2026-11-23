@@ -1,11 +1,13 @@
 /** Anuncio con recompensa (simulado). En la app se reemplazará por AdMob. */
+import { tr } from '../core/i18n.js';
 import { noAds } from '../core/shop.js';
 import { $ } from './dom.js';
+import { T } from './icons.js';
 /* ---------- Anuncio simulado ---------- */
 let adCb = null;
 let adTimer = null;
 /* lo que dice un botón que da algo a cambio de un anuncio; quien compró "Sin anuncios" lo recibe directo */
-export const adTag = () => (noAds() ? '' : ' (anuncio)');
+export const adTag = () => (noAds() ? '' : ' ' + tr('(anuncio)'));
 /* sin anuncios (comprado, o mientras dure el mes): desaparece la franja de abajo */
 export function applyNoAds() {
   $('banner').style.display = noAds() ? 'none' : '';
@@ -15,9 +17,9 @@ export function showAd(label, cb) {
     cb();
     return;
   }
-  $('adLabel').textContent = label;
+  $('adLabel').innerHTML = T(label); // el rótulo lo arma el juego (trae {iconos}), nunca texto de fuera
   $('adBtn').disabled = true;
-  $('adBtn').textContent = 'Espera…';
+  $('adBtn').textContent = tr('Espera…');
   let n = 3;
   $('adCount').textContent = n;
   $('adFill').style.width = '0%';
@@ -31,7 +33,7 @@ export function showAd(label, cb) {
     if (n <= 0) {
       clearInterval(adTimer);
       $('adBtn').disabled = false;
-      $('adBtn').textContent = 'Recibir recompensa';
+      $('adBtn').textContent = tr('Recibir recompensa');
     }
   }, 1000);
 }

@@ -14,6 +14,7 @@ private class FakeReminderStore : ReminderStore {
     override var unanswered = 0
     override var streak = 0
     override var cupRank = 0
+    override var lang = ""
 }
 
 private class FakeAlarm : ReminderAlarm {
@@ -118,5 +119,31 @@ class RemindersTest {
         )
         reminders.noteCup(0)
         assertEquals("Hoy las monedas valen el doble. Y tu cofre te está esperando.", reminders.alarmFired(day(26, 19)))
+    }
+
+    @Test
+    fun `el aviso sale en el idioma que el jugador eligio en el juego`() {
+        reminders.gameOpened(day(20, 10))
+        reminders.setEnabled(true, day(20, 10))
+        reminders.noteLang("en")
+        assertEquals("Today's chest is ready and there are 3 new missions.", reminders.alarmFired(day(21, 19)))
+        reminders.noteLang("pt")
+        reminders.noteStreak(4)
+        assertEquals("Sua sequência de 4 dias está esperando: abra o baú de hoje.", reminders.alarmFired(day(22, 19)))
+    }
+
+    @Test
+    fun `un idioma desconocido se ignora y no cambia el que habia`() {
+        reminders.noteLang("en")
+        reminders.noteLang("<script>")
+        reminders.noteLang("")
+        assertEquals("Challenge my friends", reminders.texts.share)
+    }
+
+    @Test
+    fun `si el juego no ha dicho su idioma se usa el del telefono, y si no se conoce, ingles`() {
+        assertEquals("Desafiar meus amigos", Reminders(FakeReminderStore(), FakeAlarm(), "pt").texts.share)
+        assertEquals("Challenge my friends", Reminders(FakeReminderStore(), FakeAlarm(), "ja").texts.share)
+        assertEquals("es", Texts.code("es", "en"))
     }
 }

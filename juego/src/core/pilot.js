@@ -20,6 +20,7 @@
  * Premio de cada nivel: monedas; en cada ascenso, además una pieza (cada vez más rara).
  */
 import { giftPiece } from './daily.js';
+import { tr } from './i18n.js';
 import { RARITY } from './parts.js';
 import { S, save } from './profile.js';
 
@@ -30,14 +31,14 @@ const oldXpFor = (lv) => 80 + (lv - 1) * 40;
 
 /* ---------- medallas ---------- */
 export const MEDALS = [
-  { name: 'Bronce', from: 1 },
-  { name: 'Plata', from: 5 },
-  { name: 'Oro', from: 10 },
-  { name: 'Platino', from: 15 },
-  { name: 'Diamante', from: 20 },
-  { name: 'Maestro', from: 25 },
-  { name: 'Leyenda', from: 30 },
-  { name: 'Cósmico', from: 35 },
+  { name: tr('Bronce'), from: 1 },
+  { name: tr('Plata'), from: 5 },
+  { name: tr('Oro'), from: 10 },
+  { name: tr('Platino'), from: 15 },
+  { name: tr('Diamante'), from: 20 },
+  { name: tr('Maestro'), from: 25 },
+  { name: tr('Leyenda'), from: 30 },
+  { name: tr('Cósmico'), from: 35 },
 ];
 const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
 /* la medalla de un nivel: { tier (0–7), name, icon, label ("Plata III") } */

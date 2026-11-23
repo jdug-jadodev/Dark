@@ -1,5 +1,6 @@
 /** Agujeros negros (atracción, succión, espagueti) y nitro. */
 import { goal } from '../core/difficulty.js';
+import { tr } from '../core/i18n.js';
 import { emit } from '../core/events.js';
 import { G } from '../core/state.js';
 import { BH_CORE, BH_PULL, GOAL, H, NITRO_COST, NITRO_T, SPAWN, SUCK_T, SY, W } from '../core/config.js';
@@ -22,13 +23,13 @@ export function spawnHole() {
   G.pops.push({
     x: h.x,
     y: 40,
-    text: '{hole} ¡AGUJERO NEGRO!',
+    text: tr('{hole} ¡AGUJERO NEGRO!'),
     life: 1.6,
     col: '#c792ff',
   });
   if (!G.run.bhSeen) {
     G.run.bhSeen = true;
-    showToast('{hole} Agujeros negros', 'Te atraen · escapa con {rocket} NITRO (se llena con cada ¡CASI!)');
+    showToast(tr('{hole} Agujeros negros'), tr('Te atraen · escapa con {rocket} NITRO (se llena con cada ¡CASI!)'));
   }
 }
 /* mueve los agujeros y atrae la nave; si llega al centro empieza la succión */
@@ -78,7 +79,7 @@ export function updateHoles(dt) {
       G.pops.push({
         x: G.ship.x,
         y: G.ship.y - 36,
-        text: '¡ESCAPE GRAVITATORIO! +4 {bolt}',
+        text: tr('¡ESCAPE GRAVITATORIO! +4 {bolt}'),
         life: 1.3,
         col: '#c792ff',
       });
@@ -99,7 +100,7 @@ function startSuck(h, d) {
   G.pops.push({
     x: h.x,
     y: h.y - 50,
-    text: '¡TE ESTÁ SUCCIONANDO!',
+    text: tr('¡TE ESTÁ SUCCIONANDO!'),
     life: 1.2,
     col: '#c792ff',
   });
@@ -128,7 +129,7 @@ export function updateSuck(dt) {
       max: 0.4,
       col: pick([G.ship.color, '#ffffff', '#c792ff']),
     });
-  $('warnTxt').innerHTML = T(G.run.nitro >= NITRO_COST ? '¡USA EL NITRO! {rocket}' : '¡SIN NITRO!');
+  $('warnTxt').innerHTML = T(G.run.nitro >= NITRO_COST ? tr('¡USA EL NITRO! {rocket}') : tr('¡SIN NITRO!'));
   $('warn').classList.add('show');
   emit('suck');
   if (p >= 1) {
@@ -147,7 +148,10 @@ export function updateSuck(dt) {
     emit('spaghetti');
     crash();
     $('crashInfo').innerHTML = T(
-      '{hole} Un agujero negro te hizo espagueti · ' + Math.floor(G.run.pts) + ' de ' + goal() + ' puntos',
+      tr('{hole} Un agujero negro te hizo espagueti · {n} de {total} puntos', {
+        n: Math.floor(G.run.pts),
+        total: goal(),
+      }),
     );
     return true;
   }
@@ -172,7 +176,7 @@ function escapeHole(free) {
   G.pops.push({
     x: G.ship.x,
     y: G.ship.y - 34,
-    text: free ? 'Modo demo: ¡escapaste!' : '¡ESCAPASTE! +5',
+    text: free ? tr('Modo demo: ¡escapaste!') : tr('¡ESCAPASTE! +5'),
     life: 1.4,
     col: '#b4ff5e',
   });
@@ -185,7 +189,7 @@ export function useNitro() {
     G.pops.push({
       x: G.ship.x,
       y: G.ship.y - 30,
-      text: 'Nitro insuficiente',
+      text: tr('Nitro insuficiente'),
       life: 0.9,
       col: '#8fa0cc',
     });
@@ -204,7 +208,7 @@ export function useNitro() {
   G.pops.push({
     x: G.ship.x,
     y: G.ship.y - 30,
-    text: '{rocket} ¡NITRO!',
+    text: tr('{rocket} ¡NITRO!'),
     life: 1,
     col: '#4fc3ff',
   });

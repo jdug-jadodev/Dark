@@ -23,7 +23,7 @@ const b = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 const open = async () => {
-  const ctx = await b.newContext({ viewport: { width: 390, height: 780 } });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 780 }, locale: 'es-CO' });
   await ctx.addInitScript(() => localStorage.setItem('giro_api', 'off')); // sin tocar el servidor
   const p = await ctx.newPage();
   await p.goto(game);

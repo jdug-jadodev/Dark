@@ -13,11 +13,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import com.giroestelar.MainActivity
 import com.giroestelar.R
+import com.giroestelar.application.AppTexts
 import com.giroestelar.application.ReminderAlarm
 import com.giroestelar.application.ReminderStore
 import com.giroestelar.application.Reminders
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Locale
 
 /** Lo que el recordatorio guarda entre un día y otro (SharedPreferences propio). */
 class PrefsReminderStore(context: Context) : ReminderStore {
@@ -37,6 +39,9 @@ class PrefsReminderStore(context: Context) : ReminderStore {
     override var cupRank: Int
         get() = prefs.getInt("cupRank", 0)
         set(v) = prefs.edit().putInt("cupRank", v).apply()
+    override var lang: String
+        get() = prefs.getString("lang", "") ?: ""
+        set(v) = prefs.edit().putString("lang", v).apply()
 }
 
 /**
@@ -67,7 +72,8 @@ class AndroidReminderAlarm(private val context: Context) : ReminderAlarm {
     }
 }
 
-fun reminders(context: Context) = Reminders(PrefsReminderStore(context), AndroidReminderAlarm(context))
+fun reminders(context: Context) =
+    Reminders(PrefsReminderStore(context), AndroidReminderAlarm(context), Locale.getDefault().language)
 
 /** ¿La app puede mostrar avisos? (desde Android 13 hay que pedir permiso) */
 fun canNotify(context: Context): Boolean =
@@ -84,14 +90,14 @@ class ReminderReceiver : BroadcastReceiver() {
             return
         }
         val text = rules.alarmFired(now) ?: return
-        if (canNotify(context)) show(context, text)
+        if (canNotify(context)) show(context, text, rules.texts)
     }
 
-    private fun show(context: Context, text: String) {
+    private fun show(context: Context, text: String, texts: AppTexts) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL, "Recordatorio diario", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Un aviso al día, solo si no has jugado"
+            NotificationChannel(CHANNEL, texts.channel, NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = texts.channelNote
             },
         )
         val open = PendingIntent.getActivity(
@@ -102,7 +108,7 @@ class ReminderReceiver : BroadcastReceiver() {
         )
         val notification = Notification.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_ship)
-            .setContentTitle("Giro Estelar")
+            .setContentTitle(context.getString(R.string.app_name))
             .setContentText(text)
             .setStyle(Notification.BigTextStyle().bigText(text))
             .setContentIntent(open)
