@@ -53,7 +53,7 @@ android {
         applicationId = "com.giroestelar"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
+        versionCode = 6
         versionName = "0.2.0"
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"" + googleClientId + "\"")
         buildConfigField("String", "API_URL", "\"" + apiUrl + "\"")
